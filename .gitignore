@@ -25,3 +25,4 @@ gradle-app.setting
 # Ignore build directories
 build/
 app/build/
+.kotlin/
