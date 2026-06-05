@@ -1,26 +1,49 @@
 # WeBeep Android
 
-I built this native Android client for Politecnico di Milano's WeBeep (Moodle) because the web version was getting quite slow on mobile, especially when trying to read big slide decks on the go. The main goal here was to make everything work offline so you don't need a connection to study on the metro.
+A native Android client for Politecnico di Milano's WeBeep (Moodle) platform, designed with an offline-first architecture to improve access to university resources.
 
-### What it does
+## Overview
 
-- **Works offline:** It caches courses and downloaded files using Room. You can basically use the app without internet once it syncs.
-- **SSO Login:** It hooks right into Polimi's SSO using Chrome Custom Tabs, so login is straightforward.
-- **Fast PDF rendering:** I spent a lot of time tweaking the PDF engine. It uses background pre-fetching and a custom Bitmap pool so you can scroll through heavy slides at 60fps without stuttering.
-- **Notifications:** There's a WorkManager job that checks the server periodically. If a professor uploads something new, you get a system notification.
-- **UI:** Everything is built from scratch with Jetpack Compose (Material 3, dark mode included).
+This project provides a mobile interface for students to access their WeBeep courses, view materials, and receive updates. It focuses on offline availability, security, and performance, specifically regarding the rendering of large academic documents.
 
-### Tech Details
+## Key Features
 
-If you want to poke around the code, the architecture is based on MVI and Clean Architecture. I used Coroutines and StateFlow for state management. For dependency injection, it's using Dagger Hilt. Network calls are handled by Retrofit and OkHttp.
+- **Offline Support**: Courses, sections, and downloaded files are cached locally using Room, allowing access without an active internet connection.
+- **SSO Authentication**: Integration with Politecnico di Milano's Single Sign-On via Chrome Custom Tabs.
+- **Custom PDF Engine**: Optimized PDF rendering pipeline using asynchronous pre-fetching and LRU Bitmap pooling to ensure smooth scrolling through heavy documents.
+- **Background Synchronization**: WorkManager periodic tasks handle background diffing, pushing system notifications when new materials are uploaded by professors.
+- **Modern UI**: Implemented entirely with Jetpack Compose following Material 3 guidelines, including dark mode support.
 
-### How to build
+## Architecture & Tech Stack
 
-1. Clone the repo
-2. Open it up in Android Studio (I'm using Koala, but newer versions should be fine).
-3. Make sure you have JDK 17.
-4. Let Gradle sync and hit run.
+The application follows the principles of Clean Architecture and MVI (Model-View-Intent).
 
-### Disclaimer
+- **UI**: Jetpack Compose
+- **State Management**: Kotlin Coroutines & StateFlow
+- **Dependency Injection**: Dagger Hilt
+- **Local Storage**: Room Database & Preferences DataStore
+- **Networking**: Retrofit2 & OkHttp
+- **Background Processing**: WorkManager
 
-Just to be clear, this is a completely unofficial app. I made it for myself and other students, it's not endorsed or maintained by Politecnico di Milano.
+## Setup and Installation
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/alethegoat/WeBeepAndroid.git
+   ```
+2. Open the project in Android Studio (Koala or newer recommended).
+3. Ensure JDK 17+ is installed.
+4. Sync Gradle and run the application.
+
+## Project Structure
+
+- `core`: Shared UI components, theme definitions, database DAOs, network DTOs, and DI setup.
+- `feature/auth`: Authentication flow and secure token management.
+- `feature/dashboard`: Course overview, filtering, and manual synchronization logic.
+- `feature/course`: Course content parsing and module traversal.
+- `feature/fileviewer`: PDF rendering engine and media viewer.
+- `feature/sync`: Background worker and notification dispatcher.
+
+## Disclaimer
+
+This is an unofficial client and is not affiliated with, maintained, or endorsed by Politecnico di Milano.
