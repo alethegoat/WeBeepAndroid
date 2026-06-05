@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">WeBeep</string>
+    <string name="login_title">Accedi a WeBeep</string>
+    <string name="login_button">Accedi con PoliMi</string>
+    <string name="courses_title">I miei corsi</string>
+    <string name="course_content_title">Contenuti del corso</string>
+    <string name="loading">Caricamento…</string>
+    <string name="error_generic">Si è verificato un errore. Riprova.</string>
+    <string name="error_network">Errore di rete. Controlla la connessione.</string>
+    <string name="retry">Riprova</string>
+    <string name="logout">Esci</string>
+    <string name="settings">Impostazioni</string>
+    <string name="download">Scarica</string>
+    <string name="download_complete">Download completato</string>
+    <string name="no_courses">Nessun corso trovato</string>
+    <string name="no_content">Nessun contenuto disponibile</string>
+
+    <!-- LoginScreen -->
+    <string name="politecnico_milano">Politecnico di Milano</string>
+    <string name="login_subtitle">Accedi al portale della didattica del PoliMi</string>
+    <string name="login_sso_button">Accedi con SSO</string>
+    <string name="login_browser_fallback">Problemi con l\'accesso? Apri nel browser</string>
+
+    <!-- DashboardScreen -->
+    <string name="hello_user">Ciao, %1$s</string>
+    <string name="courses_in_progress">Corsi in corso</string>
+    <string name="favorites">Preferiti</string>
+    <string name="dashboard_error_title">Impossibile caricare i corsi</string>
+    <string name="dashboard_empty_title">Nessun corso attivo</string>
+    <string name="dashboard_empty_subtitle">Non risultano corsi attivi per questo semestre.</string>
+    <string name="search_courses_placeholder">Cerca i tuoi corsi...</string>
+    <string name="clear_search">Cancella ricerca</string>
+    <string name="no_courses_found">Nessun corso trovato</string>
+    <string name="try_changing_filters">Prova a cambiare i filtri di ricerca</string>
+    <string name="no_courses_enrolled">Non risulti iscritto a nessun corso al momento</string>
+    <string name="reset_filters">Resetta Filtri</string>
+    <string name="refresh">Aggiorna</string>
+
+    <!-- CourseDetailScreen -->
+    <string name="course_empty_title">Corso vuoto</string>
+    <string name="course_empty_subtitle">Non ci sono materiali pubblicati in questo corso</string>
+    <string name="sync_error_title">Errore di sincronizzazione</string>
+    <string name="no_materials_section">Nessun materiale in questa sezione</string>
+    
+    <!-- Accessibilità -->
+    <string name="cd_back">Torna indietro</string>
+    <string name="cd_close">Chiudi</string>
+    <string name="cd_preview">Visualizza anteprima</string>
+    <string name="cd_remove_fav">Rimuovi dai preferiti</string>
+    <string name="cd_add_fav">Aggiungi ai preferiti</string>
+    <string name="cd_user_avatar">Avatar utente</string>
+    <string name="cd_search">Cerca corsi</string>
+    <string name="cd_favorites">Filtra preferiti</string>
+    <string name="cd_login">Accedi con SSO</string>
+
+    <!-- FileViewerScreen -->
+    <string name="file_viewer_loading">Preparazione anteprima…</string>
+    <string name="file_viewer_image">Immagine</string>
+    <string name="file_viewer_web">Contenuto web</string>
+    <string name="file_viewer_pdf_pages">%1$d pagine</string>
+    <string name="file_viewer_page_label">Pagina %1$d di %2$d</string>
+    <string name="file_viewer_pinch_hint">Pizzica per ingrandire · Trascina per spostare</string>
+    <string name="file_viewer_image_error">Impossibile caricare l\'immagine</string>
+    <string name="file_viewer_error_title">Anteprima non disponibile</string>
+    <string name="file_viewer_external_title">Aperto in un\'altra app</string>
+    <string name="file_viewer_external_subtitle">%1$s non può essere mostrato qui. Usa un\'app compatibile sul dispositivo.</string>
+    <string name="file_viewer_open_again">Apri di nuovo</string>
+    <string name="file_viewer_open_with">Apri con…</string>
+</resources>

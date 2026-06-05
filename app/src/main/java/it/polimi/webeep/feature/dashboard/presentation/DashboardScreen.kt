@@ -1,0 +1,387 @@
+package it.polimi.webeep.feature.dashboard.presentation
+
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.material.icons.filled.CloudOff
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import it.polimi.webeep.core.ui.util.bouncyClickable
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
+import it.polimi.webeep.core.ui.util.ScrollBoundaryHaptics
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
+import androidx.compose.material.icons.filled.Book
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.FilterList
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.outlined.Star
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.material3.LargeTopAppBar
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberTopAppBarState
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import coil.compose.AsyncImage
+import it.polimi.webeep.R
+import it.polimi.webeep.core.ui.components.CourseCard
+import it.polimi.webeep.core.ui.components.EmptyStateView
+import it.polimi.webeep.core.ui.components.ShimmerCourseList
+
+/**
+ * dashboard screen composable.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun DashboardScreen(
+    viewModel: DashboardViewModel,
+    onCourseClick: (courseId: Int) -> Unit,
+    onLogoutSuccess: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val uiState by viewModel.uiState.collectAsState()
+    val isOnline by viewModel.isOnline.collectAsState()
+
+    var searchQuery by remember { mutableStateOf("") }
+    var courseFilter by remember { mutableStateOf(CourseFilter.Active) }
+
+    val haptic = LocalHapticFeedback.current
+    val lazyGridState = rememberLazyGridState()
+    val context = LocalContext.current
+
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
+
+    Scaffold(
+        modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+        topBar = {
+            LargeTopAppBar(
+                title = {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        val avatarUrl = (uiState as? DashboardUiState.Success)?.userAvatar ?: ""
+                        val userName = (uiState as? DashboardUiState.Success)?.userName ?: "Studente"
+                        
+                        AsyncImage(
+                            model = avatarUrl.ifEmpty { null },
+                            contentDescription = stringResource(R.string.cd_user_avatar),
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(CircleShape)
+                                .border(1.5.dp, MaterialTheme.colorScheme.secondary, CircleShape),
+                            contentScale = ContentScale.Crop
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column {
+                            Text(
+                                text = stringResource(R.string.app_name),
+                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                color = MaterialTheme.colorScheme.onPrimary
+                            )
+                            Text(
+                                text = stringResource(R.string.hello_user, userName),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
+                            )
+                        }
+                    }
+                },
+                actions = {
+                    IconButton(
+                        onClick = { viewModel.logout(onComplete = onLogoutSuccess) },
+                        colors = IconButtonDefaults.iconButtonColors(
+                            contentColor = MaterialTheme.colorScheme.onPrimary
+                        )
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ExitToApp,
+                            contentDescription = stringResource(R.string.logout)
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.85f),
+                    scrolledContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.95f),
+                    titleContentColor = MaterialTheme.colorScheme.onPrimary
+                ),
+                scrollBehavior = scrollBehavior
+            )
+        }
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .background(MaterialTheme.colorScheme.background)
+        ) {
+            val isCacheAvailable = (uiState as? DashboardUiState.Success)?.courses?.isNotEmpty() == true
+
+            // offline banner
+            AnimatedVisibility(
+                visible = !isOnline,
+                enter = expandVertically() + fadeIn(),
+                exit = shrinkVertically() + fadeOut()
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.9f))
+                        .padding(vertical = 8.dp, horizontal = 16.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.CloudOff,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onErrorContainer,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = if (isCacheAvailable) "Sei offline. Stai visualizzando i dati in cache." else "Nessuna connessione a Internet.",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onErrorContainer,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+            }
+
+            // search section
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+            ) {
+                TextField(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
+                    placeholder = { 
+                        Text(
+                            text = stringResource(R.string.search_courses_placeholder),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                        ) 
+                    },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.Search,
+                            contentDescription = stringResource(R.string.cd_search),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                            modifier = Modifier.size(20.dp)
+                        )
+                    },
+                    trailingIcon = {
+                        if (searchQuery.isNotEmpty()) {
+                            IconButton(onClick = { searchQuery = "" }) {
+                                Icon(
+                                    imageVector = Icons.Default.Close,
+                                    contentDescription = stringResource(R.string.clear_search),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp),
+                    singleLine = true,
+                    shape = CircleShape,
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                        focusedIndicatorColor = Color.Transparent,
+                        unfocusedIndicatorColor = Color.Transparent,
+                        disabledIndicatorColor = Color.Transparent
+                    ),
+                    textStyle = MaterialTheme.typography.bodyMedium
+                )
+            }
+
+            // course filter segmented control
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 6.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+                    .padding(4.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                val filters = listOf(
+                    CourseFilter.Active to "In corso",
+                    CourseFilter.Past to "Passati",
+                    CourseFilter.All to "Tutti"
+                )
+                filters.forEach { (filter, label) ->
+                    val isSelected = courseFilter == filter
+                    val background = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent
+                    val contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                    
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(background)
+                            .bouncyClickable { courseFilter = filter }
+                            .padding(vertical = 8.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = label,
+                            style = MaterialTheme.typography.bodyMedium.copy(
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                            ),
+                            color = contentColor
+                        )
+                    }
+                }
+            }
+
+            Box(modifier = Modifier.weight(1f)) {
+                when (val state = uiState) {
+                    is DashboardUiState.Loading -> {
+                        ShimmerCourseList()
+                    }
+                    is DashboardUiState.Success -> {
+                        // optimization: filtered courses cache to prevent lag during scroll
+                        val filteredCourses = remember(state.courses, searchQuery, courseFilter) {
+                            state.courses.filter { course ->
+                                val matchesSearch = course.fullname.contains(searchQuery, ignoreCase = true) ||
+                                        course.shortname.contains(searchQuery, ignoreCase = true)
+                                
+                                val now = System.currentTimeMillis() / 1000
+                                val matchesFilter = when (courseFilter) {
+                                    CourseFilter.All -> true
+                                    CourseFilter.Active -> course.endDate == 0L || course.endDate >= now
+                                    CourseFilter.Past -> course.endDate != 0L && course.endDate < now
+                                }
+                                matchesSearch && matchesFilter
+                            }
+                        }
+
+                        PullToRefreshBox(
+                            isRefreshing = state.isRefreshing,
+                            onRefresh = {
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                viewModel.refresh()
+                            },
+                            modifier = Modifier.fillMaxSize()
+                        ) {
+                            if (filteredCourses.isEmpty()) {
+                                EmptyStateView(
+                                    icon = Icons.Default.Book,
+                                    title = stringResource(R.string.no_courses_found),
+                                    subtitle = if (searchQuery.isNotEmpty() || courseFilter != CourseFilter.Active) {
+                                        stringResource(R.string.try_changing_filters)
+                                    } else {
+                                        stringResource(R.string.no_courses_enrolled)
+                                    },
+                                    actionLabel = if (searchQuery.isNotEmpty() || courseFilter != CourseFilter.Active) stringResource(R.string.reset_filters) else stringResource(R.string.refresh),
+                                    onAction = {
+                                        if (searchQuery.isNotEmpty() || courseFilter != CourseFilter.Active) {
+                                            searchQuery = ""
+                                            courseFilter = CourseFilter.Active
+                                        } else {
+                                            viewModel.refresh()
+                                        }
+                                    }
+                                )
+                            } else {
+                                // activates haptic feedback at the scrolling limits of the courses grid
+                                ScrollBoundaryHaptics(state = lazyGridState)
+
+                                LazyVerticalGrid(
+                                    state = lazyGridState,
+                                    columns = GridCells.Adaptive(minSize = 300.dp),
+                                    contentPadding = PaddingValues(16.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                                    modifier = Modifier.fillMaxSize()
+                                ) {
+                                    items(
+                                        items = filteredCourses,
+                                        key = { it.id },
+                                        contentType = { "course_card" }
+                                    ) { course ->
+                                        CourseCard(
+                                            course = course,
+                                            onClick = { onCourseClick(course.id) },
+                                            modifier = Modifier.animateItem()
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    is DashboardUiState.Error -> {
+                        EmptyStateView(
+                            icon = Icons.Default.Warning,
+                            title = stringResource(R.string.dashboard_error_title),
+                            subtitle = state.message,
+                            actionLabel = stringResource(R.string.retry),
+                            onAction = { viewModel.loadCourses() }
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+enum class CourseFilter {
+    Active, Past, All
+}

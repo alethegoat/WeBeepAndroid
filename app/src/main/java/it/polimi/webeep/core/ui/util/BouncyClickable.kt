@@ -1,0 +1,73 @@
+package it.polimi.webeep.core.ui.util
+
+import android.os.SystemClock
+import android.view.HapticFeedbackConstants
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.PressInteraction
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.composed
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalView
+import kotlinx.coroutines.flow.collectLatest
+
+/**
+ * a modifier that provides tactile feedback via a slight elastic compression (scale-down)
+ * when the element is touched.
+ * it automatically includes a debounce mechanism to prevent double clicks and multitouch bugs
+ * by ignoring subsequent clicks that occur within [debouncems] milliseconds.
+ */
+fun Modifier.bouncyClickable(
+    debounceMs: Long = 250L,
+    enabled: Boolean = true,
+    onClick: () -> Unit
+): Modifier = composed {
+    var isPressed by remember { mutableStateOf(false) }
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.96f else 1f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
+        label = "BouncyClickScale"
+    )
+
+    val view = LocalView.current
+    val interactionSource = remember { MutableInteractionSource() }
+    var lastClickTime by remember { mutableStateOf(0L) }
+
+    LaunchedEffect(interactionSource) {
+        interactionSource.interactions.collectLatest { interaction ->
+            when (interaction) {
+                is PressInteraction.Press -> isPressed = true
+                is PressInteraction.Release -> isPressed = false
+                is PressInteraction.Cancel -> isPressed = false
+            }
+        }
+    }
+
+    this
+        .graphicsLayer {
+            scaleX = scale
+            scaleY = scale
+        }
+        .clickable(
+            interactionSource = interactionSource,
+            indication = null, // removes the classic gray ripple for a cleaner look
+            enabled = enabled,
+            onClick = {
+                val now = SystemClock.uptimeMillis()
+                if (now - lastClickTime >= debounceMs) {
+                    lastClickTime = now
+                    onClick()
+                }
+            }
+        )
+}
+
