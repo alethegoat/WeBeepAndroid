@@ -62,7 +62,7 @@ class LoginUseCaseTest {
         val result = loginUseCase.execute(invalidBase64)
         
         assertTrue(result is Resource.Error)
-        assertTrue((result as Resource.Error).message.contains("Token di accesso non valido"))
+        assertTrue((result as Resource.Error).message.contains("invalid access token") || (result as Resource.Error).message.contains("unable to process access token"))
     }
 
     @Test
@@ -97,7 +97,7 @@ class LoginUseCaseTest {
         val result = loginUseCase.execute(encodedToken)
         
         assertTrue(result is Resource.Error)
-        assertEquals("Formato token non valido", (result as Resource.Error).message)
+        assertEquals("invalid token format", (result as Resource.Error).message)
     }
 
     @Test

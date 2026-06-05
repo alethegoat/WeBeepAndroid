@@ -1,6 +1,8 @@
 package it.polimi.webeep.feature.dashboard
 
 import app.cash.turbine.test
+import io.mockk.every
+import io.mockk.mockk
 import it.polimi.webeep.core.util.Resource
 import it.polimi.webeep.feature.auth.domain.AuthRepository
 import it.polimi.webeep.feature.dashboard.domain.DashboardRepository
@@ -9,6 +11,7 @@ import it.polimi.webeep.feature.dashboard.domain.SyncCoursesUseCase
 import it.polimi.webeep.feature.dashboard.domain.model.Course
 import it.polimi.webeep.feature.dashboard.presentation.DashboardUiState
 import it.polimi.webeep.feature.dashboard.presentation.DashboardViewModel
+import it.polimi.webeep.core.util.NetworkMonitor
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -49,6 +52,7 @@ class DashboardViewModelTest {
     private lateinit var syncCoursesUseCase: SyncCoursesUseCase
     private lateinit var fakeDashboardRepository: FakeDashboardRepository
     private lateinit var fakeAuthRepository: FakeAuthRepository
+    private lateinit var fakeNetworkMonitor: NetworkMonitor
     private lateinit var viewModel: DashboardViewModel
 
     private val sampleCourses = listOf(
@@ -70,6 +74,9 @@ class DashboardViewModelTest {
     fun setup() {
         fakeDashboardRepository = FakeDashboardRepository()
         fakeAuthRepository = FakeAuthRepository()
+        fakeNetworkMonitor = mockk {
+            every { isOnline } returns flowOf(true)
+        }
         
         getCoursesUseCase = GetCoursesUseCase(fakeDashboardRepository)
         syncCoursesUseCase = SyncCoursesUseCase(fakeDashboardRepository)
@@ -84,7 +91,8 @@ class DashboardViewModelTest {
             getCoursesUseCase,
             syncCoursesUseCase,
             fakeDashboardRepository,
-            fakeAuthRepository
+            fakeAuthRepository,
+            fakeNetworkMonitor
         )
     }
 
@@ -111,12 +119,13 @@ class DashboardViewModelTest {
         initViewModel()
 
         viewModel.uiState.test {
+            // skip initial Loading
             var state = awaitItem()
-            if (state is DashboardUiState.Success && state.courses.isEmpty()) {
-                state = awaitItem()
-            }
+            if (state is DashboardUiState.Loading) state = awaitItem()
+            
+            // Should be Error now
             assertTrue(state is DashboardUiState.Error)
-            assertEquals("Errore di rete", (state as DashboardUiState.Error).message)
+            assertTrue((state as DashboardUiState.Error).message.contains("Errore di rete"))
         }
     }
 

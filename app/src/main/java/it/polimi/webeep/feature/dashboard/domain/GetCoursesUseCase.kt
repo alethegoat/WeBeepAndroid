@@ -42,17 +42,16 @@ class GetCoursesUseCase @Inject constructor(
         val syncResult = repository.syncCourses()
         isSyncing = false
 
-        syncResult.onFailure { throwable ->
+        syncResult.onSuccess {
+            val isCacheEmpty = lastCachedCourses?.isEmpty() ?: true
+            if (isCacheEmpty) {
+                send(Resource.Success(emptyList()))
+            }
+        }.onFailure { throwable ->
             val isCacheEmpty = lastCachedCourses?.isEmpty() ?: true
             if (isCacheEmpty) {
                 send(Resource.Error(throwable.localizedMessage ?: "Nessun dato locale disponibile ed errore di rete", throwable))
             }
-        }
-
-        // if the synchronization is finished and the cache is empty, we show the empty state
-        val isCacheEmpty = lastCachedCourses?.isEmpty() ?: true
-        if (isCacheEmpty) {
-            send(Resource.Success(emptyList()))
         }
 
         // keeps the flow active

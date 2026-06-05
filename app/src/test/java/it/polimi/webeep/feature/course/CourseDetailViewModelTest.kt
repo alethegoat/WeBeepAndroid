@@ -63,11 +63,13 @@ class CourseDetailViewModelTest {
                     modName = "resource",
                     iconUrl = "icon.png",
                     description = "Course Details",
+                    url = "https://webeep.polimi.it",
                     files = listOf(
                         FileResource(
                             filename = "syllabus.pdf",
+                            filepath = "/",
                             fileUrl = "https://webeep.polimi.it/webservice/pluginfile.php/123/syllabus.pdf",
-                            fileSize = 204800, // 200 KB
+                            fileSize = 204800L, // 200 KB
                             mimeType = "application/pdf",
                             timeModified = 1000L
                         )
