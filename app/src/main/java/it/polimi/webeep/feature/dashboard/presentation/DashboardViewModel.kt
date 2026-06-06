@@ -51,6 +51,8 @@ class DashboardViewModel @Inject constructor(
             initialValue = true
         )
 
+    // internal view model state mapping all ui properties
+    // this avoids creating separate mutable states for every piece of the ui
     private data class VmState(
         val userName: String = "Studente",
         val userAvatar: String = "",
@@ -92,10 +94,11 @@ class DashboardViewModel @Inject constructor(
     private suspend fun loadUserInfo() {
         dashboardRepository.getUserInfo().fold(
             onSuccess = { (name, avatar) ->
+                // update internal state on success
                 _vmState.update { it.copy(userName = name, userAvatar = avatar) }
             },
             onFailure = {
-                // ignore, use default values
+                // ignore on failure, just use the default fallback values
             }
         )
     }

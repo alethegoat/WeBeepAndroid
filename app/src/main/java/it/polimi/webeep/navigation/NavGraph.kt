@@ -63,6 +63,7 @@ fun NavGraph(
             ) + fadeOut(animationSpec = tween(350))
         }
     ) {
+        // login entry point without token
         composable(route = Screen.Login.route) {
             LoginEntry(
                 token = null,
@@ -70,6 +71,7 @@ fun NavGraph(
             )
         }
 
+        // login entry point invoked via sso deep link containing the token
         composable(
             route = Screen.Login.routeWithToken,
             arguments = listOf(
@@ -93,6 +95,7 @@ fun NavGraph(
                     navController.navigate(Screen.CourseDetail.createRoute(courseId))
                 },
                 onLogoutSuccess = {
+                    // clear the backstack when logging out to prevent going back to the dashboard
                     navController.navigate(Screen.Login.route) {
                         popUpTo(navController.graph.findStartDestination().id) {
                             inclusive = true

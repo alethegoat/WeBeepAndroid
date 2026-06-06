@@ -155,7 +155,7 @@ class CourseDetailViewModel @Inject constructor(
     }
 
     fun downloadFile(file: FileUiModel) {
-        // cancel any previous download for the same file
+        // cancel any previous download for the same file to prevent duplicates
         downloadJobs[file.fileUrl]?.cancel()
 
         val job = viewModelScope.launch {
@@ -194,6 +194,7 @@ class CourseDetailViewModel @Inject constructor(
     }
 
     private fun updateFileDownloadState(fileUrl: String, newState: DownloadState) {
+        // recursively update the ui state by replacing only the affected file
         _uiState.update { state ->
             if (state is CourseDetailUiState.Success) {
                 val updatedSections = state.sections.map { section ->
@@ -261,6 +262,7 @@ class CourseDetailViewModel @Inject constructor(
             .trim('.')
             .ifBlank { "file" }
 
+        // append a hash of the url to the local filename to ensure uniqueness
         val hash = Integer.toHexString(fileUrl.hashCode())
         val dotIndex = sanitized.lastIndexOf('.')
         return if (dotIndex > 0 && dotIndex < sanitized.lastIndex - 1) {
