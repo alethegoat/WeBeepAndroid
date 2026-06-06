@@ -85,9 +85,8 @@ import kotlin.math.roundToInt
 import androidx.compose.ui.platform.LocalConfiguration
 import android.content.res.Configuration
 
-/**
- * main screen for viewing various file types.
- */
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FileViewerScreen(
@@ -105,18 +104,60 @@ fun FileViewerScreen(
 
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+    val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
 
     Scaffold(
-        modifier = modifier,
+        modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
-        // removed topbar from scaffold to put it in overlay (immersive mode)
-
+        topBar = {
+            if (!isLandscape) {
+                TopAppBar(
+                    title = {
+                        Column {
+                            Text(
+                                text = viewModel.title,
+                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            pageSubtitle?.let { subtitle ->
+                                Text(
+                                    text = subtitle,
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                        }
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = onBackClick) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = stringResource(R.string.cd_back)
+                            )
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
+                        scrolledContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f)
+                    ),
+                    scrollBehavior = scrollBehavior
+                )
+            }
+        }
     ) { innerPadding ->
         Box(modifier = Modifier.fillMaxSize()) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    // no inner padding! content takes full screen (zero-clutter)
+                    .padding(
+                        if (uiState is FileViewerUiState.Image || uiState is FileViewerUiState.Media) 
+                            PaddingValues(0.dp) 
+                        else 
+                            innerPadding
+                    )
             ) {
                 when (val state = uiState) {
                     FileViewerUiState.Loading -> FileViewerLoading()
@@ -147,49 +188,7 @@ fun FileViewerScreen(
                 }
             }
             
-            // floating glassmorphic topbar / back button
-            if (!isLandscape) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.85f))
-                        // .blur(16.dp) // optional: blur if sdk>=31
-                ) {
-                    TopAppBar(
-                        title = {
-                            Column {
-                                Text(
-                                    text = viewModel.title,
-                                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                                pageSubtitle?.let { subtitle ->
-                                    Text(
-                                        text = subtitle,
-                                        style = MaterialTheme.typography.labelMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
-                                }
-                            }
-                        },
-                        navigationIcon = {
-                            IconButton(onClick = onBackClick) {
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                    contentDescription = stringResource(R.string.cd_back)
-                                )
-                            }
-                        },
-                        colors = TopAppBarDefaults.topAppBarColors(
-                            containerColor = androidx.compose.ui.graphics.Color.Transparent, // background is managed by box
-                            scrolledContainerColor = androidx.compose.ui.graphics.Color.Transparent
-                        )
-                    )
-                }
-            } else {
+            if (isLandscape) {
                 IconButton(
                     onClick = onBackClick,
                     modifier = Modifier
