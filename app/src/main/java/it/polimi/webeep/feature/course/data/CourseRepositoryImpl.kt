@@ -53,7 +53,7 @@ class CourseRepositoryImpl @Inject constructor(
                 val filteredModules = sectionDto.modules
                     .filter { it.modname in allowedModules }
                     .map { moduleDto ->
-                        val files = moduleDto.contents?.map { contentDto ->
+                        val files = moduleDto.contents?.filter { it.type != "dir" && it.filename != "index.html" }?.map { contentDto ->
                             // convert url to webservice/pluginfile.php if it contains /pluginfile.php/
                             val rawUrl = contentDto.fileurl ?: ""
                             val convertedUrl = if (rawUrl.contains("/webservice/pluginfile.php/")) {

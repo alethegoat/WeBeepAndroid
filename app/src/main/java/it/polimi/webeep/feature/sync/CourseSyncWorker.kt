@@ -133,7 +133,8 @@ class CourseSyncWorker @AssistedInject constructor(
 
                                     mod.contents?.forEach { content ->
                                         // ignore empty directories from moodle api (they cause fake files and false notifications)
-                                        if (content.type == "dir") return@forEach
+                                        // ignore index.html which is an internal moodle wrapper for URL/Page modules
+                                        if (content.type == "dir" || content.filename == "index.html") return@forEach
 
                                         courseFilesCount++
                                         val filename = MoodleText.parse(content.filename ?: "Senza nome")
