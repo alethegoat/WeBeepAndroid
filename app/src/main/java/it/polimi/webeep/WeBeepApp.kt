@@ -32,6 +32,7 @@ fun WeBeepApp(
     var startDestination by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(initialDeepLinkToken) {
+        // determine the initial screen based on whether we have a deep link or an active session
         startDestination = when {
             initialDeepLinkToken != null -> Screen.Login.createRoute(initialDeepLinkToken)
             tokenManager.isLoggedIn.first() -> Screen.Dashboard.route

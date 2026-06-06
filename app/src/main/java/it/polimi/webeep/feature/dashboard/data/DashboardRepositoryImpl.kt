@@ -42,7 +42,7 @@ class DashboardRepositoryImpl @Inject constructor(
         return runCatching {
             val token = tokenManager.getToken() ?: throw IllegalStateException("Token non disponibile. Effettua il login.")
             
-            // retrieves or updates the user id
+            // retrieves or updates the user id to prepare for the course api call
             var userId = tokenManager.getUserId()
             if (userId == null) {
                 val siteInfo = apiService.getSiteInfo(wsToken = token)
@@ -94,7 +94,7 @@ class DashboardRepositoryImpl @Inject constructor(
             val token = tokenManager.getToken() ?: throw IllegalStateException("Token non disponibile")
             val siteInfo = apiService.getSiteInfo(wsToken = token)
             
-            // converts the user image to support the token
+            // converts the user image to support the token in case it's a private file
             val avatarUrl = if (siteInfo.userpictureurl.contains("/pluginfile.php/")) {
                 MoodleFileUrlBuilder.buildAuthenticatedUrl(siteInfo.userpictureurl, token)
             } else {

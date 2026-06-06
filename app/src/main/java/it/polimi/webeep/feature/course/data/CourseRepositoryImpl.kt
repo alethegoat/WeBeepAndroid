@@ -161,6 +161,7 @@ class CourseRepositoryImpl @Inject constructor(
                 }
             }
 
+            // delete existing sections and insert the fresh data fetched from the api
             contentDao.deleteSectionsByCourse(courseId)
             contentDao.insertSections(sectionEntities)
             contentDao.insertModules(moduleEntities)
@@ -180,6 +181,7 @@ class CourseRepositoryImpl @Inject constructor(
                 val modules = swm.modules.map { mwc ->
                     val moduleEntity = mwc.module
                     val files = mwc.contents.map { ce ->
+                        // append the ws token if present to authenticate file downloads automatically
                         val fileUrl = if (token != null) {
                             MoodleFileUrlBuilder.buildAuthenticatedUrl(ce.fileUrl, token)
                         } else {

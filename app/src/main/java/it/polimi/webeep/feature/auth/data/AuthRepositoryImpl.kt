@@ -16,6 +16,7 @@ class AuthRepositoryImpl @Inject constructor(
 ) : AuthRepository {
 
     override suspend fun validateToken(token: String): Result<SiteInfoDto> {
+        // attempt to retrieve the user's site info; if it fails, the token is considered invalid
         return runCatching {
             apiService.getSiteInfo(wsToken = token)
         }
