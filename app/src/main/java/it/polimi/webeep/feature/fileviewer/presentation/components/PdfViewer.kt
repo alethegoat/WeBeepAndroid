@@ -56,6 +56,8 @@ import androidx.compose.ui.input.pointer.positionChanged
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.sync.Mutex
@@ -71,7 +73,8 @@ import kotlin.math.roundToInt
 fun PdfViewer(
     file: File,
     pageCount: Int,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    ioDispatcher: CoroutineDispatcher = Dispatchers.IO
 ) {
     var scale by remember { mutableStateOf(1f) }
     var offsetX by remember { mutableStateOf(0f) }
@@ -93,6 +96,7 @@ fun PdfViewer(
             page.close()
             ratio
         } catch (e: Exception) {
+            if (e is CancellationException) throw e
             1f / 1.414f // fallback a4
         }
     }
@@ -170,7 +174,7 @@ fun PdfViewer(
     LaunchedEffect(currentPage) {
         val pagesToFetch = listOf(currentPage + 1, currentPage - 1).filter { it in 0 until pageCount }
         pagesToFetch.forEach { pageIndex ->
-            launch(Dispatchers.IO) {
+            launch(ioDispatcher) {
                 val fastKey = "fast_$pageIndex"
                 if (memoryCache.get(fastKey) == null) {
                     pdfMutex.withLock {
@@ -197,6 +201,7 @@ fun PdfViewer(
                                 page.close()
                             }
                         } catch (e: Exception) {
+                            if (e is CancellationException) throw e
                             pooledBitmap?.recycle()
                         }
                     }
@@ -226,7 +231,9 @@ fun PdfViewer(
                             } else {
                                 view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
                             }
-                        } catch (_: Exception) {}
+                        } catch (e: Exception) {
+                            if (e is CancellationException) throw e
+                        }
 
                         coroutineScope.launch {
                             val startScale = scale
@@ -278,7 +285,9 @@ fun PdfViewer(
                                         } else {
                                             view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
                                         }
-                                    } catch (_: Exception) {}
+                                    } catch (e: Exception) {
+                                        if (e is CancellationException) throw e
+                                    }
                                 }
 
                                 if (scale > 1f) {
@@ -334,7 +343,8 @@ fun PdfViewer(
                     memoryCache = memoryCache,
                     pdfMutex = pdfMutex,
                     fastBitmapPool = fastBitmapPool,
-                    highResBitmapPool = highResBitmapPool
+                    highResBitmapPool = highResBitmapPool,
+                    ioDispatcher = ioDispatcher
                 )
             }
         }
@@ -377,7 +387,8 @@ private fun PdfPageItem(
     memoryCache: android.util.LruCache<String, Bitmap>,
     pdfMutex: Mutex,
     fastBitmapPool: ConcurrentLinkedQueue<Bitmap>,
-    highResBitmapPool: ConcurrentLinkedQueue<Bitmap>
+    highResBitmapPool: ConcurrentLinkedQueue<Bitmap>,
+    ioDispatcher: CoroutineDispatcher
 ) {
     val fastKey = "fast_$pageIndex"
     val highKey = "high_$pageIndex"
@@ -395,7 +406,7 @@ private fun PdfPageItem(
             return@produceState
         }
 
-        withContext(Dispatchers.IO) {
+        withContext(ioDispatcher) {
             // debounce for extremely fast scrolling
             kotlinx.coroutines.delay(100)
             if (!isActive) return@withContext
@@ -430,6 +441,7 @@ private fun PdfPageItem(
                             page.close()
                         }
                     } catch (e: Exception) {
+                        if (e is CancellationException) throw e
                         pooledBitmap?.recycle()
                     }
                 }
@@ -471,6 +483,7 @@ private fun PdfPageItem(
                             page.close()
                         }
                     } catch (e: Exception) {
+                        if (e is CancellationException) throw e
                         pooledBitmap?.recycle()
                     }
                 }

@@ -37,6 +37,7 @@ class LoginUseCase @Inject constructor(
         } catch (e: IllegalArgumentException) {
             return Resource.Error("invalid access token. please try logging in with sso again.", e)
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             return Resource.Error("unable to process access token. please try again.", e)
         }
 
@@ -60,6 +61,7 @@ class LoginUseCase @Inject constructor(
         return try {
             URLDecoder.decode(token.replace("+", "%2B"), Charsets.UTF_8.name())
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             token
         }
     }

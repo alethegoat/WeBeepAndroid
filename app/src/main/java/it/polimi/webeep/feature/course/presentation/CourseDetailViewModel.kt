@@ -23,6 +23,10 @@ import kotlinx.coroutines.launch
 import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
+import it.polimi.webeep.core.di.IoDispatcher
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CancellationException
+import it.polimi.webeep.core.util.FileUtils
 
 sealed interface CourseDetailUiState {
     data object Loading : CourseDetailUiState
@@ -76,7 +80,8 @@ class CourseDetailViewModel @Inject constructor(
     private val downloadFileUseCase: DownloadFileUseCase,
     private val downloadRepository: DownloadRepository,
     private val courseRepository: CourseRepository,
-    savedStateHandle: SavedStateHandle
+    savedStateHandle: SavedStateHandle,
+    @IoDispatcher private val ioDispatcher: CoroutineDispatcher
 ) : ViewModel() {
 
     private val courseId: Int = checkNotNull(savedStateHandle["courseId"]) {
@@ -114,7 +119,7 @@ class CourseDetailViewModel @Inject constructor(
                         _uiState.update { CourseDetailUiState.Loading }
                     }
                     is Resource.Success -> {
-                        val uiSections = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                        val uiSections = kotlinx.coroutines.withContext(ioDispatcher) {
                             val currentExpandedStates = if (_uiState.value is CourseDetailUiState.Success) {
                                 (_uiState.value as CourseDetailUiState.Success).sections.associate { it.id to it.isExpanded }
                             } else {
@@ -185,6 +190,7 @@ class CourseDetailViewModel @Inject constructor(
                     }
                 }
             } catch (e: Exception) {
+                if (e is CancellationException) throw e
                 updateFileDownloadState(file.fileUrl, DownloadState.FAILED)
                 downloadJobs.remove(file.fileUrl)
             }
@@ -239,12 +245,12 @@ class CourseDetailViewModel @Inject constructor(
     private fun FileResource.toUiModel() = FileUiModel(
         filename = filename,
         filepath = filepath,
-        localFileName = buildLocalFileName(filename, fileUrl),
+        localFileName = FileUtils.buildLocalFileName(filename, fileUrl),
         fileUrl = fileUrl,
         fileSize = fileSize,
         mimeType = mimeType,
         formattedSize = formatFileSize(fileSize),
-        downloadState = if (downloadRepository.isFileDownloaded(buildLocalFileName(filename, fileUrl))) {
+        downloadState = if (downloadRepository.isFileDownloaded(FileUtils.buildLocalFileName(filename, fileUrl))) {
             DownloadState.COMPLETED
         } else {
             DownloadState.NOT_STARTED
@@ -258,32 +264,9 @@ class CourseDetailViewModel @Inject constructor(
         return String.format(Locale.ROOT, "%.1f %s", size / Math.pow(1024.0, digitGroups.toDouble()), units[digitGroups])
     }
 
-    private fun buildLocalFileName(filename: String, fileUrl: String): String {
-        val sanitized = filename
-            .replace(Regex("""[\\/:*?"<>|\p{Cntrl}]"""), "_")
-            .trim()
-            .trim('.')
-            .ifBlank { "file" }
-
-        // append a hash of the url to the local filename to ensure uniqueness
-        val hash = Integer.toHexString(fileUrl.hashCode())
-        val dotIndex = sanitized.lastIndexOf('.')
-        return if (dotIndex > 0 && dotIndex < sanitized.lastIndex - 1) {
-            val name = sanitized.substring(0, dotIndex).take(MAX_LOCAL_FILE_BASENAME_LENGTH)
-            val extension = sanitized.substring(dotIndex)
-            "$name-$hash$extension"
-        } else {
-            "${sanitized.take(MAX_LOCAL_FILE_BASENAME_LENGTH)}-$hash"
-        }
-    }
-
     override fun onCleared() {
         super.onCleared()
         downloadJobs.values.forEach { it.cancel() }
         downloadJobs.clear()
-    }
-
-    private companion object {
-        const val MAX_LOCAL_FILE_BASENAME_LENGTH = 80
     }
 }

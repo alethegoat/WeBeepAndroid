@@ -8,8 +8,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import it.polimi.webeep.core.datastore.TokenManager
+import it.polimi.webeep.core.di.IoDispatcher
 import it.polimi.webeep.core.network.MoodleFileUrlBuilder
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -38,7 +40,8 @@ class FileViewerViewModel @Inject constructor(
     private val tokenManager: TokenManager,
     private val okHttpClient: OkHttpClient,
     private val application: Application,
-    savedStateHandle: SavedStateHandle
+    savedStateHandle: SavedStateHandle,
+    @IoDispatcher private val ioDispatcher: CoroutineDispatcher
 ) : ViewModel() {
 
     val title: String = savedStateHandle["title"] ?: "Preview"
@@ -53,7 +56,7 @@ class FileViewerViewModel @Inject constructor(
     }
 
     fun load() {
-        viewModelScope.launch(Dispatchers.IO) {
+        viewModelScope.launch(ioDispatcher) {
             _uiState.value = FileViewerUiState.Loading
             try {
                 if (isExternalWebLink(url)) {
@@ -99,6 +102,7 @@ class FileViewerViewModel @Inject constructor(
                     }
                 }
             } catch (e: Exception) {
+                if (e is CancellationException) throw e
                 _uiState.value = FileViewerUiState.Error(e.localizedMessage ?: "Cannot open file")
             }
         }

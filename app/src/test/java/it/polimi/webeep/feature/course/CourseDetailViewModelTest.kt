@@ -99,7 +99,8 @@ class CourseDetailViewModelTest {
             downloadFileUseCase,
             downloadRepository,
             courseRepository,
-            savedStateHandle
+            savedStateHandle,
+            kotlinx.coroutines.test.UnconfinedTestDispatcher()
         )
     }
 

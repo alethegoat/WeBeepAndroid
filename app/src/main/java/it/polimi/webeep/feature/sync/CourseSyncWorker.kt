@@ -184,6 +184,7 @@ class CourseSyncWorker @AssistedInject constructor(
                                 }
                             }
                         } catch (e: Exception) {
+                            if (e is kotlinx.coroutines.CancellationException) throw e
                             Log.e("CourseSyncWorker", "❌ [${course.shortname}] Errore durante il sync: ${e.message}")
                             hasErrors = true
                         }
@@ -219,6 +220,7 @@ class CourseSyncWorker @AssistedInject constructor(
 
             return if (hasErrors) Result.retry() else Result.success()
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Log.e("CourseSyncWorker", "💥 Errore fatale nel Worker: ${e.message}")
             e.printStackTrace()
             return Result.retry()

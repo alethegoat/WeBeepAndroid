@@ -23,8 +23,11 @@ object DataStoreModule {
      */
     @Provides
     @Singleton
-    fun provideTokenManager(application: Application): TokenManager {
-        return TokenManager(application)
+    fun provideTokenManager(
+        application: Application,
+        @IoDispatcher ioDispatcher: kotlinx.coroutines.CoroutineDispatcher
+    ): TokenManager {
+        return TokenManager(application, ioDispatcher)
     }
 
     /**

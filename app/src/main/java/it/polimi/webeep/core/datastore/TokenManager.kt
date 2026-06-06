@@ -4,7 +4,9 @@ import android.app.Application
 import android.content.SharedPreferences
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
-import kotlinx.coroutines.Dispatchers
+import it.polimi.webeep.core.di.IoDispatcher
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -18,7 +20,10 @@ import javax.inject.Singleton
  * implements [tokenprovider] to allow fake injection in tests.
  */
 @Singleton
-class TokenManager @Inject constructor(application: Application) : TokenProvider {
+class TokenManager @Inject constructor(
+    application: Application,
+    @IoDispatcher private val ioDispatcher: CoroutineDispatcher
+) : TokenProvider {
 
     companion object {
         private const val PREFS_NAME = "webeep_secure_prefs"
@@ -70,6 +75,7 @@ class TokenManager @Inject constructor(application: Application) : TokenProvider
                 .setRequestStrongBoxBacked(true)
                 .build()
         } catch (e: Exception) {
+            if (e is CancellationException) throw e
             // fallback to standard tee if strongbox is not available
             MasterKey.Builder(application)
                 .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
@@ -86,7 +92,7 @@ class TokenManager @Inject constructor(application: Application) : TokenProvider
         userId: Int,
         fullName: String
     ) {
-        withContext(Dispatchers.IO) {
+        withContext(ioDispatcher) {
             val success = encryptedPrefs.edit()
                 .putString(KEY_WS_TOKEN, token)
                 .putString(KEY_PRIVATE_TOKEN, privateToken)
@@ -103,26 +109,26 @@ class TokenManager @Inject constructor(application: Application) : TokenProvider
     }
 
     override suspend fun getToken(): String? {
-        return withContext(Dispatchers.IO) {
+        return withContext(ioDispatcher) {
             encryptedPrefs.getString(KEY_WS_TOKEN, null).also { cachedWsToken = it }
         }
     }
 
     override suspend fun getUserId(): Int? {
-        return withContext(Dispatchers.IO) {
+        return withContext(ioDispatcher) {
             val userId = encryptedPrefs.getInt(KEY_USER_ID, USER_ID_DEFAULT)
             if (userId == USER_ID_DEFAULT) null else userId
         }
     }
 
     override suspend fun getUserFullName(): String? {
-        return withContext(Dispatchers.IO) {
+        return withContext(ioDispatcher) {
             encryptedPrefs.getString(KEY_FULL_NAME, null)
         }
     }
 
     override suspend fun clearAll() {
-        withContext(Dispatchers.IO) {
+        withContext(ioDispatcher) {
             clearAllInternal()
         }
     }

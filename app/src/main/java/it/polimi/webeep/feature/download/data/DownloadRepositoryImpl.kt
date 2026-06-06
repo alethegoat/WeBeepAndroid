@@ -5,22 +5,30 @@ import android.app.DownloadManager
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.os.Environment
+import android.util.Log
 import android.webkit.MimeTypeMap
 import androidx.core.content.FileProvider
+import it.polimi.webeep.core.di.IoDispatcher
 import it.polimi.webeep.feature.download.domain.DownloadRepository
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.withContext
 import java.io.File
 import javax.inject.Inject
+import javax.inject.Singleton
 
 /**
  * implementation of [DownloadRepository] based on [DownloadManager] and [FileProvider].
  */
+@Singleton
 class DownloadRepositoryImpl @Inject constructor(
-    private val context: Application
+    private val context: Application,
+    @IoDispatcher private val ioDispatcher: CoroutineDispatcher
 ) : DownloadRepository {
 
     private val downloadManager = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
@@ -92,7 +100,7 @@ class DownloadRepositoryImpl @Inject constructor(
                 delay(500)
             }
         }
-    }.flowOn(Dispatchers.IO)
+    }.flowOn(ioDispatcher)
 
     override fun openFile(fileName: String): Boolean {
         val safeFileName = sanitizeFileName(fileName)
@@ -106,6 +114,7 @@ class DownloadRepositoryImpl @Inject constructor(
             context.startActivity(intent)
             true
         } catch (e: Exception) {
+            if (e is CancellationException) throw e
             false
         }
     }
