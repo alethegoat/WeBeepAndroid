@@ -10,6 +10,11 @@ import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.compose.animation.Crossfade
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
@@ -101,6 +106,8 @@ fun FileViewerScreen(
         is FileViewerUiState.Web -> stringResource(R.string.file_viewer_web)
         else -> null
     }
+    
+    var showTopBar by remember { mutableStateOf(true) }
 
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
@@ -111,40 +118,46 @@ fun FileViewerScreen(
         containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
         topBar = {
             if (!isLandscape) {
-                TopAppBar(
-                    title = {
-                        Column {
-                            Text(
-                                text = viewModel.title,
-                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                            pageSubtitle?.let { subtitle ->
+                AnimatedVisibility(
+                    visible = showTopBar,
+                    enter = fadeIn() + expandVertically(),
+                    exit = fadeOut() + shrinkVertically()
+                ) {
+                    TopAppBar(
+                        title = {
+                            Column {
                                 Text(
-                                    text = subtitle,
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    text = viewModel.title,
+                                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis
                                 )
+                                pageSubtitle?.let { subtitle ->
+                                    Text(
+                                        text = subtitle,
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
                             }
-                        }
-                    },
-                    navigationIcon = {
-                        IconButton(onClick = onBackClick) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = stringResource(R.string.cd_back)
-                            )
-                        }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
-                        scrolledContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f)
-                    ),
-                    scrollBehavior = scrollBehavior
-                )
+                        },
+                        navigationIcon = {
+                            IconButton(onClick = onBackClick) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                    contentDescription = stringResource(R.string.cd_back)
+                                )
+                            }
+                        },
+                        colors = TopAppBarDefaults.topAppBarColors(
+                            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
+                            scrolledContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f)
+                        ),
+                        scrollBehavior = scrollBehavior
+                    )
+                }
             }
         }
     ) { innerPadding ->
@@ -153,7 +166,7 @@ fun FileViewerScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(
-                        if (uiState is FileViewerUiState.Image || uiState is FileViewerUiState.Media) 
+                        if (uiState is FileViewerUiState.Image || uiState is FileViewerUiState.Media || !showTopBar) 
                             PaddingValues(0.dp) 
                         else 
                             innerPadding
@@ -163,11 +176,13 @@ fun FileViewerScreen(
                     FileViewerUiState.Loading -> FileViewerLoading()
                     is FileViewerUiState.Image -> ImagePreviewContent(
                         url = state.url,
-                        title = viewModel.title
+                        title = viewModel.title,
+                        onToggleFullScreen = { showTopBar = !showTopBar }
                     )
                     is FileViewerUiState.Pdf -> PdfViewer(
                         file = state.file,
-                        pageCount = state.pageCount
+                        pageCount = state.pageCount,
+                        onToggleFullScreen = { showTopBar = !showTopBar }
                     )
                     is FileViewerUiState.Media -> MediaViewer(url = state.url)
                     is FileViewerUiState.Code -> CodeViewer(content = state.content)
@@ -188,12 +203,13 @@ fun FileViewerScreen(
                 }
             }
             
-            if (isLandscape) {
+            
+            if (isLandscape || !showTopBar) {
                 IconButton(
                     onClick = onBackClick,
                     modifier = Modifier
                         .align(Alignment.TopStart)
-                        .padding(16.dp)
+                        .padding(top = 40.dp, start = 16.dp)
                         .background(androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.5f), RoundedCornerShape(50))
                 ) {
                     Icon(
@@ -231,7 +247,8 @@ private fun FileViewerLoading() {
 private fun ImagePreviewContent(
     url: String,
     title: String,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onToggleFullScreen: () -> Unit = {}
 ) {
     var scale by remember { mutableStateOf(1f) }
     var offsetX by remember { mutableStateOf(0f) }
@@ -246,6 +263,7 @@ private fun ImagePreviewContent(
             .background(MaterialTheme.colorScheme.surfaceContainerHigh)
             .pointerInput(Unit) {
                 detectTapGestures(
+                    onTap = { onToggleFullScreen() },
                     onDoubleTap = { tapOffset ->
                         val targetScale = if (scale > 1f) 1f else 3f
                         val center = Offset(size.width / 2f, size.height / 2f)

@@ -74,7 +74,8 @@ fun PdfViewer(
     file: File,
     pageCount: Int,
     modifier: Modifier = Modifier,
-    ioDispatcher: CoroutineDispatcher = Dispatchers.IO
+    ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
+    onToggleFullScreen: () -> Unit = {}
 ) {
     var scale by remember { mutableStateOf(1f) }
     var offsetX by remember { mutableStateOf(0f) }
@@ -216,6 +217,7 @@ fun PdfViewer(
             .background(MaterialTheme.colorScheme.surfaceContainerHighest)
             .pointerInput(Unit) {
                 detectTapGestures(
+                    onTap = { onToggleFullScreen() },
                     onDoubleTap = { tapOffset ->
                         val targetScale = if (scale > 1f) 1f else 3f
                         val center = Offset(size.width / 2f, size.height / 2f)
