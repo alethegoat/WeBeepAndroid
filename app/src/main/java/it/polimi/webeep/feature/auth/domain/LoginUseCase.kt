@@ -43,6 +43,7 @@ class LoginUseCase @Inject constructor(
         val result = authRepository.validateToken(wstoken)
         return if (result.isSuccess) {
             val siteInfo = result.getOrThrow()
+            // save the extracted token securely for subsequent api calls
             authRepository.saveAuthData(wstoken, privateToken, siteInfo)
             Resource.Success(siteInfo)
         } else {

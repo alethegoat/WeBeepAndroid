@@ -58,6 +58,7 @@ class LoginViewModel @Inject constructor(
     }
 
     private fun checkExistingSession() {
+        // check if a valid session exists so we can skip the login screen
         viewModelScope.launch {
             if (authRepository.isLoggedIn()) {
                 _uiState.update { LoginUiState.Success }
@@ -83,6 +84,7 @@ class LoginViewModel @Inject constructor(
     fun handleSsoCallback(encodedToken: String) = onIntent(LoginIntent.HandleSsoCallback(encodedToken))
 
     private fun handleSsoCallbackInternal(encodedToken: String) {
+        // ignore placeholder tokens that might be sent by mistake
         if (encodedToken.isBlank() || encodedToken == "{token}") {
             return
         }

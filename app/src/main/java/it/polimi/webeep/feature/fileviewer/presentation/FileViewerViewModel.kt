@@ -67,6 +67,7 @@ class FileViewerViewModel @Inject constructor(
                 _uiState.value = when {
                     mimeType.startsWith("image/") -> FileViewerUiState.Image(authenticatedUrl)
                     mimeType == "application/pdf" || title.endsWith(".pdf", ignoreCase = true) -> {
+                        // pdf files require local caching to be rendered by the native pdfrenderer
                         val file = downloadToCache(authenticatedUrl, "pdf")
                         FileViewerUiState.Pdf(file = file, pageCount = getPdfPageCount(file))
                     }
@@ -130,6 +131,7 @@ class FileViewerViewModel @Inject constructor(
     }
 
     private fun getPdfPageCount(file: File): Int {
+        // read the first few bytes of the pdf to determine the total number of pages
         val descriptor = ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
         descriptor.use { parcelFileDescriptor ->
             PdfRenderer(parcelFileDescriptor).use { renderer ->

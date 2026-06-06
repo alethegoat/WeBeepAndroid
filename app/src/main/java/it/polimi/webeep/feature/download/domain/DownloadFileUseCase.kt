@@ -30,6 +30,7 @@ class DownloadFileUseCase @Inject constructor(
     }
 
     suspend fun buildAuthenticatedUrl(url: String): String {
+        // fetch the secure token and append it to the file url so the download manager can bypass login
         val token = tokenManager.getToken() ?: throw IllegalStateException("Token non disponibile. Effettua il login.")
         return MoodleFileUrlBuilder.buildAuthenticatedUrl(url, token)
     }

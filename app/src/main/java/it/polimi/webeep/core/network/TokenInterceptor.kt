@@ -23,6 +23,7 @@ class TokenInterceptor @Inject constructor(
     override fun intercept(chain: Interceptor.Chain): Response {
         var request = chain.request()
 
+        // inject the wstoken query parameter into all moodle api requests automatically
         val explicitToken = request.url.queryParameter("wstoken")
         val token = explicitToken ?: tokenProvider.getTokenSync()
         if (token != null && explicitToken == null) {
@@ -40,8 +41,10 @@ class TokenInterceptor @Inject constructor(
         }
 
         if (response.isSuccessful) {
+            // moodle api returns 200 ok even for authentication errors, so we must peek the json body
             val bodyPreview = response.peekBody(TOKEN_PEEK_BYTES).string()
             if (INVALID_TOKEN_MARKERS.any { bodyPreview.contains(it) }) {
+                // purge session on token expiration or invalidation
                 tokenProvider.clearSessionSync()
             }
         }
