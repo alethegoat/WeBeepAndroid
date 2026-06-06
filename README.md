@@ -30,6 +30,7 @@ WeBeep Android is a native application designed to make it easier for Politecnic
 - **Notifications**: Alerts you when new files are available. Tapping the notification takes you directly to the course.
 - **PDF Viewer**: Includes a custom PDF rendering engine optimized for smooth scrolling of large academic documents.
 - **Polimi SSO**: Secure login via Chrome Custom Tabs using the official Politecnico authentication system.
+- **Bilingual Support**: Fully localized in both English and Italian.
 - **Modern UI**: Built entirely with Jetpack Compose following Material 3 guidelines (with Dark Mode support).
 
 ---
@@ -68,6 +69,7 @@ WeBeep Android è un'app nativa che semplifica l'accesso ai corsi di WeBeep per 
 - **Notifiche**: Ti avvisa quando ci sono nuovi file. Se premi la notifica, si apre direttamente la pagina del corso.
 - **Lettore PDF**: Include un motore di rendering PDF ottimizzato per navigare velocemente anche i file più pesanti.
 - **Login Ufficiale**: Accesso sicuro tramite il sistema SSO (Single Sign-On) ufficiale del Politecnico.
+- **Multilingua**: L'app è completamente tradotta sia in italiano che in inglese.
 - **Interfaccia aggiornata**: Scritta interamente in Jetpack Compose, con pieno supporto al Material 3 e alla Dark Mode.
 
 ---
