@@ -110,7 +110,10 @@ class CourseDetailViewModelTest {
         initViewModel()
 
         viewModel.uiState.test {
-            val state = expectMostRecentItem()
+            var state = awaitItem()
+            while (state !is CourseDetailUiState.Success) {
+                state = awaitItem()
+            }
             assertTrue(state is CourseDetailUiState.Success)
             val success = state as CourseDetailUiState.Success
             assertEquals("Informatica 1", success.courseName)
@@ -126,7 +129,10 @@ class CourseDetailViewModelTest {
         initViewModel()
 
         viewModel.uiState.test {
-            val state = expectMostRecentItem()
+            var state = awaitItem()
+            while (state !is CourseDetailUiState.Error) {
+                state = awaitItem()
+            }
             assertTrue(state is CourseDetailUiState.Error)
             assertEquals("Errore API", (state as CourseDetailUiState.Error).message)
         }
@@ -137,12 +143,16 @@ class CourseDetailViewModelTest {
         initViewModel()
 
         viewModel.uiState.test {
-            val state1 = expectMostRecentItem() as CourseDetailUiState.Success
-            assertTrue(state1.sections.first().isExpanded) // Espansa di default la prima
+            var state1 = awaitItem()
+            while (state1 !is CourseDetailUiState.Success) {
+                state1 = awaitItem()
+            }
+            val successState = state1 as CourseDetailUiState.Success
+            assertTrue(successState.sections.first().isExpanded) // Espansa di default la prima
 
             viewModel.toggleSection(10)
             
-            val state2 = expectMostRecentItem() as CourseDetailUiState.Success
+            val state2 = awaitItem() as CourseDetailUiState.Success
             assertFalse(state2.sections.first().isExpanded)
         }
     }
@@ -152,8 +162,12 @@ class CourseDetailViewModelTest {
         initViewModel()
 
         viewModel.uiState.test {
-            val state = expectMostRecentItem() as CourseDetailUiState.Success
-            val file = state.sections.first().modules.first().files.first()
+            var state = awaitItem()
+            while (state !is CourseDetailUiState.Success) {
+                state = awaitItem()
+            }
+            val successState = state as CourseDetailUiState.Success
+            val file = successState.sections.first().modules.first().files.first()
             assertEquals("200.0 KB", file.formattedSize)
         }
     }
@@ -169,14 +183,21 @@ class CourseDetailViewModelTest {
         initViewModel()
 
         viewModel.uiState.test {
-            val successState = expectMostRecentItem() as CourseDetailUiState.Success
-            val file = successState.sections.first().modules.first().files.first()
+            var successState = awaitItem()
+            while (successState !is CourseDetailUiState.Success) {
+                successState = awaitItem()
+            }
+            val file = (successState as CourseDetailUiState.Success).sections.first().modules.first().files.first()
             
             viewModel.downloadFile(file)
             
-            // Monitora il cambio di stato a COMPLETED alla fine
-            val finalState = expectMostRecentItem() as CourseDetailUiState.Success
-            val finalFile = finalState.sections.first().modules.first().files.first()
+            // Skip intermediate DOWNLOADING state and wait for COMPLETED
+            var finalState = awaitItem()
+            while (finalState !is CourseDetailUiState.Success || 
+                   finalState.sections.first().modules.first().files.first().downloadState != DownloadState.COMPLETED) {
+                finalState = awaitItem()
+            }
+            val finalFile = (finalState as CourseDetailUiState.Success).sections.first().modules.first().files.first()
             assertEquals(DownloadState.COMPLETED, finalFile.downloadState)
         }
 
@@ -200,13 +221,20 @@ class CourseDetailViewModelTest {
         initViewModel()
 
         viewModel.uiState.test {
-            val successState = expectMostRecentItem() as CourseDetailUiState.Success
-            val file = successState.sections.first().modules.first().files.first()
+            var successState = awaitItem()
+            while (successState !is CourseDetailUiState.Success) {
+                successState = awaitItem()
+            }
+            val file = (successState as CourseDetailUiState.Success).sections.first().modules.first().files.first()
             
             viewModel.downloadFile(file)
             
-            val finalState = expectMostRecentItem() as CourseDetailUiState.Success
-            val finalFile = finalState.sections.first().modules.first().files.first()
+            var finalState = awaitItem()
+            while (finalState !is CourseDetailUiState.Success || 
+                   finalState.sections.first().modules.first().files.first().downloadState != DownloadState.FAILED) {
+                finalState = awaitItem()
+            }
+            val finalFile = (finalState as CourseDetailUiState.Success).sections.first().modules.first().files.first()
             assertEquals(DownloadState.FAILED, finalFile.downloadState)
         }
     }
@@ -216,8 +244,11 @@ class CourseDetailViewModelTest {
         initViewModel()
         
         viewModel.uiState.test {
-            val successState = expectMostRecentItem() as CourseDetailUiState.Success
-            val file = successState.sections.first().modules.first().files.first()
+            var successState = awaitItem()
+            while (successState !is CourseDetailUiState.Success) {
+                successState = awaitItem()
+            }
+            val file = (successState as CourseDetailUiState.Success).sections.first().modules.first().files.first()
             
             viewModel.openFile(file)
             
