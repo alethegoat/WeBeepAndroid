@@ -50,7 +50,7 @@ val InterFamily = FontFamily(
  */
 val WeBeepTypography = Typography(
 
-    // ── Display ──────────────────────────────────────────────────────
+    // ── display ──────────────────────────────────────────────────────
     displayLarge = TextStyle(
         fontFamily = OutfitFamily,
         fontWeight = FontWeight.Bold,
@@ -73,7 +73,7 @@ val WeBeepTypography = Typography(
         letterSpacing = 0.sp,
     ),
 
-    // ── Headline ─────────────────────────────────────────────────────
+    // ── headline ─────────────────────────────────────────────────────
     headlineLarge = TextStyle(
         fontFamily = OutfitFamily,
         fontWeight = FontWeight.SemiBold,
@@ -96,7 +96,7 @@ val WeBeepTypography = Typography(
         letterSpacing = 0.sp,
     ),
 
-    // ── Title ────────────────────────────────────────────────────────
+    // ── title ────────────────────────────────────────────────────────
     titleLarge = TextStyle(
         fontFamily = OutfitFamily,
         fontWeight = FontWeight.SemiBold,
@@ -119,7 +119,7 @@ val WeBeepTypography = Typography(
         letterSpacing = 0.1.sp,
     ),
 
-    // ── Body ─────────────────────────────────────────────────────────
+    // ── body ─────────────────────────────────────────────────────────
     bodyLarge = TextStyle(
         fontFamily = InterFamily,
         fontWeight = FontWeight.Normal,
@@ -142,7 +142,7 @@ val WeBeepTypography = Typography(
         letterSpacing = 0.4.sp,
     ),
 
-    // ── Label ────────────────────────────────────────────────────────
+    // ── label ────────────────────────────────────────────────────────
     labelLarge = TextStyle(
         fontFamily = InterFamily,
         fontWeight = FontWeight.Medium,

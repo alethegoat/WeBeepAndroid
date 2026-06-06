@@ -3,9 +3,16 @@ package it.polimi.webeep.feature.auth.presentation
 import android.net.Uri
 import androidx.browser.customtabs.CustomTabsIntent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,10 +25,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Login
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -32,11 +35,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -45,6 +51,8 @@ import androidx.compose.ui.unit.dp
 import it.polimi.webeep.R
 import it.polimi.webeep.core.ui.components.WeBeepSnackbarHost
 import it.polimi.webeep.core.ui.components.showErrorSnackbar
+import it.polimi.webeep.core.ui.util.bouncyClickable
+import kotlinx.coroutines.delay
 
 /**
  * screen displaying the login interface and handling user authentication via sso.
@@ -59,6 +67,16 @@ fun LoginScreen(
     val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     val retryLabel = stringResource(R.string.retry)
+
+    // staggered animation states
+    var logoVisible by remember { mutableStateOf(false) }
+    var cardVisible by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        logoVisible = true
+        delay(150) // slight stagger for the card
+        cardVisible = true
+    }
 
     LaunchedEffect(uiState) {
         when (val state = uiState) {
@@ -79,21 +97,7 @@ fun LoginScreen(
         modifier = modifier,
         snackbarHost = { WeBeepSnackbarHost(hostState = snackbarHostState) }
     ) { innerPadding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .background(
-                    brush = Brush.verticalGradient(
-                        colors = listOf(
-                            MaterialTheme.colorScheme.primary,
-                            MaterialTheme.colorScheme.primaryContainer,
-                            Color(0xFF001126)
-                        )
-                    )
-                ),
-            contentAlignment = Alignment.Center
-        ) {
+        it.polimi.webeep.core.ui.components.AuroraBackground {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center,
@@ -102,21 +106,21 @@ fun LoginScreen(
                     .padding(24.dp)
             ) {
                 AnimatedVisibility(
-                    visible = true,
-                    enter = fadeIn() + slideInVertically(initialOffsetY = { -40 })
+                    visible = logoVisible,
+                    enter = fadeIn(tween(800)) + slideInVertically(tween(800), initialOffsetY = { -50 })
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
                             text = stringResource(R.string.app_name),
                             style = MaterialTheme.typography.displayLarge.copy(
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White
+                                fontWeight = FontWeight.ExtraBold,
+                                color = MaterialTheme.colorScheme.onBackground
                             )
                         )
                         Text(
                             text = stringResource(R.string.politecnico_milano),
                             style = MaterialTheme.typography.titleMedium.copy(
-                                color = MaterialTheme.colorScheme.secondary,
+                                color = MaterialTheme.colorScheme.primary,
                                 fontWeight = FontWeight.SemiBold
                             ),
                             modifier = Modifier.padding(top = 4.dp)
@@ -124,63 +128,72 @@ fun LoginScreen(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(48.dp))
+                Spacer(modifier = Modifier.height(56.dp))
 
-                Card(
-                    shape = RoundedCornerShape(24.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = Color.White.copy(alpha = 0.08f)
-                    ),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 8.dp)
+                AnimatedVisibility(
+                    visible = cardVisible,
+                    enter = fadeIn(tween(800)) + slideInVertically(tween(800), initialOffsetY = { 50 })
                 ) {
-                    Column(
-                        modifier = Modifier.padding(28.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
+                    // glassmorphic card
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 8.dp)
+                            .background(MaterialTheme.colorScheme.onBackground.copy(alpha = 0.1f), RoundedCornerShape(28.dp))
+                            .border(0.5.dp, MaterialTheme.colorScheme.onBackground.copy(alpha = 0.25f), RoundedCornerShape(28.dp)),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Text(
-                            text = stringResource(R.string.login_subtitle),
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = Color.White.copy(alpha = 0.8f),
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.padding(bottom = 24.dp)
-                        )
-
-                        if (uiState is LoginUiState.Loading) {
-                            CircularProgressIndicator(
-                                color = MaterialTheme.colorScheme.secondary,
-                                modifier = Modifier.size(48.dp)
+                        Column(
+                            modifier = Modifier.padding(32.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = stringResource(R.string.login_subtitle),
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.85f),
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.padding(bottom = 32.dp)
                             )
-                        } else {
-                            Button(
-                                onClick = {
-                                    val ssoUrl = viewModel.generateSsoUrl()
-                                    CustomTabsIntent.Builder()
-                                        .build()
-                                        .launchUrl(context, Uri.parse(ssoUrl))
-                                },
-                                shape = RoundedCornerShape(16.dp),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = MaterialTheme.colorScheme.secondary,
-                                    contentColor = Color.White
-                                ),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(56.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.Login,
-                                    contentDescription = stringResource(R.string.cd_login),
-                                    modifier = Modifier.padding(end = 8.dp)
+
+                            if (uiState is LoginUiState.Loading) {
+                                CircularProgressIndicator(
+                                    color = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(48.dp)
                                 )
-                                Text(
-                                    text = stringResource(R.string.login_sso_button),
-                                    style = MaterialTheme.typography.titleMedium.copy(
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                )
+                            } else {
+                                // custom bouncy button in stile glass
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(56.dp)
+                                        .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(16.dp))
+                                        .bouncyClickable {
+                                            val ssoUrl = viewModel.generateSsoUrl()
+                                            CustomTabsIntent.Builder()
+                                                .build()
+                                                .launchUrl(context, Uri.parse(ssoUrl))
+                                        },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    androidx.compose.foundation.layout.Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.AutoMirrored.Filled.Login,
+                                            contentDescription = stringResource(R.string.cd_login),
+                                            modifier = Modifier.padding(end = 8.dp),
+                                            tint = MaterialTheme.colorScheme.onPrimary
+                                        )
+                                        Text(
+                                            text = stringResource(R.string.login_sso_button),
+                                            style = MaterialTheme.typography.titleMedium.copy(
+                                                fontWeight = FontWeight.Bold,
+                                                color = MaterialTheme.colorScheme.onPrimary
+                                            )
+                                        )
+                                    }
+                                }
                             }
                         }
                     }

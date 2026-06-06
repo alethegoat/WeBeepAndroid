@@ -18,6 +18,7 @@ import androidx.work.NetworkType
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import dagger.hilt.android.AndroidEntryPoint
+import it.polimi.webeep.core.datastore.SettingsManager
 import it.polimi.webeep.core.datastore.TokenManager
 import it.polimi.webeep.feature.sync.CourseSyncWorker
 import it.polimi.webeep.navigation.Screen
@@ -34,6 +35,9 @@ class MainActivity : ComponentActivity() {
 
     @Inject
     lateinit var tokenManager: TokenManager
+
+    @Inject
+    lateinit var settingsManager: SettingsManager
 
     private var navController: NavHostController? = null
     private var pendingToken: String? = null
@@ -58,6 +62,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             WeBeepApp(
                 tokenManager = tokenManager,
+                settingsManager = settingsManager,
                 initialDeepLinkToken = pendingToken,
                 onNavControllerReady = { controller ->
                     navController = controller

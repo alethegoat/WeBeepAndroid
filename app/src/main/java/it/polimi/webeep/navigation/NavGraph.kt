@@ -24,6 +24,8 @@ import it.polimi.webeep.feature.dashboard.presentation.DashboardScreen
 import it.polimi.webeep.feature.dashboard.presentation.DashboardViewModel
 import it.polimi.webeep.feature.fileviewer.presentation.FileViewerScreen
 import it.polimi.webeep.feature.fileviewer.presentation.FileViewerViewModel
+import it.polimi.webeep.feature.settings.presentation.SettingsScreen
+import it.polimi.webeep.feature.settings.presentation.SettingsViewModel
 
 /**
  * main navigation graph for the webeep app.
@@ -94,8 +96,19 @@ fun NavGraph(
                 onCourseClick = { courseId ->
                     navController.navigate(Screen.CourseDetail.createRoute(courseId))
                 },
+                onSettingsClick = {
+                    navController.navigate(Screen.Settings.route)
+                }
+            )
+        }
+
+        composable(route = Screen.Settings.route) {
+            val viewModel: SettingsViewModel = hiltViewModel()
+            SettingsScreen(
+                viewModel = viewModel,
+                onBackClick = { navController.navigateUp() },
                 onLogoutSuccess = {
-                    // clear the backstack when logging out to prevent going back to the dashboard
+                    // clear the backstack when logging out to prevent going back
                     navController.navigate(Screen.Login.route) {
                         popUpTo(navController.graph.findStartDestination().id) {
                             inclusive = true

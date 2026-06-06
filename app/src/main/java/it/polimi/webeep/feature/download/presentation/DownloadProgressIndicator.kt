@@ -9,9 +9,13 @@ import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
+import it.polimi.webeep.core.ui.util.bouncyClickable
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -35,15 +39,18 @@ fun DownloadProgressIndicator(
     ) { downloadState ->
         when (downloadState) {
             DownloadState.NOT_STARTED -> {
-                IconButton(
-                    onClick = onDownloadClick,
-                    colors = IconButtonDefaults.iconButtonColors(
-                        contentColor = MaterialTheme.colorScheme.secondary
-                    )
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.secondary.copy(alpha = 0.1f))
+                        .bouncyClickable(onClick = onDownloadClick),
+                    contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Default.Download,
-                        contentDescription = "Scarica risorsa"
+                        contentDescription = "Scarica risorsa",
+                        tint = MaterialTheme.colorScheme.secondary
                     )
                 }
             }
@@ -52,33 +59,39 @@ fun DownloadProgressIndicator(
                     color = MaterialTheme.colorScheme.secondary,
                     strokeWidth = 3.dp,
                     modifier = Modifier
-                        .padding(12.dp)
+                        .padding(8.dp)
                         .size(24.dp)
                 )
             }
             DownloadState.COMPLETED -> {
-                IconButton(
-                    onClick = onOpenClick,
-                    colors = IconButtonDefaults.iconButtonColors(
-                        contentColor = Color(0xFF2E7D32) // green
-                    )
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFF2E7D32).copy(alpha = 0.1f))
+                        .bouncyClickable(onClick = onOpenClick),
+                    contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Default.CheckCircle,
-                        contentDescription = "Apri file"
+                        contentDescription = "Apri file",
+                        tint = Color(0xFF2E7D32)
                     )
                 }
             }
             DownloadState.FAILED -> {
-                IconButton(
-                    onClick = onDownloadClick,
-                    colors = IconButtonDefaults.iconButtonColors(
-                        contentColor = MaterialTheme.colorScheme.error
-                    )
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.error.copy(alpha = 0.1f))
+                        .bouncyClickable(onClick = onDownloadClick),
+                    contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Default.ErrorOutline,
-                        contentDescription = "Errore. Riprova"
+                        contentDescription = "Errore. Riprova",
+                        tint = MaterialTheme.colorScheme.error
                     )
                 }
             }

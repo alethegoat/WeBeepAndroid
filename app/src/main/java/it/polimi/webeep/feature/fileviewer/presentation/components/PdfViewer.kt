@@ -132,7 +132,7 @@ fun PdfViewer(
         }
     }
 
-    // Scroll state and page tracking
+    // scroll state and page tracking
     val lazyListState = rememberLazyListState()
     
     // activate scroll haptic feedback at the top/bottom boundaries of the pdf
@@ -221,7 +221,11 @@ fun PdfViewer(
                         val targetOffsetY = if (targetScale == 1f) 0f else (-relativeTap.y * (targetScale - 1f)).coerceIn(-maxY, maxY)
 
                         try {
-                            view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
+                            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+                                view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
+                            } else {
+                                view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                            }
                         } catch (_: Exception) {}
 
                         coroutineScope.launch {
@@ -269,7 +273,11 @@ fun PdfViewer(
 
                                 if ((scale == 1f || scale == 5f) && oldScale != scale) {
                                     try {
-                                        view.performHapticFeedback(HapticFeedbackConstants.GESTURE_END)
+                                        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+                                            view.performHapticFeedback(HapticFeedbackConstants.GESTURE_END)
+                                        } else {
+                                            view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                                        }
                                     } catch (_: Exception) {}
                                 }
 
@@ -331,7 +339,7 @@ fun PdfViewer(
             }
         }
 
-        // Floating Page Indicator overlay
+        // floating page indicator overlay
         AnimatedVisibility(
             visible = isIndicatorVisible,
             enter = fadeIn(animationSpec = tween(300)),
@@ -388,7 +396,7 @@ private fun PdfPageItem(
         }
 
         withContext(Dispatchers.IO) {
-            // Debounce for extremely fast scrolling
+            // debounce for extremely fast scrolling
             kotlinx.coroutines.delay(100)
             if (!isActive) return@withContext
 

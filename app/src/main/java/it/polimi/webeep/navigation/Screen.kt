@@ -18,6 +18,8 @@ sealed class Screen(val route: String) {
 
     data object Dashboard : Screen("dashboard")
 
+    data object Settings : Screen("settings")
+
     data object CourseDetail : Screen("course/{courseId}") {
         const val COURSE_ID_ARG = "courseId"
         fun createRoute(courseId: Int) = "course/$courseId"

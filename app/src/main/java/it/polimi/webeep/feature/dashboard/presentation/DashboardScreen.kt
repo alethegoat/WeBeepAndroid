@@ -11,21 +11,29 @@ import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import it.polimi.webeep.core.ui.util.bouncyClickable
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
@@ -34,7 +42,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material.icons.automirrored.filled.ExitToApp
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Book
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.FilterList
@@ -48,7 +56,7 @@ import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
-import androidx.compose.material3.LargeTopAppBar
+import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
@@ -84,7 +92,7 @@ import it.polimi.webeep.core.ui.components.ShimmerCourseList
 fun DashboardScreen(
     viewModel: DashboardViewModel,
     onCourseClick: (courseId: Int) -> Unit,
-    onLogoutSuccess: () -> Unit,
+    onSettingsClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -97,73 +105,104 @@ fun DashboardScreen(
     val lazyGridState = rememberLazyGridState()
     val context = LocalContext.current
 
-    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
+    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(rememberTopAppBarState())
 
-    Scaffold(
-        modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-        topBar = {
-            LargeTopAppBar(
-                title = {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        val avatarUrl = (uiState as? DashboardUiState.Success)?.userAvatar ?: ""
-                        val userName = (uiState as? DashboardUiState.Success)?.userName ?: "Studente"
-                        
-                        AsyncImage(
-                            model = avatarUrl.ifEmpty { null },
-                            contentDescription = stringResource(R.string.cd_user_avatar),
-                            modifier = Modifier
-                                .size(40.dp)
-                                .clip(CircleShape)
-                                .border(1.5.dp, MaterialTheme.colorScheme.secondary, CircleShape),
-                            contentScale = ContentScale.Crop
-                        )
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Column {
+    it.polimi.webeep.core.ui.components.AuroraBackground {
+        Scaffold(
+            modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+            containerColor = Color.Transparent,
+            topBar = {
+                val backgroundColor = MaterialTheme.colorScheme.background
+                TopAppBar(
+                    modifier = Modifier.drawBehind {
+                        val fraction = scrollBehavior.state.overlappedFraction.coerceIn(0f, 1f)
+                        if (fraction > 0f) {
+                            drawRect(
+                                brush = androidx.compose.ui.graphics.Brush.verticalGradient(
+                                    colors = listOf(
+                                        backgroundColor.copy(alpha = 0.95f * fraction),
+                                        backgroundColor.copy(alpha = 0.6f * fraction),
+                                        androidx.compose.ui.graphics.Color.Transparent
+                                    )
+                                )
+                            )
+                        }
+                    },
+                    title = {
+                        AnimatedVisibility(
+                            visible = scrollBehavior.state.overlappedFraction > 0.5f,
+                            enter = fadeIn(),
+                            exit = fadeOut()
+                        ) {
                             Text(
                                 text = stringResource(R.string.app_name),
                                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                                color = MaterialTheme.colorScheme.onPrimary
-                            )
-                            Text(
-                                text = stringResource(R.string.hello_user, userName),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
+                                color = MaterialTheme.colorScheme.onBackground
                             )
                         }
-                    }
-                },
-                actions = {
-                    IconButton(
-                        onClick = { viewModel.logout(onComplete = onLogoutSuccess) },
-                        colors = IconButtonDefaults.iconButtonColors(
-                            contentColor = MaterialTheme.colorScheme.onPrimary
-                        )
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ExitToApp,
-                            contentDescription = stringResource(R.string.logout)
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.85f),
-                    scrolledContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.95f),
-                    titleContentColor = MaterialTheme.colorScheme.onPrimary
-                ),
-                scrollBehavior = scrollBehavior
-            )
-        }
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .background(MaterialTheme.colorScheme.background)
-        ) {
+                    },
+                    actions = {
+                        IconButton(
+                            onClick = onSettingsClick,
+                            colors = IconButtonDefaults.iconButtonColors(
+                                contentColor = MaterialTheme.colorScheme.onBackground
+                            )
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Settings,
+                                contentDescription = "Impostazioni"
+                            )
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = androidx.compose.ui.graphics.Color.Transparent,
+                        scrolledContainerColor = androidx.compose.ui.graphics.Color.Transparent,
+                        titleContentColor = MaterialTheme.colorScheme.onBackground
+                    ),
+                    scrollBehavior = scrollBehavior
+                )
+            }
+        ) { innerPadding ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+            ) {
             val isCacheAvailable = (uiState as? DashboardUiState.Success)?.courses?.isNotEmpty() == true
+
+            // welcome back header
+            val avatarUrl = (uiState as? DashboardUiState.Success)?.userAvatar ?: ""
+            val userName = (uiState as? DashboardUiState.Success)?.userName ?: "Studente"
+            
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+            ) {
+                AsyncImage(
+                    model = avatarUrl.ifEmpty { null },
+                    contentDescription = stringResource(R.string.cd_user_avatar),
+                    modifier = Modifier
+                        .size(56.dp)
+                        .clip(CircleShape)
+                        .border(2.dp, MaterialTheme.colorScheme.primary, CircleShape),
+                    contentScale = ContentScale.Crop
+                )
+                Spacer(modifier = Modifier.width(16.dp))
+                Column {
+                    Text(
+                        text = "Bentornato,",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
+                    )
+                    Text(
+                        text = userName,
+                        style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                }
+            }
 
             // offline banner
             AnimatedVisibility(
@@ -251,42 +290,62 @@ fun DashboardScreen(
                 )
             }
 
-            // course filter segmented control
-            Row(
+            // course filter segmented control with animated pill
+            BoxWithConstraints(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 6.dp)
-                    .clip(RoundedCornerShape(12.dp))
+                    .clip(RoundedCornerShape(16.dp))
                     .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
-                    .padding(4.dp),
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    .padding(4.dp)
             ) {
                 val filters = listOf(
                     CourseFilter.Active to "In corso",
                     CourseFilter.Past to "Passati",
                     CourseFilter.All to "Tutti"
                 )
-                filters.forEach { (filter, label) ->
-                    val isSelected = courseFilter == filter
-                    val background = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent
-                    val contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
-                    
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(background)
-                            .bouncyClickable { courseFilter = filter }
-                            .padding(vertical = 8.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = label,
-                            style = MaterialTheme.typography.bodyMedium.copy(
-                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
-                            ),
-                            color = contentColor
-                        )
+                val pillWidth = maxWidth / filters.size
+                
+                val selectedIndex = filters.indexOfFirst { it.first == courseFilter }
+                val pillOffset by animateDpAsState(
+                    targetValue = pillWidth * selectedIndex,
+                    animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
+                    label = "pillOffset"
+                )
+
+                // pill background
+                Box(
+                    modifier = Modifier
+                        .offset { androidx.compose.ui.unit.IntOffset(pillOffset.roundToPx(), 0) }
+                        .width(pillWidth)
+                        .height(36.dp) // forced height
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(MaterialTheme.colorScheme.primary)
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    filters.forEach { (filter, label) ->
+                        val isSelected = courseFilter == filter
+                        val contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                        
+                        Box(
+                            modifier = Modifier
+                                .width(pillWidth)
+                                .height(36.dp)
+                                .bouncyClickable { courseFilter = filter },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = label,
+                                style = MaterialTheme.typography.bodyMedium.copy(
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                                ),
+                                color = contentColor
+                            )
+                        }
                     }
                 }
             }
@@ -380,6 +439,7 @@ fun DashboardScreen(
             }
         }
     }
+}
 }
 
 enum class CourseFilter {

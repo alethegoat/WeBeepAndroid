@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.foundation.lazy.rememberLazyListState
 import it.polimi.webeep.core.ui.util.ScrollBoundaryHaptics
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -59,7 +60,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.LargeTopAppBar
+import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
@@ -98,48 +99,70 @@ fun CourseDetailScreen(
     val uiState by viewModel.uiState.collectAsState()
     val lazyListState = rememberLazyListState()
 
-    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
+    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(rememberTopAppBarState())
 
-    Scaffold(
-        modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-        topBar = {
-            LargeTopAppBar(
-                title = {
-                    val courseName = (uiState as? CourseDetailUiState.Success)?.courseName ?: stringResource(R.string.course_content_title)
-                    Text(
-                        text = courseName,
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBackClick) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = stringResource(R.string.cd_back)
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.85f),
-                    scrolledContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.95f),
-                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
-                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary
-                ),
-                scrollBehavior = scrollBehavior
-            )
-        }
-    ) { innerPadding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .background(MaterialTheme.colorScheme.background)
-        ) {
+    it.polimi.webeep.core.ui.components.AuroraBackground {
+        Scaffold(
+            modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+            containerColor = Color.Transparent,
+            topBar = {
+                val backgroundColor = MaterialTheme.colorScheme.background
+                TopAppBar(
+                    modifier = Modifier.drawBehind {
+                        val fraction = scrollBehavior.state.overlappedFraction.coerceIn(0f, 1f)
+                        if (fraction > 0f) {
+                            drawRect(
+                                brush = androidx.compose.ui.graphics.Brush.verticalGradient(
+                                    colors = listOf(
+                                        backgroundColor.copy(alpha = 0.95f * fraction),
+                                        backgroundColor.copy(alpha = 0.6f * fraction),
+                                        androidx.compose.ui.graphics.Color.Transparent
+                                    )
+                                )
+                            )
+                        }
+                    },
+                    title = {
+                        AnimatedVisibility(
+                            visible = scrollBehavior.state.overlappedFraction > 0.5f,
+                            enter = fadeIn(),
+                            exit = fadeOut()
+                        ) {
+                            val courseName = (uiState as? CourseDetailUiState.Success)?.courseName ?: stringResource(R.string.course_content_title)
+                            Text(
+                                text = courseName,
+                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = onBackClick) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = stringResource(R.string.cd_back)
+                            )
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = androidx.compose.ui.graphics.Color.Transparent,
+                        scrolledContainerColor = androidx.compose.ui.graphics.Color.Transparent,
+                        titleContentColor = MaterialTheme.colorScheme.onBackground,
+                        navigationIconContentColor = MaterialTheme.colorScheme.onBackground
+                    ),
+                    scrollBehavior = scrollBehavior
+                )
+            }
+        ) { innerPadding ->
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+            ) {
             when (val state = uiState) {
                 is CourseDetailUiState.Loading -> {
-                    // Shimmer placeholder list
+                    // shimmer placeholder list
                     ShimmerCourseList()
                 }
                 is CourseDetailUiState.Success -> {
@@ -165,6 +188,16 @@ fun CourseDetailScreen(
                                     .widthIn(max = 840.dp),
                                 verticalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
+                            item {
+                                val courseName = state.courseName ?: stringResource(R.string.course_content_title)
+                                Text(
+                                    text = courseName,
+                                    style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold),
+                                    color = MaterialTheme.colorScheme.onBackground,
+                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp)
+                                )
+                            }
+                            
                             items(
                                 items = state.sections,
                                 key = { it.id },
@@ -197,6 +230,7 @@ fun CourseDetailScreen(
             }
         }
     }
+}
 }
 
 @Composable
@@ -244,7 +278,7 @@ private fun SectionItem(
                             section.summary.replace(HtmlRegex, "")
                         }
                         Text(
-                            text = cleanSummary, // Basic HTML strip
+                            text = cleanSummary, // basic html strip
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 2,
@@ -275,7 +309,7 @@ private fun SectionItem(
                             modifier = Modifier.padding(16.dp)
                         )
                     } else {
-                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                        Spacer(modifier = Modifier.height(8.dp))
                         section.modules.forEachIndexed { index, module ->
                             ModuleItem(
                                 module = module,
@@ -283,13 +317,8 @@ private fun SectionItem(
                                 onDownloadClick = onDownloadClick,
                                 onOpenClick = onOpenClick
                             )
-                            if (index < section.modules.size - 1) {
-                                HorizontalDivider(
-                                    color = MaterialTheme.colorScheme.outlineVariant,
-                                    modifier = Modifier.padding(horizontal = 16.dp)
-                                )
-                            }
                         }
+                        Spacer(modifier = Modifier.height(8.dp))
                     }
                 }
             }
@@ -321,7 +350,10 @@ private fun ModuleItem(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(vertical = 12.dp, horizontal = 16.dp)
+            .padding(vertical = 4.dp, horizontal = 16.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .background(MaterialTheme.colorScheme.surfaceContainerLowest)
+            .padding(8.dp)
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -440,11 +472,7 @@ private fun ModuleItem(
                     .padding(start = 56.dp, top = 8.dp)
                     .clip(RoundedCornerShape(16.dp))
                     .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
-                    .border(
-                        width = 1.dp,
-                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
-                        shape = RoundedCornerShape(16.dp)
-                    )
+                    .padding(vertical = 8.dp)
             ) {
                 FolderTreeView(
                     node = rootNode,
@@ -519,11 +547,9 @@ private fun FolderTreeView(
         ) {
             Column {
                 node.files.forEach { file ->
-                    HorizontalDivider(modifier = Modifier.padding(start = (48 + depth * 16).dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
                     FileRowItem(file, startPadding = (48 + depth * 16).dp, onPreviewClick, onDownloadClick, onOpenClick)
                 }
                 node.subfolders.values.sortedBy { it.name }.forEach { subNode ->
-                    HorizontalDivider(modifier = Modifier.padding(start = (12 + (depth + 1) * 16).dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
                     FolderTreeView(subNode, expandedFolders, false, depth + 1, onPreviewClick, onDownloadClick, onOpenClick)
                 }
             }
@@ -531,16 +557,10 @@ private fun FolderTreeView(
     } else {
         node.files.forEachIndexed { index, file ->
             FileRowItem(file, startPadding = 12.dp, onPreviewClick, onDownloadClick, onOpenClick)
-            if (index < node.files.lastIndex || node.subfolders.isNotEmpty()) {
-                HorizontalDivider(modifier = Modifier.padding(start = 12.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
-            }
         }
         val sortedSubfolders = node.subfolders.values.sortedBy { it.name }
         sortedSubfolders.forEachIndexed { index, subNode ->
             FolderTreeView(subNode, expandedFolders, false, 0, onPreviewClick, onDownloadClick, onOpenClick)
-            if (index < sortedSubfolders.lastIndex) {
-                HorizontalDivider(modifier = Modifier.padding(start = 12.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
-            }
         }
     }
 }

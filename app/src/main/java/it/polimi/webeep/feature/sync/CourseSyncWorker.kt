@@ -226,18 +226,16 @@ class CourseSyncWorker @AssistedInject constructor(
     }
 
     private fun createNotificationChannel() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channelId = "webeep_sync_channel"
-            val notificationManager = NotificationManagerCompat.from(appContext)
-            val channel = NotificationChannel(
-                channelId,
-                "Nuovi Documenti WeBeep",
-                NotificationManager.IMPORTANCE_DEFAULT
-            ).apply {
-                description = "Notifiche per i nuovi materiali caricati nei corsi"
-            }
-            notificationManager.createNotificationChannel(channel)
+        val channelId = "webeep_sync_channel"
+        val notificationManager = NotificationManagerCompat.from(appContext)
+        val channel = NotificationChannel(
+            channelId,
+            "Nuovi Documenti WeBeep",
+            NotificationManager.IMPORTANCE_DEFAULT
+        ).apply {
+            description = "Notifiche per i nuovi materiali caricati nei corsi"
         }
+        notificationManager.createNotificationChannel(channel)
     }
 
     private fun sendSummaryNotification(totalNewFiles: Int) {
@@ -263,7 +261,7 @@ class CourseSyncWorker @AssistedInject constructor(
             .setAutoCancel(true)
             .build()
 
-        notificationManager.notify(1000, summaryNotification) // Summary ID
+        notificationManager.notify(1000, summaryNotification) // summary id
     }
 
     private fun sendNotification(courseId: Int, courseName: String, fileRecords: List<NewFileRecord>) {
@@ -283,11 +281,7 @@ class CourseSyncWorker @AssistedInject constructor(
             putExtra("EXTRA_COURSE_ID", courseId)
         }
         
-        val pendingIntentFlags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        } else {
-            PendingIntent.FLAG_UPDATE_CURRENT
-        }
+        val pendingIntentFlags = PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         
         // use courseid as requestcode so each course gets a mathematically distinct pendingintent
         val pendingIntent: PendingIntent = PendingIntent.getActivity(appContext, courseId, intent, pendingIntentFlags)

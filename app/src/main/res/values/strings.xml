@@ -58,7 +58,10 @@
     <string name="file_viewer_loading">Preparazione anteprima…</string>
     <string name="file_viewer_image">Immagine</string>
     <string name="file_viewer_web">Contenuto web</string>
-    <string name="file_viewer_pdf_pages">%1$d pagine</string>
+    <plurals name="file_viewer_pdf_pages">
+        <item quantity="one">%1$d pagina</item>
+        <item quantity="other">%1$d pagine</item>
+    </plurals>
     <string name="file_viewer_page_label">Pagina %1$d di %2$d</string>
     <string name="file_viewer_pinch_hint">Pizzica per ingrandire · Trascina per spostare</string>
     <string name="file_viewer_image_error">Impossibile caricare l\'immagine</string>

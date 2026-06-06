@@ -80,7 +80,7 @@ object NetworkModule {
         retryInterceptor: RetryInterceptor,
         certificatePinner: CertificatePinner
     ): OkHttpClient {
-        val cacheSize = 10 * 1024 * 1024L // 10 MiB
+        val cacheSize = 10 * 1024 * 1024L // 10 mib
         val cacheDir = java.io.File(context.cacheDir, "http_cache")
         return OkHttpClient.Builder()
             .cache(okhttp3.Cache(cacheDir, cacheSize))

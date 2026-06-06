@@ -114,18 +114,21 @@ class CourseDetailViewModel @Inject constructor(
                         _uiState.update { CourseDetailUiState.Loading }
                     }
                     is Resource.Success -> {
-                        _uiState.update { currentState ->
-                            val currentExpandedStates = if (currentState is CourseDetailUiState.Success) {
-                                currentState.sections.associate { it.id to it.isExpanded }
+                        val uiSections = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                            val currentExpandedStates = if (_uiState.value is CourseDetailUiState.Success) {
+                                (_uiState.value as CourseDetailUiState.Success).sections.associate { it.id to it.isExpanded }
                             } else {
                                 emptyMap()
                             }
+                            resource.data.mapIndexed { index, section ->
+                                val wasExpanded = currentExpandedStates[section.id] ?: (index == 0)
+                                section.toUiModel(wasExpanded)
+                            }
+                        }
+                        _uiState.update { 
                             CourseDetailUiState.Success(
                                 courseName = courseName,
-                                sections = resource.data.mapIndexed { index, section ->
-                                    val wasExpanded = currentExpandedStates[section.id] ?: (index == 0)
-                                    section.toUiModel(wasExpanded)
-                                }
+                                sections = uiSections
                             )
                         }
                     }

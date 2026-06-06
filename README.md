@@ -63,7 +63,7 @@ This project follows Clean Architecture and the MVI (Model-View-Intent) pattern.
 * **State Management**: Kotlin Coroutines & StateFlow
 * **DI**: Dagger Hilt
 * **Storage**: Room & Preferences DataStore
-* **Networking**: Retrofit2 & OkHttp
+* **Networking**: Ktor & OkHttp
 
 ---
 
@@ -111,7 +111,7 @@ Il progetto segue le regole della Clean Architecture e usa il pattern MVI (Model
 * **State Management**: Kotlin Coroutines & StateFlow
 * **DI**: Dagger Hilt
 * **Database**: Room & Preferences DataStore
-* **Librerie di Rete**: Retrofit2 & OkHttp
+* **Librerie di Rete**: Ktor & OkHttp
 
 ---
 

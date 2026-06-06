@@ -97,7 +97,7 @@ fun FileViewerScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val pageSubtitle = when (val state = uiState) {
-        is FileViewerUiState.Pdf -> stringResource(R.string.file_viewer_pdf_pages, state.pageCount)
+        is FileViewerUiState.Pdf -> androidx.compose.ui.res.pluralStringResource(R.plurals.file_viewer_pdf_pages, state.pageCount, state.pageCount)
         is FileViewerUiState.Image -> stringResource(R.string.file_viewer_image)
         is FileViewerUiState.Web -> stringResource(R.string.file_viewer_web)
         else -> null
@@ -109,49 +109,14 @@ fun FileViewerScreen(
     Scaffold(
         modifier = modifier,
         containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
-        topBar = {
-            if (!isLandscape) {
-                TopAppBar(
-                    title = {
-                        Column {
-                            Text(
-                                text = viewModel.title,
-                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                            pageSubtitle?.let { subtitle ->
-                                Text(
-                                    text = subtitle,
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                            }
-                        }
-                    },
-                    navigationIcon = {
-                        IconButton(onClick = onBackClick) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = stringResource(R.string.cd_back)
-                            )
-                        }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.surface,
-                        scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainer
-                    )
-                )
-            }
-        }
+        // removed topbar from scaffold to put it in overlay (immersive mode)
+
     ) { innerPadding ->
         Box(modifier = Modifier.fillMaxSize()) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(if (isLandscape) PaddingValues(0.dp) else innerPadding)
+                    // no inner padding! content takes full screen (zero-clutter)
             ) {
                 when (val state = uiState) {
                     FileViewerUiState.Loading -> FileViewerLoading()
@@ -181,7 +146,50 @@ fun FileViewerScreen(
                     )
                 }
             }
-            if (isLandscape) {
+            
+            // floating glassmorphic topbar / back button
+            if (!isLandscape) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.85f))
+                        // .blur(16.dp) // optional: blur if sdk>=31
+                ) {
+                    TopAppBar(
+                        title = {
+                            Column {
+                                Text(
+                                    text = viewModel.title,
+                                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                pageSubtitle?.let { subtitle ->
+                                    Text(
+                                        text = subtitle,
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+                            }
+                        },
+                        navigationIcon = {
+                            IconButton(onClick = onBackClick) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                    contentDescription = stringResource(R.string.cd_back)
+                                )
+                            }
+                        },
+                        colors = TopAppBarDefaults.topAppBarColors(
+                            containerColor = androidx.compose.ui.graphics.Color.Transparent, // background is managed by box
+                            scrolledContainerColor = androidx.compose.ui.graphics.Color.Transparent
+                        )
+                    )
+                }
+            } else {
                 IconButton(
                     onClick = onBackClick,
                     modifier = Modifier
@@ -249,7 +257,11 @@ private fun ImagePreviewContent(
                         val targetOffsetY = if (targetScale == 1f) 0f else (-relativeTap.y * (targetScale - 1f)).coerceIn(-maxY, maxY)
 
                         try {
-                            view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
+                            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+                                view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
+                            } else {
+                                view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                            }
                         } catch (_: Exception) {}
 
                         coroutineScope.launch {
@@ -277,7 +289,11 @@ private fun ImagePreviewContent(
                     if (scale == 1f || scale == 5f) {
                         if (oldScale != scale) {
                             try {
-                                view.performHapticFeedback(HapticFeedbackConstants.GESTURE_END)
+                                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+                                    view.performHapticFeedback(HapticFeedbackConstants.GESTURE_END)
+                                } else {
+                                    view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                                }
                             } catch (_: Exception) {}
                         }
                     }
@@ -374,6 +390,7 @@ private fun ExternalFileContent(
     )
 }
 
+@android.annotation.SuppressLint("SetJavaScriptEnabled")
 @Composable
 private fun WebContent(
     url: String,
