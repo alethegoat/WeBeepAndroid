@@ -36,11 +36,11 @@ WeBeep Android is a native application designed to make it easier for Politecnic
 
 ### Download
 
-You can download the latest compiled APK directly from the GitHub Releases page:
+You can download the latest compiled APK (v1.0.1) directly from the GitHub Releases page:
 
 <div align="center">
-    <a href="https://github.com/alethegoat/WeBeepAndroid/releases/latest">
-        <img src="https://img.shields.io/badge/Download-APK-2ea44f?style=for-the-badge&logo=android" alt="Download APK" />
+    <a href="https://github.com/alethegoat/WeBeepAndroid/releases/tag/v1.0.1">
+        <img src="https://img.shields.io/badge/Download-v1.0.1-2ea44f?style=for-the-badge&logo=android" alt="Download APK v1.0.1" />
     </a>
 </div>
 
@@ -84,11 +84,11 @@ WeBeep Android è un'app nativa che semplifica l'accesso ai corsi di WeBeep per 
 
 ### Download
 
-Puoi scaricare l'ultimo APK già compilato e pronto all'uso dalla pagina delle Release di GitHub:
+Puoi scaricare l'ultimo APK (v1.0.1) già compilato e pronto all'uso dalla pagina delle Release di GitHub:
 
 <div align="center">
-    <a href="https://github.com/alethegoat/WeBeepAndroid/releases/latest">
-        <img src="https://img.shields.io/badge/Download-APK-2ea44f?style=for-the-badge&logo=android" alt="Download APK" />
+    <a href="https://github.com/alethegoat/WeBeepAndroid/releases/tag/v1.0.1">
+        <img src="https://img.shields.io/badge/Download-v1.0.1-2ea44f?style=for-the-badge&logo=android" alt="Download APK v1.0.1" />
     </a>
 </div>
 
