@@ -1,73 +1,68 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">WeBeep</string>
-    <string name="login_title">Accedi a WeBeep</string>
-    <string name="login_button">Accedi con PoliMi</string>
-    <string name="courses_title">I miei corsi</string>
-    <string name="course_content_title">Contenuti del corso</string>
-    <string name="loading">Caricamento…</string>
-    <string name="error_generic">Si è verificato un errore. Riprova.</string>
-    <string name="error_network">Errore di rete. Controlla la connessione.</string>
-    <string name="retry">Riprova</string>
-    <string name="logout">Esci</string>
+    <string name="app_name">WeBeep Android</string>
+    <string name="welcome_back">Bentornato,</string>
     <string name="settings">Impostazioni</string>
-    <string name="download">Scarica</string>
-    <string name="download_complete">Download completato</string>
-    <string name="no_courses">Nessun corso trovato</string>
-    <string name="no_content">Nessun contenuto disponibile</string>
-
-    <!-- LoginScreen -->
-    <string name="politecnico_milano">Politecnico di Milano</string>
-    <string name="login_subtitle">Accedi al portale della didattica del PoliMi</string>
-    <string name="login_sso_button">Accedi con SSO</string>
-    <string name="login_browser_fallback">Problemi con l\'accesso? Apri nel browser</string>
-
-    <!-- DashboardScreen -->
-    <string name="hello_user">Ciao, %1$s</string>
-    <string name="courses_in_progress">Corsi in corso</string>
-    <string name="favorites">Preferiti</string>
-    <string name="dashboard_error_title">Impossibile caricare i corsi</string>
-    <string name="dashboard_empty_title">Nessun corso attivo</string>
-    <string name="dashboard_empty_subtitle">Non risultano corsi attivi per questo semestre.</string>
-    <string name="search_courses_placeholder">Cerca i tuoi corsi...</string>
+    <string name="logout">Disconnetti</string>
+    <string name="app_theme">Tema dell\'app</string>
+    <string name="update_frequency">Frequenza aggiornamenti</string>
+    <string name="open_in_browser">Apri nel Browser</string>
+    <string name="sync_completed">Sono stati caricati %1$d nuovi file in totale.</string>
+    <string name="sync_summary">%1$d nuovi file</string>
+    <string name="sync_more_files">+ altri %1$d file</string>
+    <string name="empty_state">Nessun elemento disponibile</string>
+    <string name="close">Chiudi</string>
+    <string name="go_back">Indietro</string>
+    <string name="download_file">Scarica file</string>
+    <string name="file_icon">Icona file</string>
+    <string name="profile_picture">Immagine profilo</string>
+    <string name="cd_settings">Impostazioni</string>
+    <string name="student_placeholder">Studente</string>
+    <string name="offline_cache_message">Sei offline. Stai visualizzando i dati in cache.</string>
+    <string name="offline_no_connection_message">Nessuna connessione a Internet.</string>
+    <string name="search_courses_placeholder">Cerca corsi...</string>
+    <string name="cd_search">Cerca</string>
     <string name="clear_search">Cancella ricerca</string>
     <string name="no_courses_found">Nessun corso trovato</string>
     <string name="try_changing_filters">Prova a cambiare i filtri di ricerca</string>
-    <string name="no_courses_enrolled">Non risulti iscritto a nessun corso al momento</string>
-    <string name="reset_filters">Resetta Filtri</string>
+    <string name="no_courses_enrolled">Non sei iscritto ad alcun corso</string>
+    <string name="reset_filters">Azzera filtri</string>
     <string name="refresh">Aggiorna</string>
-
-    <!-- CourseDetailScreen -->
-    <string name="course_empty_title">Corso vuoto</string>
-    <string name="course_empty_subtitle">Non ci sono materiali pubblicati in questo corso</string>
-    <string name="sync_error_title">Errore di sincronizzazione</string>
-    <string name="no_materials_section">Nessun materiale in questa sezione</string>
-    
-    <!-- Accessibilità -->
-    <string name="cd_back">Torna indietro</string>
-    <string name="cd_close">Chiudi</string>
-    <string name="cd_preview">Visualizza anteprima</string>
+    <string name="dashboard_error_title">Errore Dashboard</string>
+    <string name="retry">Riprova</string>
+    <string name="cd_user_avatar">Avatar Utente</string>
     <string name="cd_remove_fav">Rimuovi dai preferiti</string>
     <string name="cd_add_fav">Aggiungi ai preferiti</string>
-    <string name="cd_user_avatar">Avatar utente</string>
-    <string name="cd_search">Cerca corsi</string>
-    <string name="cd_favorites">Filtra preferiti</string>
-    <string name="cd_login">Accedi con SSO</string>
-
-    <!-- FileViewerScreen -->
-    <string name="file_viewer_loading">Preparazione anteprima…</string>
+    <string name="politecnico_milano">Politecnico di Milano</string>
+    <string name="login_subtitle">Accedi per visualizzare i tuoi corsi</string>
+    <string name="cd_login">Login icon</string>
+    <string name="login_sso_button">Accedi con SSO</string>
+    <string name="course_content_title">Contenuto del corso</string>
+    <string name="cd_back">Torna indietro</string>
+    <string name="course_empty_title">Corso vuoto</string>
+    <string name="course_empty_subtitle">Nessun materiale disponibile per questo corso.</string>
+    <string name="sync_error_title">Errore di sincronizzazione</string>
+    <string name="no_materials_section">Nessun materiale in questa sezione.</string>
+    <string name="cd_preview">Anteprima file</string>
+    
     <string name="file_viewer_image">Immagine</string>
-    <string name="file_viewer_web">Contenuto web</string>
-    <plurals name="file_viewer_pdf_pages">
-        <item quantity="one">%1$d pagina</item>
-        <item quantity="other">%1$d pagine</item>
-    </plurals>
-    <string name="file_viewer_page_label">Pagina %1$d di %2$d</string>
-    <string name="file_viewer_pinch_hint">Pizzica per ingrandire · Trascina per spostare</string>
-    <string name="file_viewer_image_error">Impossibile caricare l\'immagine</string>
-    <string name="file_viewer_error_title">Anteprima non disponibile</string>
-    <string name="file_viewer_external_title">Aperto in un\'altra app</string>
-    <string name="file_viewer_external_subtitle">%1$s non può essere mostrato qui. Usa un\'app compatibile sul dispositivo.</string>
+    <string name="file_viewer_web">Pagina Web</string>
+    <string name="file_viewer_error_title">Errore apertura file</string>
+    <string name="file_viewer_loading">Caricamento...</string>
+    <string name="file_viewer_image_error">Errore nel caricamento dell\'immagine.</string>
+    <string name="file_viewer_pinch_hint">Pizzica per zoomare</string>
+    <string name="file_viewer_open_with">Apri con un\'app esterna...</string>
+    <string name="file_viewer_external_title">File Esterno</string>
+    <string name="file_viewer_external_subtitle">Questo file si apre in un\'applicazione esterna.</string>
     <string name="file_viewer_open_again">Apri di nuovo</string>
-    <string name="file_viewer_open_with">Apri con…</string>
+    
+    <plurals name="downloaded_files_count">
+        <item quantity="one">%d file scaricato</item>
+        <item quantity="other">%d file scaricati</item>
+    </plurals>
+    
+    <plurals name="file_viewer_pdf_pages">
+        <item quantity="one">%d pagina</item>
+        <item quantity="other">%d pagine</item>
+    </plurals>
 </resources>

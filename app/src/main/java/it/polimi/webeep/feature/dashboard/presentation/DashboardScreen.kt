@@ -75,6 +75,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -150,7 +151,7 @@ fun DashboardScreen(
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Settings,
-                                contentDescription = "Impostazioni"
+                                contentDescription = stringResource(R.string.cd_settings)
                             )
                         }
                     },
@@ -172,7 +173,7 @@ fun DashboardScreen(
 
             // welcome back header
             val avatarUrl = (uiState as? DashboardUiState.Success)?.userAvatar ?: ""
-            val userName = (uiState as? DashboardUiState.Success)?.userName ?: "Studente"
+            val userName = (uiState as? DashboardUiState.Success)?.userName ?: stringResource(R.string.student_placeholder)
             
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -192,7 +193,7 @@ fun DashboardScreen(
                 Spacer(modifier = Modifier.width(16.dp))
                 Column {
                     Text(
-                        text = "Bentornato,",
+                        text = stringResource(R.string.welcome_back),
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
                     )
@@ -229,7 +230,7 @@ fun DashboardScreen(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = if (isCacheAvailable) "Sei offline. Stai visualizzando i dati in cache." else "Nessuna connessione a Internet.",
+                            text = if (isCacheAvailable) stringResource(R.string.offline_cache_message) else stringResource(R.string.offline_no_connection_message),
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onErrorContainer,
                             fontWeight = FontWeight.Medium

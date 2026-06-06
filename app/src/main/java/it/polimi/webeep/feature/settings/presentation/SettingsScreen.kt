@@ -27,6 +27,7 @@ import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.ColorLens
 import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material3.Button
@@ -61,6 +62,10 @@ import it.polimi.webeep.core.datastore.ThemePreference
 import it.polimi.webeep.core.ui.util.bouncyClickable
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.res.stringResource
+import androidx.appcompat.app.AppCompatDelegate
+import androidx.core.os.LocaleListCompat
+import it.polimi.webeep.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -102,7 +107,7 @@ fun SettingsScreen(
                             exit = fadeOut()
                         ) {
                             Text(
-                                text = "Impostazioni",
+                                text = stringResource(R.string.settings),
                                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                             )
                         }
@@ -111,7 +116,7 @@ fun SettingsScreen(
                         IconButton(onClick = onBackClick) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = "Torna indietro"
+                                contentDescription = stringResource(R.string.go_back)
                             )
                         }
                     },
@@ -132,7 +137,7 @@ fun SettingsScreen(
                     .verticalScroll(scrollState)
             ) {
             Text(
-                text = "Impostazioni",
+                text = stringResource(R.string.settings),
                 style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold),
                 color = MaterialTheme.colorScheme.onBackground,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
@@ -161,6 +166,8 @@ fun SettingsScreen(
                     checked = uiState.dynamicColorPreference,
                     onCheckedChange = { viewModel.setDynamicColorPreference(it) }
                 )
+                
+                LanguageSelectionRow()
             }
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -212,7 +219,7 @@ fun SettingsScreen(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "Disconnetti",
+                        text = stringResource(R.string.logout),
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                         color = MaterialTheme.colorScheme.onErrorContainer
                     )
@@ -250,7 +257,7 @@ private fun ThemeSelectionRow(
             )
             Spacer(modifier = Modifier.width(16.dp))
             Text(
-                text = "Tema dell'app",
+                text = stringResource(R.string.app_theme),
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurface
             )
@@ -368,7 +375,7 @@ private fun SyncFrequencyItem(
             Spacer(modifier = Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "Frequenza aggiornamenti",
+                    text = stringResource(R.string.update_frequency),
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurface
                 )
@@ -396,6 +403,73 @@ private fun SyncFrequencyItem(
                     onClick = {
                         onFrequencySelected(frequency)
                         expanded = false
+                    }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun LanguageSelectionRow() {
+    var expanded by remember { mutableStateOf(false) }
+    
+    val currentLocales = AppCompatDelegate.getApplicationLocales()
+    val currentTag = if (currentLocales.isEmpty) "system" else currentLocales.get(0)?.language ?: "system"
+
+    val labels = mapOf(
+        "system" to "Sistema / System",
+        "it" to "Italiano",
+        "en" to "English"
+    )
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .bouncyClickable { expanded = true }
+            .padding(horizontal = 16.dp, vertical = 12.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                imageVector = Icons.Default.Language,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.width(16.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Lingua dell'app",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = labels[currentTag] ?: "Sistema",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Icon(
+                imageVector = Icons.Default.ArrowDropDown,
+                contentDescription = "Espandi",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+            modifier = Modifier.fillMaxWidth(0.8f)
+        ) {
+            listOf("system", "it", "en").forEach { tag ->
+                DropdownMenuItem(
+                    text = { Text(labels[tag] ?: "") },
+                    onClick = {
+                        expanded = false
+                        if (tag == "system") {
+                            AppCompatDelegate.setApplicationLocales(LocaleListCompat.getEmptyLocaleList())
+                        } else {
+                            AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags(tag))
+                        }
                     }
                 )
             }

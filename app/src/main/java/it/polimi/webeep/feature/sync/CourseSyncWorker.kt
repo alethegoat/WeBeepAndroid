@@ -252,10 +252,12 @@ class CourseSyncWorker @AssistedInject constructor(
 
         val summaryNotification = NotificationCompat.Builder(appContext, channelId)
             .setSmallIcon(android.R.drawable.sym_def_app_icon)
-            .setContentTitle("Nuovi materiali su WeBeep!")
-            .setContentText("Sono stati caricati $totalNewFiles nuovi file in totale.")
+            .setContentTitle("Sincronizzazione completata")
+            .setContentText(appContext.getString(R.string.sync_completed, totalNewFiles))
+            .setSmallIcon(android.R.drawable.sym_def_app_icon)
             .setStyle(NotificationCompat.InboxStyle()
-                .setSummaryText("$totalNewFiles nuovi file")
+                .setBigContentTitle("Sincronizzazione completata")
+                .setSummaryText(appContext.getString(R.string.sync_summary, totalNewFiles))
             )
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setGroup("WE_BEEP_SYNC_GROUP")
@@ -299,7 +301,7 @@ class CourseSyncWorker @AssistedInject constructor(
         }
         
         if (fileRecords.size > 5) {
-            inboxStyle.setSummaryText("+ altri ${fileRecords.size - 5} file")
+            inboxStyle.setSummaryText(appContext.getString(R.string.sync_more_files, fileRecords.size - 5))
         }
 
         val builder = NotificationCompat.Builder(appContext, channelId)

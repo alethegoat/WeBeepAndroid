@@ -14,6 +14,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -124,7 +125,7 @@ fun MediaViewer(
                     },
                     modifier = Modifier.padding(top = 16.dp)
                 ) {
-                    androidx.compose.material3.Text("Open in Browser")
+                    androidx.compose.material3.Text(stringResource(it.polimi.webeep.R.string.open_in_browser))
                 }
             }
         }
