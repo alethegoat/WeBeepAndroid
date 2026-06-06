@@ -53,26 +53,30 @@ class CourseRepositoryImpl @Inject constructor(
                 val filteredModules = sectionDto.modules
                     .filter { it.modname in allowedModules }
                     .map { moduleDto ->
-                        val files = moduleDto.contents?.filter { it.type != "dir" && it.filename != "index.html" }?.map { contentDto ->
-                            // convert url to webservice/pluginfile.php if it contains /pluginfile.php/
-                            val rawUrl = contentDto.fileurl ?: ""
-                            val convertedUrl = if (rawUrl.contains("/webservice/pluginfile.php/")) {
-                                rawUrl
-                            } else if (rawUrl.contains("/pluginfile.php/")) {
-                                rawUrl.replace("/pluginfile.php/", "/webservice/pluginfile.php/")
-                            } else {
-                                rawUrl
-                            }
+                        val files = if (moduleDto.modname in setOf("resource", "folder")) {
+                            moduleDto.contents?.filter { it.type != "dir" }?.map { contentDto ->
+                                // convert url to webservice/pluginfile.php if it contains /pluginfile.php/
+                                val rawUrl = contentDto.fileurl ?: ""
+                                val convertedUrl = if (rawUrl.contains("/webservice/pluginfile.php/")) {
+                                    rawUrl
+                                } else if (rawUrl.contains("/pluginfile.php/")) {
+                                    rawUrl.replace("/pluginfile.php/", "/webservice/pluginfile.php/")
+                                } else {
+                                    rawUrl
+                                }
 
-                            FileResource(
-                                filename = MoodleText.parse(contentDto.filename ?: "untitled"),
-                                filepath = contentDto.filepath ?: "/",
-                                fileUrl = MoodleFileUrlBuilder.stripAuthFromUrl(convertedUrl),
-                                fileSize = contentDto.filesize,
-                                mimeType = contentDto.mimetype,
-                                timeModified = contentDto.timemodified
-                            )
-                        }?.toMutableList() ?: mutableListOf()
+                                FileResource(
+                                    filename = MoodleText.parse(contentDto.filename ?: "untitled"),
+                                    filepath = contentDto.filepath ?: "/",
+                                    fileUrl = MoodleFileUrlBuilder.stripAuthFromUrl(convertedUrl),
+                                    fileSize = contentDto.filesize,
+                                    mimeType = contentDto.mimetype,
+                                    timeModified = contentDto.timemodified
+                                )
+                            }?.toMutableList() ?: mutableListOf()
+                        } else {
+                            mutableListOf()
+                        }
                         
                         // if the module is an external link (e.g. webex, lti, url) but has no explicit files,
                         // we transform the module url itself into a clickable file.

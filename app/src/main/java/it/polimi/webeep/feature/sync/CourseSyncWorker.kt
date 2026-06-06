@@ -81,8 +81,9 @@ class CourseSyncWorker @AssistedInject constructor(
                             oldSections.forEach { sectionWithModules ->
                                 sectionWithModules.modules.forEach { moduleWithContents ->
                                     moduleWithContents.contents.forEach { content ->
-                                        // unique key: combine url and filename to avoid timemodified collisions
-                                        val uniqueKey = "${content.fileUrl}_${content.filename}"
+                                        // unique key: combine stripped url and filename to be immune to dynamic token changes
+                                        val cleanUrl = it.polimi.webeep.core.network.MoodleFileUrlBuilder.stripAuthFromUrl(content.fileUrl)
+                                        val uniqueKey = "${cleanUrl}_${content.filename}"
                                         oldFilesKeys.add(uniqueKey)
                                     }
                                 }
@@ -131,17 +132,20 @@ class CourseSyncWorker @AssistedInject constructor(
                                         )
                                     )
 
-                                    mod.contents?.forEach { content ->
-                                        // ignore empty directories from moodle api (they cause fake files and false notifications)
-                                        // ignore index.html which is an internal moodle wrapper for URL/Page modules
-                                        if (content.type == "dir" || content.filename == "index.html") return@forEach
+                                    // only process contents for modules that actually contain physical files
+                                    val allowedFileModules = setOf("resource", "folder")
+                                    if (mod.modname in allowedFileModules) {
+                                        mod.contents?.forEach { content ->
+                                            // ignore empty directories from moodle api
+                                            if (content.type == "dir") return@forEach
 
-                                        courseFilesCount++
-                                        val filename = MoodleText.parse(content.filename ?: "Senza nome")
-                                        val fileUrl = content.fileurl ?: ""
-                                        val filepath = content.filepath
-                                        
-                                        val uniqueKey = "${fileUrl}_${filename}"
+                                            courseFilesCount++
+                                            val filename = MoodleText.parse(content.filename ?: "Senza nome")
+                                            val rawUrl = content.fileurl ?: ""
+                                            val fileUrl = it.polimi.webeep.core.network.MoodleFileUrlBuilder.stripAuthFromUrl(rawUrl)
+                                            val filepath = content.filepath
+                                            
+                                            val uniqueKey = "${fileUrl}_${filename}"
 
                                         // correct diffing: verify url+name.
                                         // adding isnotempty() prevents notification spam on absolute first launch.
@@ -150,17 +154,18 @@ class CourseSyncWorker @AssistedInject constructor(
                                             currentNewFiles.add(NewFileRecord(course.id, course.fullname, filename))
                                         }
 
-                                        contentEntities.add(
-                                            ModuleContentEntity(
-                                                moduleId = mod.id,
-                                                filename = filename,
-                                                filepath = filepath,
-                                                fileUrl = fileUrl,
-                                                fileSize = content.filesize,
-                                                mimeType = content.mimetype,
-                                                timeModified = content.timemodified
+                                            contentEntities.add(
+                                                ModuleContentEntity(
+                                                    moduleId = mod.id,
+                                                    filename = filename,
+                                                    filepath = filepath,
+                                                    fileUrl = rawUrl, // save raw url to maintain any required tracking params, auth is handled by builder
+                                                    fileSize = content.filesize,
+                                                    mimeType = content.mimetype,
+                                                    timeModified = content.timemodified
+                                                )
                                             )
-                                        )
+                                        }
                                     }
                                 }
                             }
