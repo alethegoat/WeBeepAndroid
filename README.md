@@ -13,6 +13,12 @@
 
 ---
 
+<div align="center">
+  <a href="README.it.md">🇮🇹 Italiano</a> | <b>🇬🇧 English</b>
+</div>
+
+---
+
 ### 🇬🇧 What is it exactly?
 
 WeBeep Android is a native application designed to radically improve the mobile experience of Politecnico di Milano students with the WeBeep (Moodle) platform. The app is built with an **Offline-First** architecture, allowing you to study, consult documents, and receive updates wherever you are, even on the subway or without a connection.
