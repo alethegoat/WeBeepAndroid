@@ -49,7 +49,7 @@ fun DownloadProgressIndicator(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Download,
-                        contentDescription = "Scarica risorsa",
+                        contentDescription = androidx.compose.ui.res.stringResource(it.polimi.webeep.R.string.cd_download_resource),
                         tint = MaterialTheme.colorScheme.secondary
                     )
                 }
@@ -74,7 +74,7 @@ fun DownloadProgressIndicator(
                 ) {
                     Icon(
                         imageVector = Icons.Default.CheckCircle,
-                        contentDescription = "Apri file",
+                        contentDescription = androidx.compose.ui.res.stringResource(it.polimi.webeep.R.string.cd_open_file),
                         tint = Color(0xFF2E7D32)
                     )
                 }
@@ -90,7 +90,7 @@ fun DownloadProgressIndicator(
                 ) {
                     Icon(
                         imageVector = Icons.Default.ErrorOutline,
-                        contentDescription = "Errore. Riprova",
+                        contentDescription = androidx.compose.ui.res.stringResource(it.polimi.webeep.R.string.cd_error_retry),
                         tint = MaterialTheme.colorScheme.error
                     )
                 }

@@ -232,10 +232,10 @@ class CourseSyncWorker @AssistedInject constructor(
         val notificationManager = NotificationManagerCompat.from(appContext)
         val channel = NotificationChannel(
             channelId,
-            "Nuovi Documenti WeBeep",
+            appContext.getString(R.string.sync_channel_name),
             NotificationManager.IMPORTANCE_DEFAULT
         ).apply {
-            description = "Notifiche per i nuovi materiali caricati nei corsi"
+            description = appContext.getString(R.string.sync_channel_desc)
         }
         notificationManager.createNotificationChannel(channel)
     }
@@ -252,11 +252,11 @@ class CourseSyncWorker @AssistedInject constructor(
 
         val summaryNotification = NotificationCompat.Builder(appContext, channelId)
             .setSmallIcon(android.R.drawable.sym_def_app_icon)
-            .setContentTitle("Sincronizzazione completata")
+            .setContentTitle(appContext.getString(R.string.sync_completed_title))
             .setContentText(appContext.getString(R.string.sync_completed, totalNewFiles))
             .setSmallIcon(android.R.drawable.sym_def_app_icon)
             .setStyle(NotificationCompat.InboxStyle()
-                .setBigContentTitle("Sincronizzazione completata")
+                .setBigContentTitle(appContext.getString(R.string.sync_completed_title))
                 .setSummaryText(appContext.getString(R.string.sync_summary, totalNewFiles))
             )
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
@@ -292,7 +292,7 @@ class CourseSyncWorker @AssistedInject constructor(
 
         val inboxStyle = NotificationCompat.InboxStyle()
         val title = courseName
-        val summaryText = "${fileRecords.size} nuovi file"
+        val summaryText = appContext.getString(R.string.sync_summary, fileRecords.size)
         
         inboxStyle.setBigContentTitle(title)
         

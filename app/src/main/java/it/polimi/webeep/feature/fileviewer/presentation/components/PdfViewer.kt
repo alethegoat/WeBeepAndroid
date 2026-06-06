@@ -509,7 +509,7 @@ private fun PdfPageItem(
             val bitmapToDraw = pageResult.highResBitmap ?: pageResult.fastBitmap!!
             Image(
                 bitmap = bitmapToDraw.asImageBitmap(),
-                contentDescription = "PDF Page $pageIndex",
+                contentDescription = androidx.compose.ui.res.stringResource(it.polimi.webeep.R.string.cd_pdf_page, pageIndex + 1),
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.FillWidth
             )

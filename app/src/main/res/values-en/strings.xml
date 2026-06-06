@@ -85,4 +85,16 @@
     
     <string name="settings_cd_expand">Expand</string>
     <string name="settings_app_language">App language</string>
+    
+    <string name="cd_download_resource">Download resource</string>
+    <string name="cd_open_file">Open file</string>
+    <string name="cd_error_retry">Error. Retry</string>
+    <string name="cd_pdf_page">PDF Page %1$d</string>
+    <string name="sync_channel_name">New WeBeep Documents</string>
+    <string name="sync_channel_desc">Notifications for new materials uploaded in courses</string>
+    <string name="sync_completed_title">Synchronization completed</string>
+    
+    <string name="filter_active">Active</string>
+    <string name="filter_past">Past</string>
+    <string name="filter_all">All</string>
 </resources>

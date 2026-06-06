@@ -301,9 +301,9 @@ fun DashboardScreen(
                     .padding(4.dp)
             ) {
                 val filters = listOf(
-                    CourseFilter.Active to "In corso",
-                    CourseFilter.Past to "Passati",
-                    CourseFilter.All to "Tutti"
+                    CourseFilter.Active to stringResource(R.string.filter_active),
+                    CourseFilter.Past to stringResource(R.string.filter_past),
+                    CourseFilter.All to stringResource(R.string.filter_all)
                 )
                 val pillWidth = maxWidth / filters.size
                 
