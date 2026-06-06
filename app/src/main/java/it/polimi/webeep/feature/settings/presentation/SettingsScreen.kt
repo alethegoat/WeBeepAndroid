@@ -145,7 +145,7 @@ fun SettingsScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            SettingsSectionTitle("Aspetto")
+            SettingsSectionTitle(stringResource(R.string.settings_section_appearance))
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -161,8 +161,8 @@ fun SettingsScreen(
 
                 SettingsSwitchItem(
                     icon = Icons.Default.ColorLens,
-                    title = "Colori dinamici",
-                    subtitle = "Usa i colori del sistema (su Android 12+)",
+                    title = stringResource(R.string.settings_dynamic_colors_title),
+                    subtitle = stringResource(R.string.settings_dynamic_colors_subtitle),
                     checked = uiState.dynamicColorPreference,
                     onCheckedChange = { viewModel.setDynamicColorPreference(it) }
                 )
@@ -172,7 +172,7 @@ fun SettingsScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            SettingsSectionTitle("Sincronizzazione (Offline)")
+            SettingsSectionTitle(stringResource(R.string.settings_section_sync))
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -183,8 +183,8 @@ fun SettingsScreen(
             ) {
                 SettingsSwitchItem(
                     icon = Icons.Default.Wifi,
-                    title = "Scarica solo in Wi-Fi",
-                    subtitle = "Risparmia dati mobili limitando i download",
+                    title = stringResource(R.string.settings_wifi_only_title),
+                    subtitle = stringResource(R.string.settings_wifi_only_subtitle),
                     checked = uiState.wifiOnlySync,
                     onCheckedChange = { viewModel.setWifiOnlySync(it) }
                 )
@@ -197,7 +197,7 @@ fun SettingsScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            SettingsSectionTitle("Account")
+            SettingsSectionTitle(stringResource(R.string.settings_section_account))
 
             Spacer(modifier = Modifier.height(8.dp))
 
@@ -274,9 +274,9 @@ private fun ThemeSelectionRow(
             horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             val options = listOf(
-                ThemePreference.SYSTEM_DEFAULT to "Sistema",
-                ThemePreference.LIGHT to "Chiaro",
-                ThemePreference.DARK to "Scuro"
+                ThemePreference.SYSTEM_DEFAULT to stringResource(R.string.settings_theme_system),
+                ThemePreference.LIGHT to stringResource(R.string.settings_theme_light),
+                ThemePreference.DARK to stringResource(R.string.settings_theme_dark)
             )
             options.forEach { (theme, label) ->
                 val isSelected = selectedTheme == theme
@@ -353,11 +353,11 @@ private fun SyncFrequencyItem(
     var expanded by remember { mutableStateOf(false) }
 
     val labels = mapOf(
-        SyncFrequency.FIFTEEN_MINUTES to "Ogni 15 minuti",
-        SyncFrequency.ONE_HOUR to "Ogni ora",
-        SyncFrequency.TWELVE_HOURS to "Ogni 12 ore",
-        SyncFrequency.DAILY to "Una volta al giorno",
-        SyncFrequency.NEVER to "Mai"
+        SyncFrequency.FIFTEEN_MINUTES to stringResource(R.string.settings_sync_freq_15m),
+        SyncFrequency.ONE_HOUR to stringResource(R.string.settings_sync_freq_1h),
+        SyncFrequency.TWELVE_HOURS to stringResource(R.string.settings_sync_freq_12h),
+        SyncFrequency.DAILY to stringResource(R.string.settings_sync_freq_daily),
+        SyncFrequency.NEVER to stringResource(R.string.settings_sync_freq_never)
     )
 
     Box(
@@ -387,7 +387,7 @@ private fun SyncFrequencyItem(
             }
             Icon(
                 imageVector = Icons.Default.ArrowDropDown,
-                contentDescription = "Espandi",
+                contentDescription = stringResource(R.string.settings_cd_expand),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
@@ -438,7 +438,7 @@ private fun LanguageSelectionRow() {
             Spacer(modifier = Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "Lingua dell'app",
+                    text = stringResource(R.string.settings_app_language),
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurface
                 )
@@ -450,7 +450,7 @@ private fun LanguageSelectionRow() {
             }
             Icon(
                 imageVector = Icons.Default.ArrowDropDown,
-                contentDescription = "Espandi",
+                contentDescription = stringResource(R.string.settings_cd_expand),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }

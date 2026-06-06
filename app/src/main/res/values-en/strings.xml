@@ -65,4 +65,24 @@
         <item quantity="one">%d page</item>
         <item quantity="other">%d pages</item>
     </plurals>
+    <string name="settings_section_appearance">Appearance</string>
+    <string name="settings_dynamic_colors_title">Dynamic colors</string>
+    <string name="settings_dynamic_colors_subtitle">Use system colors (on Android 12+)</string>
+    <string name="settings_section_sync">Sync (Offline)</string>
+    <string name="settings_wifi_only_title">Download on Wi-Fi only</string>
+    <string name="settings_wifi_only_subtitle">Save mobile data by limiting downloads</string>
+    <string name="settings_section_account">Account</string>
+    
+    <string name="settings_theme_system">System</string>
+    <string name="settings_theme_light">Light</string>
+    <string name="settings_theme_dark">Dark</string>
+    
+    <string name="settings_sync_freq_15m">Every 15 minutes</string>
+    <string name="settings_sync_freq_1h">Every hour</string>
+    <string name="settings_sync_freq_12h">Every 12 hours</string>
+    <string name="settings_sync_freq_daily">Once a day</string>
+    <string name="settings_sync_freq_never">Never</string>
+    
+    <string name="settings_cd_expand">Expand</string>
+    <string name="settings_app_language">App language</string>
 </resources>
