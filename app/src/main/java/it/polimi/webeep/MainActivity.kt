@@ -37,6 +37,7 @@ class MainActivity : ComponentActivity() {
 
     private var navController: NavHostController? = null
     private var pendingToken: String? = null
+    private var pendingCourseId: Int? = null
 
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -52,6 +53,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         checkSsoDeepLink(intent)
+        checkCourseIntent(intent)
 
         setContent {
             WeBeepApp(
@@ -60,6 +62,10 @@ class MainActivity : ComponentActivity() {
                 onNavControllerReady = { controller ->
                     navController = controller
                     pendingToken = null
+                    pendingCourseId?.let { courseId ->
+                        controller.navigate(Screen.CourseDetail.createRoute(courseId))
+                        pendingCourseId = null
+                    }
                 }
             )
         }
@@ -104,11 +110,16 @@ class MainActivity : ComponentActivity() {
         super.onNewIntent(intent)
         setIntent(intent)
         checkSsoDeepLink(intent)
+        checkCourseIntent(intent)
         pendingToken?.let { token ->
             navController?.navigate(Screen.Login.createRoute(token)) {
                 popUpTo(navController!!.graph.startDestinationId) { inclusive = true }
             }
             pendingToken = null
+        }
+        pendingCourseId?.let { courseId ->
+            navController?.navigate(Screen.CourseDetail.createRoute(courseId))
+            pendingCourseId = null
         }
     }
 
@@ -118,6 +129,13 @@ class MainActivity : ComponentActivity() {
 
         extractToken(data)?.let { token ->
             pendingToken = token
+        }
+    }
+
+    private fun checkCourseIntent(intent: Intent?) {
+        val courseId = intent?.getIntExtra("EXTRA_COURSE_ID", -1) ?: -1
+        if (courseId != -1) {
+            pendingCourseId = courseId
         }
     }
 

@@ -46,7 +46,7 @@ class CourseSyncWorker @AssistedInject constructor(
     private val tokenManager: TokenManager
 ) : CoroutineWorker(appContext, workerParams) {
 
-    data class NewFileRecord(val courseName: String, val fileName: String)
+    data class NewFileRecord(val courseId: Int, val courseName: String, val fileName: String)
 
     override suspend fun doWork(): Result {
         Log.d("CourseSyncWorker", "🔄 Worker avviato: Inizio controllo nuovi file")
@@ -146,7 +146,7 @@ class CourseSyncWorker @AssistedInject constructor(
                                         // adding isnotempty() prevents notification spam on absolute first launch.
                                         if (!oldFilesKeys.contains(uniqueKey) && oldFilesKeys.isNotEmpty()) {
                                             Log.d("CourseSyncWorker", "✨ [${course.shortname}] Trovato nuovo file: $filename")
-                                            currentNewFiles.add(NewFileRecord(course.fullname, filename))
+                                            currentNewFiles.add(NewFileRecord(course.id, course.fullname, filename))
                                         }
 
                                         contentEntities.add(
@@ -189,8 +189,18 @@ class CourseSyncWorker @AssistedInject constructor(
             Log.d("CourseSyncWorker", "✅ Sync completato. File nuovi totali confermati: $totalNewFiles")
             
             if (totalNewFiles > 0) {
-                Log.d("CourseSyncWorker", "🔔 Invio notifica per $totalNewFiles file totali.")
-                sendNotification(totalNewFiles, newFileRecords)
+                Log.d("CourseSyncWorker", "🔔 Invio notifiche per i corsi con file nuovi.")
+                val filesByCourse = newFileRecords.groupBy { it.courseId }
+                
+                // Create a summary notification if multiple courses have updates
+                if (filesByCourse.size > 1) {
+                    sendSummaryNotification(totalNewFiles)
+                }
+
+                filesByCourse.forEach { (courseId, records) ->
+                    val courseName = records.first().courseName
+                    sendNotification(courseId, courseName, records)
+                }
             }
 
             return if (hasErrors) Result.retry() else Result.success()
@@ -201,7 +211,33 @@ class CourseSyncWorker @AssistedInject constructor(
         }
     }
 
-    private fun sendNotification(newFilesCount: Int, fileRecords: List<NewFileRecord>) {
+    private fun sendSummaryNotification(totalNewFiles: Int) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ContextCompat.checkSelfPermission(appContext, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+        ) {
+            return
+        }
+
+        val channelId = "webeep_sync_channel"
+        val notificationManager = NotificationManagerCompat.from(appContext)
+
+        val summaryNotification = NotificationCompat.Builder(appContext, channelId)
+            .setSmallIcon(android.R.drawable.sym_def_app_icon)
+            .setContentTitle("Nuovi materiali su WeBeep!")
+            .setContentText("Sono stati caricati $totalNewFiles nuovi file in totale.")
+            .setStyle(NotificationCompat.InboxStyle()
+                .setSummaryText("$totalNewFiles nuovi file")
+            )
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setGroup("WE_BEEP_SYNC_GROUP")
+            .setGroupSummary(true)
+            .setAutoCancel(true)
+            .build()
+
+        notificationManager.notify(1000, summaryNotification) // Summary ID
+    }
+
+    private fun sendNotification(courseId: Int, courseName: String, fileRecords: List<NewFileRecord>) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
             ContextCompat.checkSelfPermission(appContext, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
         ) {
@@ -225,6 +261,7 @@ class CourseSyncWorker @AssistedInject constructor(
 
         val intent = Intent(appContext, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            putExtra("EXTRA_COURSE_ID", courseId)
         }
         
         val pendingIntentFlags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -233,16 +270,16 @@ class CourseSyncWorker @AssistedInject constructor(
             PendingIntent.FLAG_UPDATE_CURRENT
         }
         
-        val pendingIntent: PendingIntent = PendingIntent.getActivity(appContext, 0, intent, pendingIntentFlags)
+        val pendingIntent: PendingIntent = PendingIntent.getActivity(appContext, courseId, intent, pendingIntentFlags)
 
         val inboxStyle = NotificationCompat.InboxStyle()
-        val title = "Nuovi materiali su WeBeep!"
-        val summaryText = "Sono stati caricati $newFilesCount nuovi file."
+        val title = courseName
+        val summaryText = "${fileRecords.size} nuovi file"
         
         inboxStyle.setBigContentTitle(title)
         
         fileRecords.take(5).forEach { record ->
-            inboxStyle.addLine("📄 ${record.fileName} - ${record.courseName}")
+            inboxStyle.addLine("📄 ${record.fileName}")
         }
         
         if (fileRecords.size > 5) {
@@ -256,12 +293,10 @@ class CourseSyncWorker @AssistedInject constructor(
             .setStyle(inboxStyle)
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setContentIntent(pendingIntent)
+            .setGroup("WE_BEEP_SYNC_GROUP")
             .setAutoCancel(true)
 
-        // static id (e.g. 1001) to avoid overwriting with separate notifications,
-        // but smart updating of the grouped inboxstyle.
-        val notificationId = 1001
-        notificationManager.notify(notificationId, builder.build())
-        Log.d("CourseSyncWorker", "📢 Notifica raggruppata aggiornata/mostrata con ID $notificationId")
+        notificationManager.notify(courseId, builder.build())
+        Log.d("CourseSyncWorker", "📢 Notifica inviata per il corso $courseId")
     }
 }
