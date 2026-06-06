@@ -190,13 +190,18 @@ class CourseSyncWorker @AssistedInject constructor(
             
             if (totalNewFiles > 0) {
                 Log.d("CourseSyncWorker", "🔔 Invio notifiche per i corsi con file nuovi.")
+                
+                // group the new files by course so that we can send a distinct notification for each course.
                 val filesByCourse = newFileRecords.groupBy { it.courseId }
                 
-                // Create a summary notification if multiple courses have updates
+                // create a summary notification if multiple courses have updates
+                // this is required by android to visually bundle the notifications together.
                 if (filesByCourse.size > 1) {
                     sendSummaryNotification(totalNewFiles)
                 }
 
+                // send individual notifications for each course containing new files.
+                // each notification will have a unique id (the course id) and a dedicated deep link.
                 filesByCourse.forEach { (courseId, records) ->
                     val courseName = records.first().courseName
                     sendNotification(courseId, courseName, records)
@@ -261,6 +266,7 @@ class CourseSyncWorker @AssistedInject constructor(
 
         val intent = Intent(appContext, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            // attach the course id to the intent so that mainactivity can deep link directly to it
             putExtra("EXTRA_COURSE_ID", courseId)
         }
         
@@ -270,6 +276,7 @@ class CourseSyncWorker @AssistedInject constructor(
             PendingIntent.FLAG_UPDATE_CURRENT
         }
         
+        // use courseid as requestcode so each course gets a mathematically distinct pendingintent
         val pendingIntent: PendingIntent = PendingIntent.getActivity(appContext, courseId, intent, pendingIntentFlags)
 
         val inboxStyle = NotificationCompat.InboxStyle()
@@ -293,9 +300,11 @@ class CourseSyncWorker @AssistedInject constructor(
             .setStyle(inboxStyle)
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setContentIntent(pendingIntent)
+            // group key must match the summary notification
             .setGroup("WE_BEEP_SYNC_GROUP")
             .setAutoCancel(true)
 
+        // using courseid ensures notifications don't overwrite each other across different courses
         notificationManager.notify(courseId, builder.build())
         Log.d("CourseSyncWorker", "📢 Notifica inviata per il corso $courseId")
     }
