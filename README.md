@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/icon.png" width="150" alt="WeBeep App Icon">
+</p>
+
 # WeBeep Android
 
 A native Android client for Politecnico di Milano's WeBeep (Moodle) platform, designed with an offline-first architecture to improve access to university resources.
@@ -11,8 +15,9 @@ This project provides a mobile interface for students to access their WeBeep cou
 - **Offline Support**: Courses, sections, and downloaded files are cached locally using Room, allowing access without an active internet connection.
 - **SSO Authentication**: Integration with Politecnico di Milano's Single Sign-On via Chrome Custom Tabs.
 - **Custom PDF Engine**: Optimized PDF rendering pipeline using asynchronous pre-fetching and LRU Bitmap pooling to ensure smooth scrolling through heavy documents.
-- **Background Synchronization**: WorkManager periodic tasks handle background diffing, pushing system notifications when new materials are uploaded by professors.
-- **Modern UI**: Implemented entirely with Jetpack Compose following Material 3 guidelines, including dark mode support.
+- **Background Synchronization & Notifications**: WorkManager periodic tasks handle background diffing, pushing system notifications when new materials are uploaded by professors.
+- **Smart Deep Linking**: Tapping on a new material notification seamlessly routes the user directly to the specific course detail screen.
+- **Modern & Premium UI**: Implemented entirely with Jetpack Compose following Material 3 guidelines, featuring a custom high-end launcher icon, glassmorphism elements, and dark mode support.
 
 ## Architecture & Tech Stack
 
