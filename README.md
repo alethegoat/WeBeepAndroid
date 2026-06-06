@@ -14,12 +14,14 @@
 ---
 
 <div align="center">
-  <a href="README.it.md">🇮🇹 Italiano</a> | <b>🇬🇧 English</b>
+  <a href="#-italiano">🇮🇹 Italiano</a> | <a href="#-english">🇬🇧 English</a>
 </div>
 
 ---
 
-### 🇬🇧 What is it exactly?
+## 🇬🇧 English
+
+### What is it exactly?
 
 WeBeep Android is a native application designed to radically improve the mobile experience of Politecnico di Milano students with the WeBeep (Moodle) platform. The app is built with an **Offline-First** architecture, allowing you to study, consult documents, and receive updates wherever you are, even on the subway or without a connection.
 
@@ -33,7 +35,7 @@ WeBeep Android is a native application designed to radically improve the mobile 
 
 ---
 
-## 📥 Download and Installation
+### 📥 Download and Installation
 
 The project is currently under active development. You can download the latest **APK** directly from GitHub Releases:
 
@@ -43,7 +45,7 @@ The project is currently under active development. You can download the latest *
     </a>
 </div>
 
-### Manual Build
+#### Manual Build
 
 1. Clone the repository:
    ```bash
@@ -55,7 +57,7 @@ The project is currently under active development. You can download the latest *
 
 ---
 
-## 🛠 Tech Stack and Architecture
+### 🛠 Tech Stack and Architecture
 
 The application follows **Clean Architecture** principles and adopts the **MVI** (Model-View-Intent) pattern.
 
@@ -67,5 +69,56 @@ The application follows **Clean Architecture** principles and adopts the **MVI**
 
 ---
 
+## 🇮🇹 Italiano
+
+### Cos'è esattamente?
+
+WeBeep Android è un'applicazione nativa progettata per migliorare radicalmente l'esperienza mobile degli studenti del Politecnico di Milano con la piattaforma WeBeep (Moodle). L'app è costruita con un'architettura **Offline-First**, permettendoti di studiare, consultare documenti e ricevere aggiornamenti ovunque tu sia, anche in metropolitana o senza connessione.
+
+### 🚀 Funzionalità Principali
+
+- 📱 **UI Premium e Moderna**: Un'interfaccia curata nei minimi dettagli, sviluppata interamente in *Jetpack Compose* seguendo gli standard del Material Design 3 (incluso un bellissimo Dark Mode e l'icona Glassmorphism).
+- ☁️ **Sincronizzazione in Background**: Non perderti mai un file. L'app usa `WorkManager` per scaricare silenziosamente i nuovi materiali caricati dai professori.
+- 🔔 **Notifiche & Smart Deep Linking**: Quando esce un nuovo documento ricevi una notifica push. Premendola, verrai catapultato automaticamente all'interno del corso specifico, dritto al nuovo materiale.
+- ⚡ **Motore PDF Custom**: Gestione avanzata dei PDF con rendering asincrono e caching LRU Bitmap. Niente più blocchi o rallentamenti nei file accademici giganti!
+- 🔐 **Autenticazione Sicura SSO**: Accesso integrato con i servizi ufficiali del PoliMi tramite Chrome Custom Tabs.
+
+---
+
+### 📥 Download e Installazione
+
+Al momento il progetto è in fase di sviluppo attivo. Puoi scaricare l'ultimo **APK** direttamente dalle Release di GitHub:
+
+<div align="center">
+    <a href="https://github.com/alethegoat/WeBeepAndroid/releases/latest">
+        <img src="https://img.shields.io/badge/Download_APK-Ultima_Release-2ea44f?style=for-the-badge&logo=android" alt="Download APK" />
+    </a>
+</div>
+
+#### Compilazione Manuale
+
+1. Clona la repository:
+   ```bash
+   git clone https://github.com/alethegoat/WeBeepAndroid.git
+   ```
+2. Apri il progetto in **Android Studio** (consigliata l'ultima versione stabile).
+3. Assicurati di avere il JDK 17+ installato.
+4. Sincronizza Gradle e premi *Run*.
+
+---
+
+### 🛠 Tech Stack e Architettura
+
+L'applicazione segue i principi della **Clean Architecture** e adotta il pattern **MVI** (Model-View-Intent).
+
+* **Interfaccia Utente**: Jetpack Compose
+* **Gestione di Stato e Concorrenza**: Kotlin Coroutines & StateFlow
+* **Dependency Injection**: Dagger Hilt
+* **Database & Cache**: Room Database & Preferences DataStore
+* **Networking**: Retrofit2 & OkHttp
+
+---
+
 > **Disclaimer** <br>
-> This is an unofficial application developed by students and is not affiliated with, maintained, or in any way endorsed by Politecnico di Milano. The icon and name are used for identification purposes only.
+> This is an unofficial application developed by students and is not affiliated with, maintained, or in any way endorsed by Politecnico di Milano. The icon and name are used for identification purposes only. <br>
+> *Questa è un'applicazione non ufficiale sviluppata da studenti e non è affiliata, mantenuta o in alcun modo approvata dal Politecnico di Milano. L'icona e il nome sono utilizzati a puro scopo identificativo.*
