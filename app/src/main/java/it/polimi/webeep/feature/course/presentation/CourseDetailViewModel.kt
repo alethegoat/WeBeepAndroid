@@ -91,7 +91,7 @@ class CourseDetailViewModel @Inject constructor(
     private val _uiState = MutableStateFlow<CourseDetailUiState>(CourseDetailUiState.Loading)
     val uiState: StateFlow<CourseDetailUiState> = _uiState.asStateFlow()
 
-    private var courseName: String = "course detail"
+    private var courseName: String = ""
 
     // map to keep track of current download jobs for structured concurrency
     private val downloadJobs = ConcurrentHashMap<String, Job>()
@@ -249,7 +249,7 @@ class CourseDetailViewModel @Inject constructor(
         fileUrl = fileUrl,
         fileSize = fileSize,
         mimeType = mimeType,
-        formattedSize = formatFileSize(fileSize),
+        formattedSize = FileUtils.formatFileSize(fileSize),
         downloadState = if (downloadRepository.isFileDownloaded(FileUtils.buildLocalFileName(filename, fileUrl))) {
             DownloadState.COMPLETED
         } else {
@@ -257,12 +257,7 @@ class CourseDetailViewModel @Inject constructor(
         }
     )
 
-    private fun formatFileSize(size: Long): String {
-        if (size <= 0) return "0 B"
-        val units = arrayOf("B", "KB", "MB", "GB", "TB")
-        val digitGroups = (Math.log10(size.toDouble()) / Math.log10(1024.0)).toInt()
-        return String.format(Locale.ROOT, "%.1f %s", size / Math.pow(1024.0, digitGroups.toDouble()), units[digitGroups])
-    }
+
 
     override fun onCleared() {
         super.onCleared()

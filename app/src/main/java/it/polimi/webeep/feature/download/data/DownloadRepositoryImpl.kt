@@ -33,7 +33,7 @@ class DownloadRepositoryImpl @Inject constructor(
 
     private val downloadManager = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
 
-    override fun downloadFile(url: String, localFileName: String, displayName: String, mimeType: String?): Long {
+    override fun downloadFile(url: String, token: String?, localFileName: String, displayName: String, mimeType: String?): Long {
         val directory = getDownloadsDirectory()
         if (!directory.exists()) {
             directory.mkdirs()
@@ -53,6 +53,9 @@ class DownloadRepositoryImpl @Inject constructor(
             .setDestinationUri(Uri.fromFile(file))
             .setAllowedOverMetered(true)
             .setAllowedOverRoaming(true)
+            
+        // pass token as header to avoid exposing it in url query parameters in system logs
+        token?.let { request.addRequestHeader("Authorization", "Bearer $it") }
 
         return downloadManager.enqueue(request)
     }

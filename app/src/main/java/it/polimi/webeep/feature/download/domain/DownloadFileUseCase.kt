@@ -21,17 +21,14 @@ class DownloadFileUseCase @Inject constructor(
      * @return the download id returned by downloadmanager.
      */
     suspend fun execute(url: String, localFileName: String, displayName: String, mimeType: String?): Long {
+        val token = tokenManager.getToken() ?: throw IllegalStateException("Token non disponibile. Effettua il login.")
+        val cleanUrl = MoodleFileUrlBuilder.stripAuthFromUrl(url)
         return downloadRepository.downloadFile(
-            url = buildAuthenticatedUrl(url),
+            url = cleanUrl,
+            token = token,
             localFileName = localFileName,
             displayName = displayName,
             mimeType = mimeType
         )
-    }
-
-    suspend fun buildAuthenticatedUrl(url: String): String {
-        // fetch the secure token and append it to the file url so the download manager can bypass login
-        val token = tokenManager.getToken() ?: throw IllegalStateException("Token non disponibile. Effettua il login.")
-        return MoodleFileUrlBuilder.buildAuthenticatedUrl(url, token)
     }
 }

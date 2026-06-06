@@ -10,7 +10,7 @@ interface DownloadRepository {
     /**
      * enqueues a download via downloadmanager and returns the download id.
      */
-    fun downloadFile(url: String, localFileName: String, displayName: String, mimeType: String?): Long
+    fun downloadFile(url: String, token: String?, localFileName: String, displayName: String, mimeType: String?): Long
 
     /**
      * monitors the download progress as a flow of percentage (0-100).
