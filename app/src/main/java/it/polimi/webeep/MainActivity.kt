@@ -42,9 +42,8 @@ class MainActivity : ComponentActivity() {
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { isGranted: Boolean ->
-        if (isGranted) {
-            setupPeriodicSync()
-        }
+        // the background sync should run regardless of whether notifications are permitted
+        setupPeriodicSync()
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {

@@ -191,6 +191,9 @@ class CourseSyncWorker @AssistedInject constructor(
             if (totalNewFiles > 0) {
                 Log.d("CourseSyncWorker", "🔔 Invio notifiche per i corsi con file nuovi.")
                 
+                // ensure the notification channel is created before sending anything
+                createNotificationChannel()
+                
                 // group the new files by course so that we can send a distinct notification for each course.
                 val filesByCourse = newFileRecords.groupBy { it.courseId }
                 
@@ -213,6 +216,21 @@ class CourseSyncWorker @AssistedInject constructor(
             Log.e("CourseSyncWorker", "💥 Errore fatale nel Worker: ${e.message}")
             e.printStackTrace()
             return Result.retry()
+        }
+    }
+
+    private fun createNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channelId = "webeep_sync_channel"
+            val notificationManager = NotificationManagerCompat.from(appContext)
+            val channel = NotificationChannel(
+                channelId,
+                "Nuovi Documenti WeBeep",
+                NotificationManager.IMPORTANCE_DEFAULT
+            ).apply {
+                description = "Notifiche per i nuovi materiali caricati nei corsi"
+            }
+            notificationManager.createNotificationChannel(channel)
         }
     }
 
@@ -252,17 +270,6 @@ class CourseSyncWorker @AssistedInject constructor(
 
         val channelId = "webeep_sync_channel"
         val notificationManager = NotificationManagerCompat.from(appContext)
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                channelId,
-                "Nuovi Documenti WeBeep",
-                NotificationManager.IMPORTANCE_DEFAULT
-            ).apply {
-                description = "Notifiche per i nuovi materiali caricati nei corsi"
-            }
-            notificationManager.createNotificationChannel(channel)
-        }
 
         val intent = Intent(appContext, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
