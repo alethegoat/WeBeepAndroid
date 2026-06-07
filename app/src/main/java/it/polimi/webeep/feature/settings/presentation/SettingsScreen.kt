@@ -89,11 +89,12 @@ fun SettingsScreen(
                     modifier = Modifier.drawBehind {
                         val fraction = scrollBehavior.state.overlappedFraction.coerceIn(0f, 1f)
                         if (fraction > 0f) {
+                            // To make it melt beautifully into the Aurora, we extend the bottom transparent part
                             drawRect(
                                 brush = androidx.compose.ui.graphics.Brush.verticalGradient(
                                     colors = listOf(
                                         backgroundColor.copy(alpha = 0.95f * fraction),
-                                        backgroundColor.copy(alpha = 0.6f * fraction),
+                                        backgroundColor.copy(alpha = 0.5f * fraction),
                                         androidx.compose.ui.graphics.Color.Transparent
                                     )
                                 )
@@ -133,9 +134,9 @@ fun SettingsScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(innerPadding)
                     .verticalScroll(scrollState)
             ) {
+            Spacer(modifier = Modifier.height(innerPadding.calculateTopPadding()))
             Text(
                 text = stringResource(R.string.settings),
                 style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold),

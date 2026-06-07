@@ -8,6 +8,7 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.material.icons.filled.CloudOff
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import it.polimi.webeep.core.ui.util.bouncyClickable
@@ -17,11 +18,9 @@ import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.ui.draw.drawBehind
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -85,9 +84,6 @@ import it.polimi.webeep.core.ui.components.CourseCard
 import it.polimi.webeep.core.ui.components.EmptyStateView
 import it.polimi.webeep.core.ui.components.ShimmerCourseList
 
-/**
- * dashboard screen composable.
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardScreen(
@@ -118,11 +114,12 @@ fun DashboardScreen(
                     modifier = Modifier.drawBehind {
                         val fraction = scrollBehavior.state.overlappedFraction.coerceIn(0f, 1f)
                         if (fraction > 0f) {
+                            // To make it melt beautifully into the Aurora, we extend the bottom transparent part
                             drawRect(
                                 brush = androidx.compose.ui.graphics.Brush.verticalGradient(
                                     colors = listOf(
                                         backgroundColor.copy(alpha = 0.95f * fraction),
-                                        backgroundColor.copy(alpha = 0.6f * fraction),
+                                        backgroundColor.copy(alpha = 0.5f * fraction),
                                         androidx.compose.ui.graphics.Color.Transparent
                                     )
                                 )
@@ -138,7 +135,7 @@ fun DashboardScreen(
                             Text(
                                 text = stringResource(R.string.app_name),
                                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                                color = MaterialTheme.colorScheme.onBackground
+                                color = MaterialTheme.colorScheme.onSurface
                             )
                         }
                     },
@@ -146,7 +143,7 @@ fun DashboardScreen(
                         IconButton(
                             onClick = onSettingsClick,
                             colors = IconButtonDefaults.iconButtonColors(
-                                contentColor = MaterialTheme.colorScheme.onBackground
+                                contentColor = MaterialTheme.colorScheme.onSurface
                             )
                         ) {
                             Icon(
@@ -156,208 +153,26 @@ fun DashboardScreen(
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = androidx.compose.ui.graphics.Color.Transparent,
-                        scrolledContainerColor = androidx.compose.ui.graphics.Color.Transparent,
-                        titleContentColor = MaterialTheme.colorScheme.onBackground
+                        containerColor = Color.Transparent,
+                        scrolledContainerColor = Color.Transparent,
+                        titleContentColor = MaterialTheme.colorScheme.onSurface
                     ),
                     scrollBehavior = scrollBehavior
                 )
             }
         ) { innerPadding ->
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
-            ) {
             val isCacheAvailable = (uiState as? DashboardUiState.Success)?.courses?.isNotEmpty() == true
-
-            // welcome back header
             val avatarUrl = (uiState as? DashboardUiState.Success)?.userAvatar ?: ""
             val userName = (uiState as? DashboardUiState.Success)?.userName ?: stringResource(R.string.student_placeholder)
-            
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
-            ) {
-                AsyncImage(
-                    model = avatarUrl.ifEmpty { null },
-                    contentDescription = stringResource(R.string.cd_user_avatar),
-                    modifier = Modifier
-                        .size(56.dp)
-                        .clip(CircleShape)
-                        .border(2.dp, MaterialTheme.colorScheme.primary, CircleShape),
-                    contentScale = ContentScale.Crop
-                )
-                Spacer(modifier = Modifier.width(16.dp))
-                Column {
-                    Text(
-                        text = stringResource(R.string.welcome_back),
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
-                    )
-                    Text(
-                        text = userName,
-                        style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
-                        color = MaterialTheme.colorScheme.onBackground
-                    )
-                }
-            }
 
-            // offline banner
-            AnimatedVisibility(
-                visible = !isOnline,
-                enter = expandVertically() + fadeIn(),
-                exit = shrinkVertically() + fadeOut()
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.9f))
-                        .padding(vertical = 8.dp, horizontal = 16.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.CloudOff,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onErrorContainer,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = if (isCacheAvailable) stringResource(R.string.offline_cache_message) else stringResource(R.string.offline_no_connection_message),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onErrorContainer,
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
-                }
-            }
-
-            // search section
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
-            ) {
-                TextField(
-                    value = searchQuery,
-                    onValueChange = { searchQuery = it },
-                    placeholder = { 
-                        Text(
-                            text = stringResource(R.string.search_courses_placeholder),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                        ) 
-                    },
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Default.Search,
-                            contentDescription = stringResource(R.string.cd_search),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                            modifier = Modifier.size(20.dp)
-                        )
-                    },
-                    trailingIcon = {
-                        if (searchQuery.isNotEmpty()) {
-                            IconButton(onClick = { searchQuery = "" }) {
-                                Icon(
-                                    imageVector = Icons.Default.Close,
-                                    contentDescription = stringResource(R.string.clear_search),
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            }
-                        }
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(48.dp),
-                    singleLine = true,
-                    shape = CircleShape,
-                    colors = TextFieldDefaults.colors(
-                        focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-                        focusedIndicatorColor = Color.Transparent,
-                        unfocusedIndicatorColor = Color.Transparent,
-                        disabledIndicatorColor = Color.Transparent
-                    ),
-                    textStyle = MaterialTheme.typography.bodyMedium
-                )
-            }
-
-            // course filter segmented control with animated pill
-            BoxWithConstraints(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 6.dp)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
-                    .padding(4.dp)
-            ) {
-                val filters = listOf(
-                    CourseFilter.Active to stringResource(R.string.filter_active),
-                    CourseFilter.Past to stringResource(R.string.filter_past),
-                    CourseFilter.All to stringResource(R.string.filter_all)
-                )
-                val pillWidth = maxWidth / filters.size
-                
-                val selectedIndex = filters.indexOfFirst { it.first == courseFilter }
-                val pillOffset by animateDpAsState(
-                    targetValue = pillWidth * selectedIndex,
-                    animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
-                    label = "pillOffset"
-                )
-
-                // pill background
-                Box(
-                    modifier = Modifier
-                        .offset { androidx.compose.ui.unit.IntOffset(pillOffset.roundToPx(), 0) }
-                        .width(pillWidth)
-                        .height(36.dp) // forced height
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(MaterialTheme.colorScheme.primary)
-                )
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    filters.forEach { (filter, label) ->
-                        val isSelected = courseFilter == filter
-                        val contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
-                        
-                        Box(
-                            modifier = Modifier
-                                .width(pillWidth)
-                                .height(36.dp)
-                                .bouncyClickable { courseFilter = filter },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = label,
-                                style = MaterialTheme.typography.bodyMedium.copy(
-                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
-                                ),
-                                color = contentColor
-                            )
-                        }
-                    }
-                }
-            }
-
-            Box(modifier = Modifier.weight(1f)) {
+            Box(modifier = Modifier.fillMaxSize()) {
                 when (val state = uiState) {
                     is DashboardUiState.Loading -> {
-                        ShimmerCourseList()
+                        Column(modifier = Modifier.padding(top = innerPadding.calculateTopPadding(), start = 16.dp, end = 16.dp)) {
+                            ShimmerCourseList()
+                        }
                     }
                     is DashboardUiState.Success -> {
-                        // optimization: filtered courses cache to prevent lag during scroll
                         val filteredCourses = remember(state.courses, searchQuery, courseFilter) {
                             state.courses.filter { course ->
                                 val matchesSearch = course.fullname.contains(searchQuery, ignoreCase = true) ||
@@ -381,37 +196,228 @@ fun DashboardScreen(
                             },
                             modifier = Modifier.fillMaxSize()
                         ) {
-                            if (filteredCourses.isEmpty()) {
-                                EmptyStateView(
-                                    icon = Icons.Default.Book,
-                                    title = stringResource(R.string.no_courses_found),
-                                    subtitle = if (searchQuery.isNotEmpty() || courseFilter != CourseFilter.Active) {
-                                        stringResource(R.string.try_changing_filters)
-                                    } else {
-                                        stringResource(R.string.no_courses_enrolled)
-                                    },
-                                    actionLabel = if (searchQuery.isNotEmpty() || courseFilter != CourseFilter.Active) stringResource(R.string.reset_filters) else stringResource(R.string.refresh),
-                                    onAction = {
-                                        if (searchQuery.isNotEmpty() || courseFilter != CourseFilter.Active) {
-                                            searchQuery = ""
-                                            courseFilter = CourseFilter.Active
-                                        } else {
-                                            viewModel.refresh()
-                                        }
-                                    }
-                                )
-                            } else {
-                                // activates haptic feedback at the scrolling limits of the courses grid
-                                ScrollBoundaryHaptics(state = lazyGridState)
+                            ScrollBoundaryHaptics(state = lazyGridState)
 
-                                LazyVerticalGrid(
-                                    state = lazyGridState,
-                                    columns = GridCells.Adaptive(minSize = 300.dp),
-                                    contentPadding = PaddingValues(16.dp),
-                                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                                    modifier = Modifier.fillMaxSize()
-                                ) {
+                            LazyVerticalGrid(
+                                state = lazyGridState,
+                                columns = GridCells.Adaptive(minSize = 300.dp),
+                                contentPadding = PaddingValues(
+                                    top = innerPadding.calculateTopPadding() + 8.dp,
+                                    bottom = 16.dp,
+                                    start = 16.dp,
+                                    end = 16.dp
+                                ),
+                                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                                verticalArrangement = Arrangement.spacedBy(16.dp),
+                                modifier = Modifier.fillMaxSize()
+                            ) {
+                                item(span = { GridItemSpan(maxLineSpan) }) {
+                                    Column {
+                                        // welcome back header
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(vertical = 8.dp)
+                                        ) {
+                                            AsyncImage(
+                                                model = avatarUrl.ifEmpty { null },
+                                                contentDescription = stringResource(R.string.cd_user_avatar),
+                                                modifier = Modifier
+                                                    .size(56.dp)
+                                                    .clip(CircleShape)
+                                                    .border(2.dp, MaterialTheme.colorScheme.primary, CircleShape),
+                                                contentScale = ContentScale.Crop
+                                            )
+                                            Spacer(modifier = Modifier.width(16.dp))
+                                            Column {
+                                                Text(
+                                                    text = stringResource(R.string.welcome_back),
+                                                    style = MaterialTheme.typography.titleMedium,
+                                                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
+                                                )
+                                                Text(
+                                                    text = userName,
+                                                    style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
+                                                    color = MaterialTheme.colorScheme.onBackground
+                                                )
+                                            }
+                                        }
+
+                                        // offline banner
+                                        AnimatedVisibility(
+                                            visible = !isOnline,
+                                            enter = expandVertically() + fadeIn(),
+                                            exit = shrinkVertically() + fadeOut()
+                                        ) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(vertical = 8.dp)
+                                                    .clip(RoundedCornerShape(16.dp))
+                                                    .background(MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.9f))
+                                                    .padding(vertical = 12.dp, horizontal = 16.dp),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Row(
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    horizontalArrangement = Arrangement.Center
+                                                ) {
+                                                    Icon(
+                                                        imageVector = Icons.Default.CloudOff,
+                                                        contentDescription = null,
+                                                        tint = MaterialTheme.colorScheme.onErrorContainer,
+                                                        modifier = Modifier.size(16.dp)
+                                                    )
+                                                    Spacer(modifier = Modifier.width(8.dp))
+                                                    Text(
+                                                        text = if (isCacheAvailable) stringResource(R.string.offline_cache_message) else stringResource(R.string.offline_no_connection_message),
+                                                        style = MaterialTheme.typography.labelMedium,
+                                                        color = MaterialTheme.colorScheme.onErrorContainer,
+                                                        fontWeight = FontWeight.Medium
+                                                    )
+                                                }
+                                            }
+                                        }
+
+                                        // search section
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(vertical = 8.dp)
+                                        ) {
+                                            TextField(
+                                                value = searchQuery,
+                                                onValueChange = { searchQuery = it },
+                                                placeholder = { 
+                                                    Text(
+                                                        text = stringResource(R.string.search_courses_placeholder),
+                                                        style = MaterialTheme.typography.bodyMedium,
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                                                    ) 
+                                                },
+                                                leadingIcon = {
+                                                    Icon(
+                                                        imageVector = Icons.Default.Search,
+                                                        contentDescription = stringResource(R.string.cd_search),
+                                                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                                                        modifier = Modifier.size(20.dp)
+                                                    )
+                                                },
+                                                trailingIcon = {
+                                                    if (searchQuery.isNotEmpty()) {
+                                                        IconButton(onClick = { searchQuery = "" }) {
+                                                            Icon(
+                                                                imageVector = Icons.Default.Close,
+                                                                contentDescription = stringResource(R.string.clear_search),
+                                                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                                                                modifier = Modifier.size(20.dp)
+                                                            )
+                                                        }
+                                                    }
+                                                },
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .height(48.dp),
+                                                singleLine = true,
+                                                shape = CircleShape,
+                                                colors = TextFieldDefaults.colors(
+                                                    focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                                                    focusedIndicatorColor = Color.Transparent,
+                                                    unfocusedIndicatorColor = Color.Transparent,
+                                                    disabledIndicatorColor = Color.Transparent
+                                                ),
+                                                textStyle = MaterialTheme.typography.bodyMedium
+                                            )
+                                        }
+
+                                        // course filter segmented control
+                                        BoxWithConstraints(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(vertical = 6.dp)
+                                                .clip(RoundedCornerShape(16.dp))
+                                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+                                                .padding(4.dp)
+                                        ) {
+                                            val filters = listOf(
+                                                CourseFilter.Active to stringResource(R.string.filter_active),
+                                                CourseFilter.Past to stringResource(R.string.filter_past),
+                                                CourseFilter.All to stringResource(R.string.filter_all)
+                                            )
+                                            val pillWidth = maxWidth / filters.size
+                                            
+                                            val selectedIndex = filters.indexOfFirst { it.first == courseFilter }
+                                            val pillOffset by animateDpAsState(
+                                                targetValue = pillWidth * selectedIndex,
+                                                animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
+                                                label = "pillOffset"
+                                            )
+
+                                            // pill background
+                                            Box(
+                                                modifier = Modifier
+                                                    .offset { androidx.compose.ui.unit.IntOffset(pillOffset.roundToPx(), 0) }
+                                                    .width(pillWidth)
+                                                    .height(36.dp) // forced height
+                                                    .clip(RoundedCornerShape(12.dp))
+                                                    .background(MaterialTheme.colorScheme.primary)
+                                            )
+
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.SpaceBetween
+                                            ) {
+                                                filters.forEach { (filter, label) ->
+                                                    val isSelected = courseFilter == filter
+                                                    val contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                                                    
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .width(pillWidth)
+                                                            .height(36.dp)
+                                                            .bouncyClickable { courseFilter = filter },
+                                                        contentAlignment = Alignment.Center
+                                                    ) {
+                                                        Text(
+                                                            text = label,
+                                                            style = MaterialTheme.typography.bodyMedium.copy(
+                                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                                                            ),
+                                                            color = contentColor
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        
+                                        Spacer(modifier = Modifier.height(8.dp))
+                                    }
+                                }
+
+                                if (filteredCourses.isEmpty()) {
+                                    item(span = { GridItemSpan(maxLineSpan) }) {
+                                        EmptyStateView(
+                                            icon = Icons.Default.Book,
+                                            title = stringResource(R.string.no_courses_found),
+                                            subtitle = if (searchQuery.isNotEmpty() || courseFilter != CourseFilter.Active) {
+                                                stringResource(R.string.try_changing_filters)
+                                            } else {
+                                                stringResource(R.string.no_courses_enrolled)
+                                            },
+                                            actionLabel = if (searchQuery.isNotEmpty() || courseFilter != CourseFilter.Active) stringResource(R.string.reset_filters) else stringResource(R.string.refresh),
+                                            onAction = {
+                                                if (searchQuery.isNotEmpty() || courseFilter != CourseFilter.Active) {
+                                                    searchQuery = ""
+                                                    courseFilter = CourseFilter.Active
+                                                } else {
+                                                    viewModel.refresh()
+                                                }
+                                            }
+                                        )
+                                    }
+                                } else {
                                     items(
                                         items = filteredCourses,
                                         key = { it.id },
@@ -433,14 +439,14 @@ fun DashboardScreen(
                             title = stringResource(R.string.dashboard_error_title),
                             subtitle = state.message,
                             actionLabel = stringResource(R.string.retry),
-                            onAction = { viewModel.loadCourses() }
+                            onAction = { viewModel.loadCourses() },
+                            modifier = Modifier.padding(innerPadding)
                         )
                     }
                 }
             }
         }
     }
-}
 }
 
 enum class CourseFilter {

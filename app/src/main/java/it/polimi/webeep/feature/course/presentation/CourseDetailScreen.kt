@@ -111,11 +111,12 @@ fun CourseDetailScreen(
                     modifier = Modifier.drawBehind {
                         val fraction = scrollBehavior.state.overlappedFraction.coerceIn(0f, 1f)
                         if (fraction > 0f) {
+                            // To make it melt beautifully into the Aurora, we extend the bottom transparent part
                             drawRect(
                                 brush = androidx.compose.ui.graphics.Brush.verticalGradient(
                                     colors = listOf(
                                         backgroundColor.copy(alpha = 0.95f * fraction),
-                                        backgroundColor.copy(alpha = 0.6f * fraction),
+                                        backgroundColor.copy(alpha = 0.5f * fraction),
                                         androidx.compose.ui.graphics.Color.Transparent
                                     )
                                 )
@@ -156,14 +157,14 @@ fun CourseDetailScreen(
             }
         ) { innerPadding ->
             Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
+                modifier = Modifier.fillMaxSize()
             ) {
             when (val state = uiState) {
                 is CourseDetailUiState.Loading -> {
                     // shimmer placeholder list
-                    ShimmerCourseList()
+                    Box(modifier = Modifier.padding(top = innerPadding.calculateTopPadding())) {
+                        ShimmerCourseList()
+                    }
                 }
                 is CourseDetailUiState.Success -> {
                     if (state.sections.isEmpty()) {
@@ -186,6 +187,10 @@ fun CourseDetailScreen(
                                 modifier = Modifier
                                     .fillMaxHeight()
                                     .widthIn(max = 840.dp),
+                                contentPadding = androidx.compose.foundation.layout.PaddingValues(
+                                    top = innerPadding.calculateTopPadding() + 8.dp,
+                                    bottom = 16.dp
+                                ),
                                 verticalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
                             item {
