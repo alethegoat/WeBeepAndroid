@@ -29,9 +29,12 @@ import it.polimi.webeep.core.database.entity.CourseSectionEntity
 import it.polimi.webeep.core.database.entity.ModuleContentEntity
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 
 import android.util.Log
 import it.polimi.webeep.core.util.MoodleText
+import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * worker for synchronizing course files in the background.
@@ -65,13 +68,17 @@ class CourseSyncWorker @AssistedInject constructor(
 
             var totalNewFiles = 0
             val newFileRecords = mutableListOf<NewFileRecord>()
-            var hasErrors = false
+            val hasErrors = AtomicBoolean(false)
+            // Each course sync performs network I/O, parsing and a Room transaction.
+            // Cap parallelism to avoid saturating the radio, CPU and database.
+            val courseSyncSemaphore = Semaphore(MAX_CONCURRENT_COURSE_SYNCS)
 
             // supervisorscope prevents a course failure from cancelling the processing of the others
             kotlinx.coroutines.supervisorScope {
                 val jobs = courses.map { course ->
                     async {
-                        try {
+                        courseSyncSemaphore.withPermit {
+                            try {
                             Log.d("CourseSyncWorker", "🔍 [${course.shortname}] Inizio controllo...")
 
                             // 1. fetch old content
@@ -183,10 +190,11 @@ class CourseSyncWorker @AssistedInject constructor(
                                     newFileRecords.addAll(currentNewFiles)
                                 }
                             }
-                        } catch (e: Exception) {
-                            if (e is kotlinx.coroutines.CancellationException) throw e
-                            Log.e("CourseSyncWorker", "❌ [${course.shortname}] Errore durante il sync: ${e.message}")
-                            hasErrors = true
+                            } catch (e: Exception) {
+                                if (e is kotlinx.coroutines.CancellationException) throw e
+                                Log.e("CourseSyncWorker", "❌ [${course.shortname}] Errore durante il sync: ${e.message}")
+                                hasErrors.set(true)
+                            }
                         }
                     }
                 }
@@ -218,7 +226,7 @@ class CourseSyncWorker @AssistedInject constructor(
                 }
             }
 
-            return if (hasErrors) Result.retry() else Result.success()
+            return if (hasErrors.get()) Result.retry() else Result.success()
         } catch (e: Exception) {
             if (e is kotlinx.coroutines.CancellationException) throw e
             Log.e("CourseSyncWorker", "💥 Errore fatale nel Worker: ${e.message}")
@@ -318,5 +326,9 @@ class CourseSyncWorker @AssistedInject constructor(
         // using courseid ensures notifications don't overwrite each other across different courses
         notificationManager.notify(courseId, builder.build())
         Log.d("CourseSyncWorker", "📢 Notifica inviata per il corso $courseId")
+    }
+
+    private companion object {
+        const val MAX_CONCURRENT_COURSE_SYNCS = 2
     }
 }

@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -43,6 +44,8 @@ class DashboardViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val networkMonitor: NetworkMonitor
 ) : ViewModel() {
+
+    private var coursesJob: Job? = null
 
     val isOnline: StateFlow<Boolean> = networkMonitor.isOnline
         .stateIn(
@@ -86,9 +89,7 @@ class DashboardViewModel @Inject constructor(
         viewModelScope.launch {
             loadUserInfo()
         }
-        viewModelScope.launch {
-            loadCoursesInternal()
-        }
+        loadCourses()
     }
 
     private suspend fun loadUserInfo() {
@@ -127,7 +128,8 @@ class DashboardViewModel @Inject constructor(
     }
 
     fun loadCourses() {
-        viewModelScope.launch {
+        coursesJob?.cancel()
+        coursesJob = viewModelScope.launch {
             loadCoursesInternal()
         }
     }

@@ -92,6 +92,7 @@ class CourseDetailViewModel @Inject constructor(
     val uiState: StateFlow<CourseDetailUiState> = _uiState.asStateFlow()
 
     private var courseName: String = ""
+    private var contentsJob: Job? = null
 
     // map to keep track of current download jobs for structured concurrency
     private val downloadJobs = ConcurrentHashMap<String, Job>()
@@ -111,7 +112,8 @@ class CourseDetailViewModel @Inject constructor(
     }
 
     fun loadContents() {
-        viewModelScope.launch {
+        contentsJob?.cancel()
+        contentsJob = viewModelScope.launch {
             _uiState.update { CourseDetailUiState.Loading }
             getCourseContentsUseCase(courseId).collectLatest { resource ->
                 when (resource) {

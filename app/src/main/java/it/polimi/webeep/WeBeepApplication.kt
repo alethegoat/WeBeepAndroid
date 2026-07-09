@@ -36,7 +36,9 @@ class WeBeepApplication : Application(), Configuration.Provider, ImageLoaderFact
             .crossfade(true) // crossfade for a premium image loading experience
             .memoryCache {
                 MemoryCache.Builder(this)
-                    .maxSizePercent(0.25)
+                    // Leave headroom for PdfRenderer and WebView, which share the
+                    // same application heap with Coil's memory cache.
+                    .maxSizePercent(0.15)
                     .build()
             }
             .diskCache {

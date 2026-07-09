@@ -106,11 +106,13 @@ fun PdfViewer(
     val fastBitmapPool = remember { ConcurrentLinkedQueue<Bitmap>() }
     val highResBitmapPool = remember { ConcurrentLinkedQueue<Bitmap>() }
 
-    // implement an lrucache to zero out cpu and battery consumption when re-viewing already read pages.
-    // use 1/6 of available heap memory, usually around 40-60mb (enough for 4-8 hd pages or 15-20 fast pages).
+    // Keep a small, hard-capped cache. Full-resolution pages are large and share
+    // the heap with Coil and WebView, so a heap percentage alone is unsafe.
     val memoryCache = remember {
         val maxMemory = (Runtime.getRuntime().maxMemory() / 1024).toInt()
-        val cacheSize = maxMemory / 6
+        val cacheSize = (maxMemory / 10)
+            .coerceAtLeast(MIN_CACHE_SIZE_KB)
+            .coerceAtMost(MAX_CACHE_SIZE_KB)
         object : android.util.LruCache<String, Bitmap>(cacheSize) {
             override fun sizeOf(key: String, bitmap: Bitmap): Int {
                 return bitmap.byteCount / 1024 // measure cache in kilobytes
@@ -119,9 +121,9 @@ fun PdfViewer(
             override fun entryRemoved(evicted: Boolean, key: String, oldValue: Bitmap, newValue: Bitmap?) {
                 if (evicted) {
                     if (key.startsWith("fast_")) {
-                        fastBitmapPool.add(oldValue)
+                        addToPool(fastBitmapPool, oldValue, MAX_FAST_POOL_SIZE)
                     } else if (key.startsWith("high_")) {
-                        highResBitmapPool.add(oldValue)
+                        addToPool(highResBitmapPool, oldValue, MAX_HIGH_RES_POOL_SIZE)
                     }
                 }
             }
@@ -131,6 +133,8 @@ fun PdfViewer(
     DisposableEffect(pdfRenderer) {
         onDispose {
             memoryCache.evictAll()
+            clearBitmapPool(fastBitmapPool)
+            clearBitmapPool(highResBitmapPool)
             try {
                 pdfRenderer.close()
             } catch (_: Exception) {}
@@ -374,6 +378,26 @@ fun PdfViewer(
         }
     }
 }
+
+private fun addToPool(pool: ConcurrentLinkedQueue<Bitmap>, bitmap: Bitmap, maxSize: Int) {
+    if (pool.size < maxSize) {
+        pool.offer(bitmap)
+    } else if (!bitmap.isRecycled) {
+        bitmap.recycle()
+    }
+}
+
+private fun clearBitmapPool(pool: ConcurrentLinkedQueue<Bitmap>) {
+    while (true) {
+        val bitmap = pool.poll() ?: return
+        if (!bitmap.isRecycled) bitmap.recycle()
+    }
+}
+
+private const val MIN_CACHE_SIZE_KB = 8 * 1024
+private const val MAX_CACHE_SIZE_KB = 24 * 1024
+private const val MAX_FAST_POOL_SIZE = 2
+private const val MAX_HIGH_RES_POOL_SIZE = 1
 
 data class PageRenderResult(
     val fastBitmap: Bitmap? = null,

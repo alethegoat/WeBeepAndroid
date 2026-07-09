@@ -165,11 +165,8 @@ class CourseRepositoryImpl @Inject constructor(
                 }
             }
 
-            // delete existing sections and insert the fresh data fetched from the api
-            contentDao.deleteSectionsByCourse(courseId)
-            contentDao.insertSections(sectionEntities)
-            contentDao.insertModules(moduleEntities)
-            contentDao.insertContents(contentEntities)
+            // Avoid emitting partial Room trees and the Compose work they trigger.
+            contentDao.replaceCourseContent(courseId, sectionEntities, moduleEntities, contentEntities)
 
             sections
         }
@@ -226,4 +223,3 @@ class CourseRepositoryImpl @Inject constructor(
         return courseDao.getCourseById(courseId)?.fullname
     }
 }
-

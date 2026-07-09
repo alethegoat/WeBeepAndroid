@@ -53,6 +53,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
@@ -414,6 +415,20 @@ private fun WebContent(
     modifier: Modifier = Modifier
 ) {
     var isLoading by remember { androidx.compose.runtime.mutableStateOf(true) }
+    var webView by remember { androidx.compose.runtime.mutableStateOf<WebView?>(null) }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            webView?.apply {
+                stopLoading()
+                webViewClient = WebViewClient()
+                webChromeClient = android.webkit.WebChromeClient()
+                loadUrl("about:blank")
+                destroy()
+            }
+            webView = null
+        }
+    }
 
     Box(modifier = modifier.fillMaxSize()) {
         Surface(
@@ -424,6 +439,7 @@ private fun WebContent(
                 modifier = Modifier.fillMaxSize(),
                 factory = { context ->
                     WebView(context).apply {
+                        webView = this
                         webViewClient = object : WebViewClient() {
                             override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
                                 super.onPageStarted(view, url, favicon)
