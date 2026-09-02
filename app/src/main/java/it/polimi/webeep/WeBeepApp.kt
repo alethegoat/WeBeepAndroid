@@ -39,7 +39,7 @@ fun WeBeepApp(
         initialValue = ThemePreference.SYSTEM_DEFAULT
     )
     val dynamicColor by settingsManager.dynamicColorPreference.collectAsStateWithLifecycle(
-        initialValue = true
+        initialValue = false
     )
 
     var startDestination by remember { mutableStateOf<String?>(null) }

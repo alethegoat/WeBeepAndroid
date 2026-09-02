@@ -37,7 +37,7 @@ class SettingsManager @Inject constructor(
     }
 
     val dynamicColorPreference: Flow<Boolean> = context.dataStore.data.map { preferences ->
-        preferences[DYNAMIC_COLOR_KEY] ?: true
+        preferences[DYNAMIC_COLOR_KEY] ?: false
     }
 
     val wifiOnlySync: Flow<Boolean> = context.dataStore.data.map { preferences ->

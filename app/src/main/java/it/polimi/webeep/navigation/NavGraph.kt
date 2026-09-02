@@ -1,14 +1,22 @@
+@file:OptIn(ExperimentalSharedTransitionApi::class)
+
 package it.polimi.webeep.navigation
 
 import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import it.polimi.webeep.core.ui.theme.WeBeepMotion
+import it.polimi.webeep.core.ui.util.LocalNavAnimatedVisibilityScope
+import it.polimi.webeep.core.ui.util.LocalNavSharedTransitionScope
 import it.polimi.webeep.core.ui.util.LocalReduceMotion
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -31,6 +39,7 @@ import it.polimi.webeep.feature.settings.presentation.SettingsViewModel
 /**
  * main navigation graph for the webeep app.
  */
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun NavGraph(
     startDestination: String,
@@ -38,15 +47,16 @@ fun NavGraph(
     navController: NavHostController = rememberNavController()
 ) {
     val reduceMotion = LocalReduceMotion.current
+    SharedTransitionLayout(modifier = modifier) {
+        CompositionLocalProvider(LocalNavSharedTransitionScope provides this) {
     NavHost(
         navController = navController,
         startDestination = startDestination,
-        modifier = modifier,
         enterTransition = {
-            if (reduceMotion) {
-                fadeIn(animationSpec = WeBeepMotion.enter(durationMs = 0, reduceMotion = true))
-            } else {
-                slideIntoContainer(
+            when {
+                reduceMotion -> fadeIn(animationSpec = WeBeepMotion.enter(durationMs = 0, reduceMotion = true))
+                isCourseListTransform() -> fadeIn(animationSpec = WeBeepMotion.enter())
+                else -> slideIntoContainer(
                     AnimatedContentTransitionScope.SlideDirection.Left,
                     animationSpec = WeBeepMotion.enter(),
                     initialOffset = { it / 6 }
@@ -54,10 +64,10 @@ fun NavGraph(
             }
         },
         exitTransition = {
-            if (reduceMotion) {
-                fadeOut(animationSpec = WeBeepMotion.exit(durationMs = 0, reduceMotion = true))
-            } else {
-                slideOutOfContainer(
+            when {
+                reduceMotion -> fadeOut(animationSpec = WeBeepMotion.exit(durationMs = 0, reduceMotion = true))
+                isCourseListTransform() -> fadeOut(animationSpec = WeBeepMotion.exit())
+                else -> slideOutOfContainer(
                     AnimatedContentTransitionScope.SlideDirection.Left,
                     animationSpec = WeBeepMotion.exit(),
                     targetOffset = { it / 10 }
@@ -65,10 +75,10 @@ fun NavGraph(
             }
         },
         popEnterTransition = {
-            if (reduceMotion) {
-                fadeIn(animationSpec = WeBeepMotion.enter(durationMs = 0, reduceMotion = true))
-            } else {
-                slideIntoContainer(
+            when {
+                reduceMotion -> fadeIn(animationSpec = WeBeepMotion.enter(durationMs = 0, reduceMotion = true))
+                isCourseListTransform() -> fadeIn(animationSpec = WeBeepMotion.enter())
+                else -> slideIntoContainer(
                     AnimatedContentTransitionScope.SlideDirection.Right,
                     animationSpec = WeBeepMotion.enter(),
                     initialOffset = { it / 6 }
@@ -76,10 +86,10 @@ fun NavGraph(
             }
         },
         popExitTransition = {
-            if (reduceMotion) {
-                fadeOut(animationSpec = WeBeepMotion.exit(durationMs = 0, reduceMotion = true))
-            } else {
-                slideOutOfContainer(
+            when {
+                reduceMotion -> fadeOut(animationSpec = WeBeepMotion.exit(durationMs = 0, reduceMotion = true))
+                isCourseListTransform() -> fadeOut(animationSpec = WeBeepMotion.exit())
+                else -> slideOutOfContainer(
                     AnimatedContentTransitionScope.SlideDirection.Right,
                     animationSpec = WeBeepMotion.exit(),
                     targetOffset = { it / 10 }
@@ -112,16 +122,18 @@ fun NavGraph(
         }
 
         composable(route = Screen.Dashboard.route) {
-            val viewModel: DashboardViewModel = hiltViewModel()
-            DashboardScreen(
-                viewModel = viewModel,
-                onCourseClick = { courseId ->
-                    navController.navigate(Screen.CourseDetail.createRoute(courseId))
-                },
-                onSettingsClick = {
-                    navController.navigate(Screen.Settings.route)
-                }
-            )
+            CompositionLocalProvider(LocalNavAnimatedVisibilityScope provides this) {
+                val viewModel: DashboardViewModel = hiltViewModel()
+                DashboardScreen(
+                    viewModel = viewModel,
+                    onCourseClick = { courseId ->
+                        navController.navigate(Screen.CourseDetail.createRoute(courseId))
+                    },
+                    onSettingsClick = {
+                        navController.navigate(Screen.Settings.route)
+                    }
+                )
+            }
         }
 
         composable(route = Screen.Settings.route) {
@@ -149,22 +161,24 @@ fun NavGraph(
                 }
             )
         ) {
-            val viewModel: CourseDetailViewModel = hiltViewModel()
-            CourseDetailScreen(
-                viewModel = viewModel,
-                onPreviewFile = { file ->
-                    navController.navigate(
-                        Screen.FileViewer.createRoute(
-                            url = MoodleFileUrlBuilder.stripAuthFromUrl(file.fileUrl),
-                            title = file.filename,
-                            mimeType = file.mimeType
+            CompositionLocalProvider(LocalNavAnimatedVisibilityScope provides this) {
+                val viewModel: CourseDetailViewModel = hiltViewModel()
+                CourseDetailScreen(
+                    viewModel = viewModel,
+                    onPreviewFile = { file ->
+                        navController.navigate(
+                            Screen.FileViewer.createRoute(
+                                url = MoodleFileUrlBuilder.stripAuthFromUrl(file.fileUrl),
+                                title = file.filename,
+                                mimeType = file.mimeType
+                            )
                         )
-                    )
-                },
-                onBackClick = {
-                    navController.navigateUp()
-                }
-            )
+                    },
+                    onBackClick = {
+                        navController.navigateUp()
+                    }
+                )
+            }
         }
 
         composable(
@@ -192,6 +206,15 @@ fun NavGraph(
             )
         }
     }
+        }
+    }
+}
+
+private fun AnimatedContentTransitionScope<NavBackStackEntry>.isCourseListTransform(): Boolean {
+    val from = initialState.destination.route
+    val to = targetState.destination.route
+    return (from == Screen.Dashboard.route && to == Screen.CourseDetail.route) ||
+        (from == Screen.CourseDetail.route && to == Screen.Dashboard.route)
 }
 
 @Composable

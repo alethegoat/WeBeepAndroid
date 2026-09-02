@@ -22,6 +22,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.currentStateAsState
 import it.polimi.webeep.core.ui.theme.WeBeepMotion
+import it.polimi.webeep.core.ui.util.LocalReduceMotion
 
 /**
  * Animated aurora/glow background that adapts to light/dark mode.
@@ -34,7 +35,8 @@ fun AuroraBackground(
     content: @Composable () -> Unit
 ) {
     val lifecycleState by LocalLifecycleOwner.current.lifecycle.currentStateAsState()
-    val animateAurora = lifecycleState.isAtLeast(Lifecycle.State.RESUMED)
+    val reduceMotion = LocalReduceMotion.current
+    val animateAurora = !reduceMotion && lifecycleState.isAtLeast(Lifecycle.State.RESUMED)
     val motion = auroraMotion(animateAurora)
 
     val backgroundColor = MaterialTheme.colorScheme.background

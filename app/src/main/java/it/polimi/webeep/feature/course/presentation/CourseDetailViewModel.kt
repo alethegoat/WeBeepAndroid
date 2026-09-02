@@ -84,7 +84,7 @@ class CourseDetailViewModel @Inject constructor(
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher
 ) : ViewModel() {
 
-    private val courseId: Int = checkNotNull(savedStateHandle["courseId"]) {
+    val courseId: Int = checkNotNull(savedStateHandle["courseId"]) {
         "course id not passed to navigator"
     }
 

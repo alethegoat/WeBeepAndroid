@@ -100,7 +100,7 @@ private val WeBeepShapes = Shapes(
 @Composable
 fun WeBeepTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColor: Boolean = true, // enabled as requested by directives
+    dynamicColor: Boolean = false,
     content: @Composable () -> Unit,
 ) {
     val colorScheme = when {

@@ -52,6 +52,7 @@ import it.polimi.webeep.core.ui.theme.GradientDarkEnd
 import it.polimi.webeep.core.ui.theme.GradientDarkStart
 import it.polimi.webeep.core.ui.theme.WeBeepTheme
 import it.polimi.webeep.core.ui.util.bouncyClickable
+import it.polimi.webeep.core.ui.util.courseSharedBounds
 
 /**
  * ui model for a course card.
@@ -107,6 +108,7 @@ fun CourseCard(
         modifier = modifier
             .fillMaxWidth()
             .height(228.dp)
+            .courseSharedBounds(course.id)
             .shadow(8.dp, cardShape, clip = false, ambientColor = Color.Black.copy(alpha = 0.08f))
             .bouncyClickable(
                 role = Role.Button,

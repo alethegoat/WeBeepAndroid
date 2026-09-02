@@ -21,15 +21,9 @@ sealed interface LoginUiState {
     data class Error(val message: String) : LoginUiState
 }
 
-sealed interface LoginIntent {
-    data object CheckExistingSession : LoginIntent
-    data object ResetState : LoginIntent
-    data object ClearError : LoginIntent
-    data class HandleSsoCallback(val encodedToken: String) : LoginIntent
-}
-
 /**
- * viewmodel to handle the login flow and sso authentication.
+ * Login flow and SSO callback. Same MVVM shape as the other screens:
+ * public methods mutate [uiState], no intent dispatcher.
  */
 @HiltViewModel
 class LoginViewModel @Inject constructor(
@@ -42,24 +36,6 @@ class LoginViewModel @Inject constructor(
     val uiState: StateFlow<LoginUiState> = _uiState.asStateFlow()
 
     init {
-        onIntent(LoginIntent.CheckExistingSession)
-    }
-
-    fun onIntent(intent: LoginIntent) {
-        when (intent) {
-            is LoginIntent.CheckExistingSession -> checkExistingSession()
-            is LoginIntent.ResetState -> _uiState.update { LoginUiState.Idle }
-            is LoginIntent.ClearError -> {
-                _uiState.update { state ->
-                    if (state is LoginUiState.Error) LoginUiState.Idle else state
-                }
-            }
-            is LoginIntent.HandleSsoCallback -> handleSsoCallbackInternal(intent.encodedToken)
-        }
-    }
-
-    private fun checkExistingSession() {
-        // check if a valid session exists so we can skip the login screen
         viewModelScope.launch {
             if (authRepository.isLoggedIn()) {
                 _uiState.update { LoginUiState.Success }
@@ -67,18 +43,19 @@ class LoginViewModel @Inject constructor(
         }
     }
 
-    /**
-     * generates the url to start the sso login via browser or custom tab.
-     */
     fun generateSsoUrl(): String = loginUseCase.generateSsoLaunchUrl()
 
-    // keeping for temporary backward compatibility with ui until it uses intents
-    fun resetState() = onIntent(LoginIntent.ResetState)
-    fun clearError() = onIntent(LoginIntent.ClearError)
-    fun handleSsoCallback(encodedToken: String) = onIntent(LoginIntent.HandleSsoCallback(encodedToken))
+    fun resetState() {
+        _uiState.update { LoginUiState.Idle }
+    }
 
-    private fun handleSsoCallbackInternal(encodedToken: String) {
-        // ignore placeholder tokens that might be sent by mistake
+    fun clearError() {
+        _uiState.update { state ->
+            if (state is LoginUiState.Error) LoginUiState.Idle else state
+        }
+    }
+
+    fun handleSsoCallback(encodedToken: String) {
         if (encodedToken.isBlank() || encodedToken == "{token}") {
             return
         }
@@ -99,6 +76,4 @@ class LoginViewModel @Inject constructor(
             }
         }
     }
-
-
 }

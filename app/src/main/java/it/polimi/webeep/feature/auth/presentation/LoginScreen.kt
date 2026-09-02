@@ -51,6 +51,7 @@ import it.polimi.webeep.R
 import it.polimi.webeep.core.ui.components.WeBeepSnackbarHost
 import it.polimi.webeep.core.ui.components.showErrorSnackbar
 import it.polimi.webeep.core.ui.theme.WeBeepMotion
+import it.polimi.webeep.core.ui.util.LocalReduceMotion
 import it.polimi.webeep.core.ui.util.bouncyClickable
 import kotlinx.coroutines.delay
 
@@ -68,13 +69,19 @@ fun LoginScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val retryLabel = stringResource(R.string.retry)
 
-    var logoVisible by remember { mutableStateOf(false) }
-    var cardVisible by remember { mutableStateOf(false) }
+    val reduceMotion = LocalReduceMotion.current
+    var logoVisible by remember { mutableStateOf(reduceMotion) }
+    var cardVisible by remember { mutableStateOf(reduceMotion) }
 
-    LaunchedEffect(Unit) {
-        logoVisible = true
-        delay(120)
-        cardVisible = true
+    LaunchedEffect(reduceMotion) {
+        if (reduceMotion) {
+            logoVisible = true
+            cardVisible = true
+        } else {
+            logoVisible = true
+            delay(120)
+            cardVisible = true
+        }
     }
 
     LaunchedEffect(uiState) {

@@ -91,6 +91,7 @@ import it.polimi.webeep.core.ui.components.WeBeepSearchField
 import it.polimi.webeep.core.ui.theme.WeBeepMotion
 import it.polimi.webeep.core.ui.theme.WeBeepSpacing
 import it.polimi.webeep.core.ui.util.bouncyClickable
+import it.polimi.webeep.core.ui.util.courseSharedBounds
 import it.polimi.webeep.feature.download.presentation.DownloadProgressIndicator
 
 /**
@@ -174,8 +175,11 @@ fun CourseDetailScreen(
             ) {
             when (val state = uiState) {
                 is CourseDetailUiState.Loading -> {
-                    // shimmer placeholder list
-                    Box(modifier = Modifier.padding(top = innerPadding.calculateTopPadding())) {
+                    Column(
+                        modifier = Modifier
+                            .padding(top = innerPadding.calculateTopPadding())
+                            .courseSharedBounds(viewModel.courseId)
+                    ) {
                         ShimmerCourseList()
                     }
                 }
@@ -189,7 +193,8 @@ fun CourseDetailScreen(
                             title = stringResource(R.string.course_empty_title),
                             subtitle = stringResource(R.string.course_empty_subtitle),
                             actionLabel = stringResource(R.string.refresh),
-                            onAction = { viewModel.loadContents() }
+                            onAction = { viewModel.loadContents() },
+                            modifier = Modifier.courseSharedBounds(viewModel.courseId)
                         )
                     } else {
                         Box(
@@ -211,7 +216,11 @@ fun CourseDetailScreen(
                             ) {
                             item {
                                 val courseName = state.courseName ?: stringResource(R.string.course_content_title)
-                                Column(modifier = Modifier.padding(horizontal = WeBeepSpacing.md)) {
+                                Column(
+                                    modifier = Modifier
+                                        .padding(horizontal = WeBeepSpacing.md)
+                                        .courseSharedBounds(viewModel.courseId)
+                                ) {
                                     Text(
                                         text = courseName,
                                         style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold),
