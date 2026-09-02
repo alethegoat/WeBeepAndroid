@@ -25,13 +25,14 @@ WeBeep Android is a native application designed to make it easier for Politecnic
 
 ### Features
 
-- **Offline Support**: Courses, folders, and files are cached locally for offline access.
-- **Background Sync**: Uses WorkManager to periodically check and download new materials uploaded by professors.
-- **Notifications**: Alerts you when new files are available. Tapping the notification takes you directly to the course.
-- **PDF Viewer**: Includes a custom PDF rendering engine optimized for smooth scrolling of large academic documents.
-- **Polimi SSO**: Secure login via Chrome Custom Tabs using the official Politecnico authentication system.
-- **Bilingual Support**: Fully localized in both English and Italian.
-- **Modern UI**: Built entirely with Jetpack Compose following Material 3 guidelines (with Dark Mode support).
+- **Offline Support**: Courses, folders, and already-downloaded files stay on device for offline access.
+- **Background Sync**: WorkManager periodically refreshes course contents (Wi-Fi-only by default; interval is in Settings). New files are indexed and notified, not auto-downloaded.
+- **Notifications**: Alerts you when new files appear. Tapping the notification opens the course.
+- **In-app viewers**: PDF (`PdfRenderer`), video/audio (Media3), images, and code, plus open-with for other types.
+- **Search**: Filter courses on the dashboard and materials inside a course.
+- **Polimi SSO**: Login via Chrome Custom Tabs using the official Politecnico authentication system. Tokens live in EncryptedSharedPreferences.
+- **Bilingual Support**: Fully localized in English and Italian, including a per-app language setting.
+- **Modern UI**: Jetpack Compose and Material 3, with dark mode and optional dynamic color.
 
 ---
 
@@ -59,13 +60,15 @@ Keep a backup of the upload keystore. Losing it means you cannot update the app 
 
 ### Tech Stack
 
-This project follows Clean Architecture and the MVVM pattern (StateFlow + Compose).
+This project follows Clean Architecture and MVVM (StateFlow + Compose). Version `1.0.1` (`versionCode` 2), `minSdk` 26.
 
-* **UI**: Jetpack Compose
-* **State Management**: Kotlin Coroutines & StateFlow
+* **UI**: Jetpack Compose, Material 3
+* **State**: Kotlin Coroutines & StateFlow
 * **DI**: Dagger Hilt
-* **Storage**: Room & Preferences DataStore
+* **Storage**: Room, Preferences DataStore, EncryptedSharedPreferences
 * **Networking**: Ktor & OkHttp
+* **Background**: WorkManager
+* **Media**: Coil, Media3, Android `PdfRenderer`
 
 ---
 
@@ -75,13 +78,14 @@ WeBeep Android è un'app nativa che semplifica l'accesso ai corsi di WeBeep per 
 
 ### Funzionalità
 
-- **Supporto Offline**: Corsi, cartelle e file vengono salvati in locale per poterli consultare senza rete.
-- **Sync in Background**: Controlla periodicamente se i professori hanno caricato nuovi materiali e li scarica in automatico.
-- **Notifiche**: Ti avvisa quando ci sono nuovi file. Se premi la notifica, si apre direttamente la pagina del corso.
-- **Lettore PDF**: Include un motore di rendering PDF ottimizzato per navigare velocemente anche i file più pesanti.
-- **Login Ufficiale**: Accesso sicuro tramite il sistema SSO (Single Sign-On) ufficiale del Politecnico.
-- **Multilingua**: L'app è completamente tradotta sia in italiano che in inglese.
-- **Interfaccia aggiornata**: Scritta interamente in Jetpack Compose, con pieno supporto al Material 3 e alla Dark Mode.
+- **Supporto Offline**: Corsi, cartelle e file già scaricati restano sul telefono senza rete.
+- **Sync in Background**: WorkManager aggiorna periodicamente i contenuti dei corsi (di default solo Wi-Fi; frequenza nelle Impostazioni). I file nuovi vengono indicizzati e notificati, non scaricati in automatico.
+- **Notifiche**: Avviso quando compaiono file nuovi. Il tap apre il corso.
+- **Viewer in-app**: PDF (`PdfRenderer`), video/audio (Media3), immagini e codice; il resto si apre con un'app esterna.
+- **Ricerca**: Filtra i corsi in dashboard e i materiali dentro un corso.
+- **Login ufficiale**: SSO Politecnico via Chrome Custom Tabs. I token stanno in EncryptedSharedPreferences.
+- **Multilingua**: Italiano e inglese, anche come lingua dell'app.
+- **Interfaccia**: Jetpack Compose e Material 3, con Dark Mode e colori dinamici opzionali.
 
 ---
 
@@ -109,13 +113,15 @@ Tieni un backup del keystore di upload. Senza quello non puoi aggiornare l'app s
 
 ### Tech Stack
 
-Il progetto segue le regole della Clean Architecture e usa il pattern MVVM (StateFlow + Compose).
+Il progetto segue Clean Architecture e MVVM (StateFlow + Compose). Versione `1.0.1` (`versionCode` 2), `minSdk` 26.
 
-* **UI**: Jetpack Compose
-* **State Management**: Kotlin Coroutines & StateFlow
+* **UI**: Jetpack Compose, Material 3
+* **State**: Kotlin Coroutines & StateFlow
 * **DI**: Dagger Hilt
-* **Database**: Room & Preferences DataStore
-* **Librerie di Rete**: Ktor & OkHttp
+* **Storage**: Room, Preferences DataStore, EncryptedSharedPreferences
+* **Rete**: Ktor & OkHttp
+* **Background**: WorkManager
+* **Media**: Coil, Media3, `PdfRenderer` di Android
 
 ---
 
