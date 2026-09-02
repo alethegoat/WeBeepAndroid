@@ -387,7 +387,7 @@ private fun SyncFrequencyItem(
             Icon(
                 imageVector = Icons.Default.ArrowDropDown,
                 contentDescription = stringResource(R.string.settings_cd_expand),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                tint = MaterialTheme.colorScheme.onSurface
             )
         }
 
@@ -450,7 +450,7 @@ private fun LanguageSelectionRow() {
             Icon(
                 imageVector = Icons.Default.ArrowDropDown,
                 contentDescription = stringResource(R.string.settings_cd_expand),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                tint = MaterialTheme.colorScheme.onSurface
             )
         }
 

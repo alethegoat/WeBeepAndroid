@@ -18,8 +18,6 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.calculatePan
 import androidx.compose.foundation.gestures.calculateZoom
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.ui.platform.LocalView
-import android.view.HapticFeedbackConstants
 import kotlinx.coroutines.launch
 import androidx.compose.ui.geometry.Offset
 import it.polimi.webeep.core.ui.util.ScrollBoundaryHaptics
@@ -81,7 +79,6 @@ fun PdfViewer(
     var offsetY by remember { mutableStateOf(0f) }
     
     val coroutineScope = rememberCoroutineScope()
-    val view = LocalView.current
 
     val pdfSession = remember(file) {
         val descriptor = ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
@@ -120,11 +117,7 @@ fun PdfViewer(
 
     DisposableEffect(pdfSession) {
         onDispose {
-            val snapshot = memoryCache.snapshot()
             memoryCache.evictAll()
-            snapshot.values.forEach { bitmap ->
-                if (!bitmap.isRecycled) bitmap.recycle()
-            }
             try {
                 pdfSession.renderer.close()
             } catch (_: Exception) {}
@@ -215,16 +208,6 @@ fun PdfViewer(
                         val targetOffsetX = if (targetScale == 1f) 0f else (-relativeTap.x * (targetScale - 1f)).coerceIn(-maxX, maxX)
                         val targetOffsetY = if (targetScale == 1f) 0f else (-relativeTap.y * (targetScale - 1f)).coerceIn(-maxY, maxY)
 
-                        try {
-                            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
-                                view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
-                            } else {
-                                view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
-                            }
-                        } catch (e: Exception) {
-                            if (e is CancellationException) throw e
-                        }
-
                         coroutineScope.launch {
                             val startScale = scale
                             val startOffsetX = offsetX
@@ -267,18 +250,6 @@ fun PdfViewer(
 
                                 val oldScale = scale
                                 scale = (scale * zoom).coerceIn(1f, 5f)
-
-                                if ((scale == 1f || scale == 5f) && oldScale != scale) {
-                                    try {
-                                        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
-                                            view.performHapticFeedback(HapticFeedbackConstants.GESTURE_END)
-                                        } else {
-                                            view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
-                                        }
-                                    } catch (e: Exception) {
-                                        if (e is CancellationException) throw e
-                                    }
-                                }
 
                                 if (scale > 1f) {
                                     val maxX = (size.width * (scale - 1)) / 2

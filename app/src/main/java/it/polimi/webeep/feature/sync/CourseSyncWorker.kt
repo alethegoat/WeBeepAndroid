@@ -177,7 +177,7 @@ class CourseSyncWorker @AssistedInject constructor(
             .setAutoCancel(true)
             .build()
 
-        notificationManager.notify(1000, summaryNotification)
+        notificationManager.notify(SUMMARY_NOTIFICATION_ID, summaryNotification)
     }
 
     private fun sendNotification(courseId: Int, courseName: String, fileRecords: List<NewFileRecord>) {
@@ -222,5 +222,6 @@ class CourseSyncWorker @AssistedInject constructor(
 
     private companion object {
         const val MAX_CONCURRENT_COURSE_SYNCS = 2
+        const val SUMMARY_NOTIFICATION_ID = 999_999
     }
 }

@@ -14,14 +14,23 @@ class RetryInterceptor @Inject constructor(
     private val initialDelayMs: Long = 1000L
 ) : Interceptor {
 
+    companion object {
+        private val IDEMPOTENT_METHODS = setOf("GET", "HEAD", "OPTIONS")
+    }
+
     override fun intercept(chain: Interceptor.Chain): Response {
+        val request = chain.request()
+        if (request.method !in IDEMPOTENT_METHODS || request.body?.isOneShot() == true) {
+            return chain.proceed(request)
+        }
+
         var lastException: IOException? = null
         var lastResponse: Response? = null
 
         repeat(maxRetries) { attempt ->
             try {
                 lastResponse?.close()
-                val response = chain.proceed(chain.request())
+                val response = chain.proceed(request)
                 if (response.isSuccessful || response.code !in 500..599) {
                     return response
                 }

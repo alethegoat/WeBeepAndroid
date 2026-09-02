@@ -33,7 +33,8 @@ class SettingsManager @Inject constructor(
     private val SYNC_FREQUENCY_KEY = stringPreferencesKey("sync_frequency")
 
     val themePreference: Flow<ThemePreference> = context.dataStore.data.map { preferences ->
-        ThemePreference.valueOf(preferences[THEME_KEY] ?: ThemePreference.SYSTEM_DEFAULT.name)
+        val raw = preferences[THEME_KEY]
+        ThemePreference.entries.firstOrNull { it.name == raw } ?: ThemePreference.SYSTEM_DEFAULT
     }
 
     val dynamicColorPreference: Flow<Boolean> = context.dataStore.data.map { preferences ->
@@ -45,7 +46,8 @@ class SettingsManager @Inject constructor(
     }
 
     val syncFrequency: Flow<SyncFrequency> = context.dataStore.data.map { preferences ->
-        SyncFrequency.valueOf(preferences[SYNC_FREQUENCY_KEY] ?: SyncFrequency.FIFTEEN_MINUTES.name)
+        val raw = preferences[SYNC_FREQUENCY_KEY]
+        SyncFrequency.entries.firstOrNull { it.name == raw } ?: SyncFrequency.FIFTEEN_MINUTES
     }
 
     suspend fun setThemePreference(theme: ThemePreference) {

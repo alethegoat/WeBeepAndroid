@@ -124,11 +124,31 @@ class DownloadRepositoryImpl @Inject constructor(
     override fun cancelDownload(downloadId: Long) {
         calls.remove(downloadId)?.cancel()
         jobs.remove(downloadId)?.cancel()
+        progress.remove(downloadId)
     }
 
     override fun getDownloadProgress(downloadId: Long): Flow<Int> {
-        val state = progress[downloadId]
-        return state ?: flow { emit(-1) }
+        val state = progress[downloadId] ?: return flow { emit(-1) }
+        return flow {
+            state.collect { value ->
+                emit(value)
+                if (value == 100 || value == -1) {
+                    progress.remove(downloadId)
+                }
+            }
+        }
+    }
+
+    override fun clearAllDownloads() {
+        calls.values.forEach { it.cancel() }
+        calls.clear()
+        jobs.values.forEach { it.cancel() }
+        jobs.clear()
+        progress.clear()
+        val directory = getDownloadsDirectory()
+        if (directory.exists()) {
+            directory.listFiles()?.forEach { it.delete() }
+        }
     }
 
     override fun openFile(fileName: String): Boolean {

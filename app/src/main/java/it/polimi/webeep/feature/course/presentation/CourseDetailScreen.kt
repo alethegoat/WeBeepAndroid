@@ -301,7 +301,8 @@ private fun SectionItem(
     Card(
         shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f)
+            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
+            contentColor = MaterialTheme.colorScheme.onSurface
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         border = androidx.compose.foundation.BorderStroke(
@@ -331,10 +332,10 @@ private fun SectionItem(
                     )
                     if (!section.summary.isNullOrBlank()) {
                         val cleanSummary = remember(section.summary) {
-                            section.summary.replace(HtmlRegex, "")
+                            it.polimi.webeep.core.util.MoodleText.cleanHtml(section.summary)
                         }
                         Text(
-                            text = cleanSummary, // basic html strip
+                            text = cleanSummary,
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 2,
@@ -349,6 +350,7 @@ private fun SectionItem(
                     } else {
                         stringResource(R.string.cd_expand_section)
                     },
+                    tint = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier
                         .graphicsLayer { rotationZ = rotationState }
                         .size(24.dp)
@@ -476,6 +478,7 @@ private fun ModuleItem(
                 Icon(
                     imageVector = Icons.Default.ExpandMore,
                     contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.graphicsLayer { rotationZ = rotation }
                 )
             } else if (isSingleFile) {
@@ -497,7 +500,7 @@ private fun ModuleItem(
 
         if (!module.description.isNullOrBlank()) {
             val cleanDescription = remember(module.description) {
-                module.description.replace(HtmlRegex, "")
+                it.polimi.webeep.core.util.MoodleText.cleanHtml(module.description)
             }
             Text(
                 text = cleanDescription,
@@ -603,7 +606,7 @@ private fun FolderTreeView(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
-            Icon(Icons.Default.ExpandMore, null, modifier = Modifier.graphicsLayer { rotationZ = rotation }.size(20.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            Icon(Icons.Default.ExpandMore, null, modifier = Modifier.graphicsLayer { rotationZ = rotation }.size(20.dp), tint = MaterialTheme.colorScheme.onSurface)
         }
 
         AnimatedVisibility(
@@ -686,6 +689,4 @@ private fun FileRowItem(
         )
     }
 }
-
-private val HtmlRegex = Regex("<[^>]*>")
 

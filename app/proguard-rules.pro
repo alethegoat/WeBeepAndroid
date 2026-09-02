@@ -14,6 +14,8 @@
 
 # ---- Room ----
 -keep class * extends androidx.room.RoomDatabase
+-keep class it.polimi.webeep.core.database.entity.** { *; }
+-keep class it.polimi.webeep.core.database.dao.** { *; }
 -keepclassmembers class * {
     @androidx.room.* <methods>;
 }

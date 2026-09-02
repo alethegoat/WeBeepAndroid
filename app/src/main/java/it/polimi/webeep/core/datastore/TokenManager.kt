@@ -50,27 +50,52 @@ class TokenManager @Inject constructor(
     private val clearLock = Any()
 
     init {
-        val masterKey = createMasterKey(application)
+        encryptedPrefs = createEncryptedPrefsWithFallback(application)
+        refreshCacheFromPrefs()
+    }
 
-        encryptedPrefs = EncryptedSharedPreferences.create(
+    private fun createEncryptedPrefsWithFallback(application: Application): SharedPreferences {
+        return try {
+            createEncryptedPrefs(application)
+        } catch (e: Exception) {
+            if (e is CancellationException) throw e
+            android.util.Log.e("TokenManager", "Errore nell'inizializzazione di EncryptedSharedPreferences. Reset in corso...", e)
+            try {
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
+                    application.deleteSharedPreferences(PREFS_NAME)
+                } else {
+                    java.io.File(application.applicationInfo.dataDir, "shared_prefs/$PREFS_NAME.xml").delete()
+                }
+            } catch (_: Exception) {}
+            createEncryptedPrefs(application, forceFallbackKey = true)
+        }
+    }
+
+    private fun createEncryptedPrefs(application: Application, forceFallbackKey: Boolean = false): SharedPreferences {
+        val masterKey = createMasterKey(application, forceFallback = forceFallbackKey)
+        return EncryptedSharedPreferences.create(
             application,
             PREFS_NAME,
             masterKey,
             EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
             EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
         )
-
-        refreshCacheFromPrefs()
     }
 
-    private fun createMasterKey(application: Application): MasterKey {
-        return try {
-            MasterKey.Builder(application)
-                .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
-                .setRequestStrongBoxBacked(true)
-                .build()
-        } catch (e: Exception) {
-            if (e is CancellationException) throw e
+    private fun createMasterKey(application: Application, forceFallback: Boolean = false): MasterKey {
+        return if (!forceFallback) {
+            try {
+                MasterKey.Builder(application)
+                    .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+                    .setRequestStrongBoxBacked(true)
+                    .build()
+            } catch (e: Exception) {
+                if (e is CancellationException) throw e
+                MasterKey.Builder(application)
+                    .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+                    .build()
+            }
+        } else {
             MasterKey.Builder(application)
                 .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
                 .build()

@@ -8,8 +8,6 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import it.polimi.webeep.core.ui.util.bouncyClickable
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
@@ -100,7 +98,6 @@ fun DashboardScreen(
     var searchQuery by rememberSaveable { mutableStateOf("") }
     var courseFilter by rememberSaveable { mutableStateOf(CourseFilter.Active) }
 
-    val haptic = LocalHapticFeedback.current
     val lazyGridState = rememberLazyGridState()
     val keyboard = LocalSoftwareKeyboardController.current
     val reduceMotion = LocalReduceMotion.current
@@ -191,7 +188,6 @@ fun DashboardScreen(
                         PullToRefreshBox(
                             isRefreshing = state.isRefreshing,
                             onRefresh = {
-                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                 viewModel.refresh()
                             },
                             modifier = Modifier.fillMaxSize()

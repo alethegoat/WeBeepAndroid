@@ -35,7 +35,7 @@ object CourseContentMapper {
                     val files = if (moduleDto.modname in fileModules) {
                         moduleDto.contents
                             ?.filter { content ->
-                                content.type != "dir" && !isPhantomIndex(content.filename)
+                                content.type != "dir" && !isPhantomIndex(content)
                             }
                             ?.map { contentDto ->
                                 FileResource(
@@ -155,7 +155,8 @@ object CourseContentMapper {
         return "${MoodleFileUrlBuilder.stripAuthFromUrl(fileUrl)}_${filename}_${timeModified ?: 0L}"
     }
 
-    private fun isPhantomIndex(filename: String?): Boolean {
-        return filename.equals("index.html", ignoreCase = true)
+    private fun isPhantomIndex(content: it.polimi.webeep.core.network.dto.ModuleContentDto): Boolean {
+        return content.filename.equals("index.html", ignoreCase = true) &&
+            (content.filesize <= 0L || content.fileurl.isNullOrBlank())
     }
 }

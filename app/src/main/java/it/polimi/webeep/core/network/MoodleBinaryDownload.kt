@@ -8,13 +8,29 @@ import okhttp3.ResponseBody
  */
 object MoodleBinaryDownload {
 
+    private const val PEEK_BYTES = 4096L
+
     fun requireBinaryBody(response: Response): ResponseBody {
         if (!response.isSuccessful) {
             throw IllegalStateException("Download failed (${response.code})")
         }
         val contentType = response.header("Content-Type").orEmpty().lowercase()
-        if (contentType.contains("text/html") || contentType.contains("text/xml")) {
-            throw IllegalStateException("Server returned a login page instead of the file")
+        val requestUrl = response.request.url.encodedPath.lowercase()
+        val isLoginRedirect = response.request.url.encodedPath.contains("/login/")
+
+        if (contentType.contains("text/html")) {
+            val bodyPreview = response.peekBody(PEEK_BYTES).string().lowercase()
+            val hasLoginMarkers = isLoginRedirect ||
+                bodyPreview.contains("id=\"login\"") ||
+                bodyPreview.contains("loginform") ||
+                bodyPreview.contains("name=\"login\"") ||
+                bodyPreview.contains("login") ||
+                bodyPreview.contains("autenticazione")
+
+            val isExplicitHtmlRequest = requestUrl.endsWith(".html") || requestUrl.endsWith(".htm")
+            if (hasLoginMarkers || !isExplicitHtmlRequest) {
+                throw IllegalStateException("Server returned a login page instead of the file")
+            }
         }
         return response.body ?: throw IllegalStateException("Empty response from server")
     }

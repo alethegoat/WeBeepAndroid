@@ -24,6 +24,39 @@ object MoodleText {
             if (lang == langToKeep) content else ""
         }
         
-        return result.trim()
+        return unescapeHtml(result.trim())
+    }
+
+    private val HTML_TAG_REGEX = Regex("<[^>]*>")
+
+    /**
+     * Unescapes common HTML entities and strips HTML tags with whitespace normalization.
+     */
+    fun cleanHtml(text: String?): String {
+        if (text.isNullOrBlank()) return ""
+        val withoutTags = text.replace(HTML_TAG_REGEX, " ")
+        return unescapeHtml(withoutTags).replace(Regex("""\s+"""), " ").trim()
+    }
+
+    /**
+     * Unescapes common HTML entities present in Moodle titles, summaries, and descriptions.
+     */
+    fun unescapeHtml(text: String?): String {
+        if (text.isNullOrEmpty()) return ""
+        return text
+            .replace("&amp;", "&")
+            .replace("&quot;", "\"")
+            .replace("&#039;", "'")
+            .replace("&#39;", "'")
+            .replace("&apos;", "'")
+            .replace("&lt;", "<")
+            .replace("&gt;", ">")
+            .replace("&nbsp;", " ")
+            .replace("&laquo;", "«")
+            .replace("&raquo;", "»")
+            .replace("&euro;", "€")
+            .replace("&copy;", "©")
+            .replace("&reg;", "®")
+            .replace("&hellip;", "…")
     }
 }

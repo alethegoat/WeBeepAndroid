@@ -64,4 +64,38 @@ class CourseContentMapperTest {
         assertFalse(first.contains("token="))
         assertTrue(first != updated)
     }
+
+    @Test
+    fun `retains legitimate non-empty index html files`() {
+        val mapped = CourseContentMapper.map(
+            courseId = 7,
+            sectionDtos = listOf(
+                CourseSectionDto(
+                    id = 1,
+                    name = "Web",
+                    modules = listOf(
+                        CourseModuleDto(
+                            id = 10,
+                            name = "Project",
+                            modname = "resource",
+                            contents = listOf(
+                                ModuleContentDto(
+                                    type = "file",
+                                    filename = "index.html",
+                                    fileurl = "https://webeep.polimi.it/pluginfile.php/1/index.html",
+                                    filesize = 1024,
+                                    mimetype = "text/html",
+                                    timemodified = 50L
+                                )
+                            )
+                        )
+                    )
+                )
+            )
+        )
+
+        val files = mapped.sections.single().modules.single().files
+        assertEquals(1, files.size)
+        assertEquals("index.html", files.single().filename)
+    }
 }

@@ -36,4 +36,9 @@ interface DownloadRepository {
      * retrieves the safe uri (via fileprovider) to open the file.
      */
     fun getDownloadedFileUri(fileName: String): Uri?
+
+    /**
+     * Clears all downloaded files from local storage (e.g. on logout).
+     */
+    fun clearAllDownloads()
 }

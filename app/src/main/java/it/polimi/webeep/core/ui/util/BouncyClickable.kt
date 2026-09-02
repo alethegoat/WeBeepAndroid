@@ -32,7 +32,7 @@ import kotlinx.coroutines.launch
 fun Modifier.bouncyClickable(
     debounceMs: Long = 250L,
     enabled: Boolean = true,
-    haptic: Boolean = true,
+    haptic: Boolean = false,
     role: Role? = Role.Button,
     onClickLabel: String? = null,
     onClick: () -> Unit

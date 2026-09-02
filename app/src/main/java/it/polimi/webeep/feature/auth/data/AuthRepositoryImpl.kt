@@ -23,7 +23,9 @@ class AuthRepositoryImpl @Inject constructor(
     private val apiService: MoodleApiService,
     private val tokenManager: TokenManager,
     private val application: Application,
-    private val syncScheduler: SyncScheduler
+    private val syncScheduler: SyncScheduler,
+    private val weBeepDatabase: it.polimi.webeep.core.database.WeBeepDatabase,
+    private val downloadRepository: it.polimi.webeep.feature.download.domain.DownloadRepository
 ) : AuthRepository {
 
     override suspend fun validateToken(token: String): Result<UserSession> {
@@ -48,6 +50,10 @@ class AuthRepositoryImpl @Inject constructor(
     override suspend fun logout() {
         syncScheduler.cancelAll()
         tokenManager.clearAll()
+        withContext(Dispatchers.IO) {
+            runCatching { weBeepDatabase.clearAllTables() }
+            runCatching { downloadRepository.clearAllDownloads() }
+        }
         withContext(Dispatchers.Main) {
             CookieManager.getInstance().removeAllCookies(null)
             CookieManager.getInstance().flush()

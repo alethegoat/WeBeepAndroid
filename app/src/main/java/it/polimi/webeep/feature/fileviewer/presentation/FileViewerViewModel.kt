@@ -84,7 +84,12 @@ class FileViewerViewModel @Inject constructor(
                     }
                     isCodeFile(title, mimeType) -> {
                         val file = downloadToCache(url, MoodleFileUrlBuilder.extractExtension(title) ?: "txt")
-                        FileViewerUiState.Code(content = file.readText())
+                        if (file.length() > MAX_CODE_VIEW_BYTES) {
+                            val resolvedMimeType = if (mimeType.isBlank()) "text/plain" else mimeType
+                            FileViewerUiState.ExternalViewer(file = file, mimeType = resolvedMimeType)
+                        } else {
+                            FileViewerUiState.Code(content = file.readText())
+                        }
                     }
                     mimeType == "text/html" -> FileViewerUiState.Web(url)
                     else -> {
@@ -116,9 +121,20 @@ class FileViewerViewModel @Inject constructor(
     }
 
     private fun downloadToCache(url: String, extension: String): File {
+        val localName = it.polimi.webeep.core.util.FileUtils.buildLocalFileName(title, url)
+        val downloadsDir = application.getExternalFilesDir("downloads") ?: File(application.filesDir, "downloads")
+        val alreadyDownloaded = File(downloadsDir, localName)
+        if (alreadyDownloaded.exists() && alreadyDownloaded.length() > 0) {
+            return alreadyDownloaded
+        }
+
         val cacheDir = File(application.cacheDir, CACHE_DIR).apply { mkdirs() }
-        evictCacheIfNeeded(cacheDir)
         val target = File(cacheDir, "${url.hashCode()}.$extension")
+        if (target.exists() && target.length() > 0) {
+            return target
+        }
+
+        evictCacheIfNeeded(cacheDir)
         val part = File(cacheDir, "${url.hashCode()}.$extension.part")
         if (part.exists()) {
             part.delete()
@@ -176,5 +192,6 @@ class FileViewerViewModel @Inject constructor(
     private companion object {
         const val CACHE_DIR = "viewer"
         const val MAX_CACHE_BYTES = 80L * 1024L * 1024L
+        const val MAX_CODE_VIEW_BYTES = 1L * 1024L * 1024L
     }
 }

@@ -23,8 +23,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.ui.platform.LocalView
-import android.view.HapticFeedbackConstants
 import kotlinx.coroutines.launch
 import androidx.compose.foundation.gestures.rememberTransformableState
 import androidx.compose.foundation.gestures.transformable
@@ -263,7 +261,6 @@ private fun ImagePreviewContent(
     var offsetY by remember { mutableStateOf(0f) }
 
     val coroutineScope = rememberCoroutineScope()
-    val view = LocalView.current
 
     Box(
         modifier = modifier
@@ -280,14 +277,6 @@ private fun ImagePreviewContent(
                         val maxY = (size.height * (targetScale - 1f)) / 2f
                         val targetOffsetX = if (targetScale == 1f) 0f else (-relativeTap.x * (targetScale - 1f)).coerceIn(-maxX, maxX)
                         val targetOffsetY = if (targetScale == 1f) 0f else (-relativeTap.y * (targetScale - 1f)).coerceIn(-maxY, maxY)
-
-                        try {
-                            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
-                                view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
-                            } else {
-                                view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
-                            }
-                        } catch (_: Exception) {}
 
                         coroutineScope.launch {
                             val startScale = scale
@@ -309,19 +298,7 @@ private fun ImagePreviewContent(
             }
             .pointerInput(Unit) {
                 detectTransformGestures { _, pan, zoom, _ ->
-                    val oldScale = scale
                     scale = (scale * zoom).coerceIn(1f, 5f)
-                    if (scale == 1f || scale == 5f) {
-                        if (oldScale != scale) {
-                            try {
-                                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
-                                    view.performHapticFeedback(HapticFeedbackConstants.GESTURE_END)
-                                } else {
-                                    view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
-                                }
-                            } catch (_: Exception) {}
-                        }
-                    }
                     val maxX = (size.width * (scale - 1)) / 2
                     val maxY = (size.height * (scale - 1)) / 2
                     offsetX = (offsetX + pan.x * scale).coerceIn(-maxX, maxX)
@@ -438,6 +415,7 @@ private fun WebContent(
 ) {
     var isLoading by remember { androidx.compose.runtime.mutableStateOf(true) }
     var webView by remember { androidx.compose.runtime.mutableStateOf<WebView?>(null) }
+    var lastLoadedUrl by remember { androidx.compose.runtime.mutableStateOf<String?>(null) }
 
     DisposableEffect(Unit) {
         onDispose {
@@ -478,14 +456,16 @@ private fun WebContent(
                                 request: WebResourceRequest?
                             ): Boolean {
                                 val requestUrl = request?.url ?: return true
-                                val scheme = requestUrl.scheme ?: return true
+                                val scheme = requestUrl.scheme?.lowercase() ?: return true
                                 if (scheme == "http" || scheme == "https") {
                                     return false // loads inside the webview
                                 }
-                                try {
-                                    val intent = Intent(Intent.ACTION_VIEW, requestUrl)
-                                    view?.context?.startActivity(intent)
-                                } catch (_: Exception) {}
+                                if (scheme == "mailto" || scheme == "tel") {
+                                    try {
+                                        val intent = Intent(Intent.ACTION_VIEW, requestUrl)
+                                        view?.context?.startActivity(intent)
+                                    } catch (_: Exception) {}
+                                }
                                 return true
                             }
                         }
@@ -505,12 +485,15 @@ private fun WebContent(
 
                         android.webkit.CookieManager.getInstance().setAcceptThirdPartyCookies(this, false)
 
-                        loadUrl(MoodleFileUrlBuilder.stripAuthFromUrl(url))
+                        val cleanUrl = MoodleFileUrlBuilder.stripAuthFromUrl(url)
+                        lastLoadedUrl = cleanUrl
+                        loadUrl(cleanUrl)
                     }
                 },
                 update = { webView ->
                     val cleanUrl = MoodleFileUrlBuilder.stripAuthFromUrl(url)
-                    if (webView.url != cleanUrl) {
+                    if (lastLoadedUrl != cleanUrl) {
+                        lastLoadedUrl = cleanUrl
                         webView.loadUrl(cleanUrl)
                     }
                 }
