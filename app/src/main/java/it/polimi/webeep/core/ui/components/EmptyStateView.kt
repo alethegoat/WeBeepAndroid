@@ -2,11 +2,11 @@ package it.polimi.webeep.core.ui.components
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.MutableTransitionState
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.slideInVertically
+import it.polimi.webeep.core.ui.theme.WeBeepMotion
+import it.polimi.webeep.core.ui.util.LocalReduceMotion
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -55,9 +55,9 @@ fun EmptyStateView(
     actionLabel: String? = null,
     onAction: (() -> Unit)? = null,
 ) {
+    val reduceMotion = LocalReduceMotion.current
     val visibleState = remember {
-        MutableTransitionState(false).apply {
-            // starts the animation immediately after composition
+        MutableTransitionState(reduceMotion).apply {
             targetState = true
         }
     }
@@ -65,7 +65,7 @@ fun EmptyStateView(
     AnimatedVisibility(
         visibleState = visibleState,
         enter = fadeIn(
-            animationSpec = spring(stiffness = Spring.StiffnessLow),
+            animationSpec = WeBeepMotion.enter(reduceMotion = reduceMotion),
         ),
     ) {
         Column(
@@ -81,11 +81,8 @@ fun EmptyStateView(
                     MutableTransitionState(false).apply { targetState = true }
                 },
                 enter = scaleIn(
-                    animationSpec = spring(
-                        dampingRatio = Spring.DampingRatioMediumBouncy,
-                        stiffness = Spring.StiffnessLow,
-                    ),
-                ) + fadeIn(),
+                    animationSpec = WeBeepMotion.softSpring(),
+                ) + fadeIn(WeBeepMotion.enter()),
             ) {
                 Icon(
                     imageVector = icon,
@@ -103,12 +100,9 @@ fun EmptyStateView(
                     MutableTransitionState(false).apply { targetState = true }
                 },
                 enter = slideInVertically(
-                    initialOffsetY = { it / 2 },
-                    animationSpec = spring(
-                        dampingRatio = Spring.DampingRatioMediumBouncy,
-                        stiffness = Spring.StiffnessLow,
-                    ),
-                ) + fadeIn(),
+                    initialOffsetY = { it / 4 },
+                    animationSpec = WeBeepMotion.enter(),
+                ) + fadeIn(WeBeepMotion.enter()),
             ) {
                 Text(
                     text = title,
@@ -127,12 +121,9 @@ fun EmptyStateView(
                         MutableTransitionState(false).apply { targetState = true }
                     },
                     enter = slideInVertically(
-                        initialOffsetY = { it / 2 },
-                        animationSpec = spring(
-                            dampingRatio = Spring.DampingRatioMediumBouncy,
-                            stiffness = Spring.StiffnessVeryLow,
-                        ),
-                    ) + fadeIn(),
+                        initialOffsetY = { it / 4 },
+                        animationSpec = WeBeepMotion.enter(),
+                    ) + fadeIn(WeBeepMotion.enter()),
                 ) {
                     Text(
                         text = subtitle,
@@ -152,11 +143,8 @@ fun EmptyStateView(
                         MutableTransitionState(false).apply { targetState = true }
                     },
                     enter = scaleIn(
-                        animationSpec = spring(
-                            dampingRatio = Spring.DampingRatioMediumBouncy,
-                            stiffness = Spring.StiffnessVeryLow,
-                        ),
-                    ) + fadeIn(),
+                        animationSpec = WeBeepMotion.softSpring(),
+                    ) + fadeIn(WeBeepMotion.enter()),
                 ) {
                     Button(
                         onClick = onAction,

@@ -63,7 +63,6 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.io.File
-import java.util.concurrent.ConcurrentLinkedQueue
 import kotlin.math.roundToInt
 
 /**
@@ -84,10 +83,11 @@ fun PdfViewer(
     val coroutineScope = rememberCoroutineScope()
     val view = LocalView.current
 
-    val pdfRenderer = remember(file) {
+    val pdfSession = remember(file) {
         val descriptor = ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
-        PdfRenderer(descriptor)
+        PdfSession(descriptor = descriptor, renderer = PdfRenderer(descriptor))
     }
+    val pdfRenderer = pdfSession.renderer
 
     // calculate the aspect ratio of the first page as default to prevent visual jumps during scroll
     val defaultAspectRatio = remember(pdfRenderer) {
@@ -103,11 +103,9 @@ fun PdfViewer(
     }
 
     val pdfMutex = remember { Mutex() }
-    val fastBitmapPool = remember { ConcurrentLinkedQueue<Bitmap>() }
-    val highResBitmapPool = remember { ConcurrentLinkedQueue<Bitmap>() }
 
-    // Keep a small, hard-capped cache. Full-resolution pages are large and share
-    // the heap with Coil and WebView, so a heap percentage alone is unsafe.
+    // Keep a small, hard-capped cache. Do not recycle evicted bitmaps: a composed
+    // Image may still be drawing them. Recycle only when the viewer leaves composition.
     val memoryCache = remember {
         val maxMemory = (Runtime.getRuntime().maxMemory() / 1024).toInt()
         val cacheSize = (maxMemory / 10)
@@ -115,28 +113,23 @@ fun PdfViewer(
             .coerceAtMost(MAX_CACHE_SIZE_KB)
         object : android.util.LruCache<String, Bitmap>(cacheSize) {
             override fun sizeOf(key: String, bitmap: Bitmap): Int {
-                return bitmap.byteCount / 1024 // measure cache in kilobytes
-            }
-
-            override fun entryRemoved(evicted: Boolean, key: String, oldValue: Bitmap, newValue: Bitmap?) {
-                if (evicted) {
-                    if (key.startsWith("fast_")) {
-                        addToPool(fastBitmapPool, oldValue, MAX_FAST_POOL_SIZE)
-                    } else if (key.startsWith("high_")) {
-                        addToPool(highResBitmapPool, oldValue, MAX_HIGH_RES_POOL_SIZE)
-                    }
-                }
+                return bitmap.byteCount / 1024
             }
         }
     }
 
-    DisposableEffect(pdfRenderer) {
+    DisposableEffect(pdfSession) {
         onDispose {
+            val snapshot = memoryCache.snapshot()
             memoryCache.evictAll()
-            clearBitmapPool(fastBitmapPool)
-            clearBitmapPool(highResBitmapPool)
+            snapshot.values.forEach { bitmap ->
+                if (!bitmap.isRecycled) bitmap.recycle()
+            }
             try {
-                pdfRenderer.close()
+                pdfSession.renderer.close()
+            } catch (_: Exception) {}
+            try {
+                pdfSession.descriptor.close()
             } catch (_: Exception) {}
         }
     }
@@ -184,21 +177,13 @@ fun PdfViewer(
                 if (memoryCache.get(fastKey) == null) {
                     pdfMutex.withLock {
                         if (memoryCache.get(fastKey) != null || !isActive) return@withLock
-                        var pooledBitmap: Bitmap? = null
                         try {
                             val page = pdfRenderer.openPage(pageIndex)
                             try {
                                 val FAST_WIDTH = 800
                                 val renderScale = FAST_WIDTH.toFloat() / page.width.toFloat()
                                 val height = (page.height * renderScale).roundToInt().coerceAtLeast(1)
-                                
-                                pooledBitmap = fastBitmapPool.poll()
-                                while (pooledBitmap != null && (pooledBitmap.width != FAST_WIDTH || pooledBitmap.height != height)) {
-                                    pooledBitmap.recycle()
-                                    pooledBitmap = fastBitmapPool.poll()
-                                }
-                                
-                                val bmp = pooledBitmap ?: Bitmap.createBitmap(FAST_WIDTH, height, Bitmap.Config.ARGB_8888)
+                                val bmp = Bitmap.createBitmap(FAST_WIDTH, height, Bitmap.Config.ARGB_8888)
                                 bmp.eraseColor(Color.WHITE)
                                 page.render(bmp, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
                                 memoryCache.put(fastKey, bmp)
@@ -207,7 +192,6 @@ fun PdfViewer(
                             }
                         } catch (e: Exception) {
                             if (e is CancellationException) throw e
-                            pooledBitmap?.recycle()
                         }
                     }
                 }
@@ -343,13 +327,11 @@ fun PdfViewer(
                 contentType = { _, _ -> "pdf_page" }
             ) { _, pageIndex ->
                 PdfPageItem(
-                    pdfRenderer = pdfRenderer, 
+                    pdfRenderer = pdfRenderer,
                     pageIndex = pageIndex,
                     defaultAspectRatio = defaultAspectRatio,
                     memoryCache = memoryCache,
                     pdfMutex = pdfMutex,
-                    fastBitmapPool = fastBitmapPool,
-                    highResBitmapPool = highResBitmapPool,
                     ioDispatcher = ioDispatcher
                 )
             }
@@ -379,25 +361,13 @@ fun PdfViewer(
     }
 }
 
-private fun addToPool(pool: ConcurrentLinkedQueue<Bitmap>, bitmap: Bitmap, maxSize: Int) {
-    if (pool.size < maxSize) {
-        pool.offer(bitmap)
-    } else if (!bitmap.isRecycled) {
-        bitmap.recycle()
-    }
-}
-
-private fun clearBitmapPool(pool: ConcurrentLinkedQueue<Bitmap>) {
-    while (true) {
-        val bitmap = pool.poll() ?: return
-        if (!bitmap.isRecycled) bitmap.recycle()
-    }
-}
+private class PdfSession(
+    val descriptor: ParcelFileDescriptor,
+    val renderer: PdfRenderer
+)
 
 private const val MIN_CACHE_SIZE_KB = 8 * 1024
 private const val MAX_CACHE_SIZE_KB = 24 * 1024
-private const val MAX_FAST_POOL_SIZE = 2
-private const val MAX_HIGH_RES_POOL_SIZE = 1
 
 data class PageRenderResult(
     val fastBitmap: Bitmap? = null,
@@ -407,13 +377,11 @@ data class PageRenderResult(
 
 @Composable
 private fun PdfPageItem(
-    pdfRenderer: PdfRenderer, 
-    pageIndex: Int, 
+    pdfRenderer: PdfRenderer,
+    pageIndex: Int,
     defaultAspectRatio: Float,
     memoryCache: android.util.LruCache<String, Bitmap>,
     pdfMutex: Mutex,
-    fastBitmapPool: ConcurrentLinkedQueue<Bitmap>,
-    highResBitmapPool: ConcurrentLinkedQueue<Bitmap>,
     ioDispatcher: CoroutineDispatcher
 ) {
     val fastKey = "fast_$pageIndex"
@@ -444,7 +412,6 @@ private fun PdfPageItem(
             if (fastBitmap == null) {
                 pdfMutex.withLock {
                     if (!isActive) return@withContext
-                    var pooledBitmap: Bitmap? = null
                     try {
                         val page = pdfRenderer.openPage(pageIndex)
                         try {
@@ -452,23 +419,16 @@ private fun PdfPageItem(
                             val FAST_WIDTH = 800
                             val renderScale = FAST_WIDTH.toFloat() / page.width.toFloat()
                             val height = (page.height * renderScale).roundToInt().coerceAtLeast(1)
-                            
-                            pooledBitmap = fastBitmapPool.poll()
-                            while (pooledBitmap != null && (pooledBitmap.width != FAST_WIDTH || pooledBitmap.height != height)) {
-                                pooledBitmap.recycle()
-                                pooledBitmap = fastBitmapPool.poll()
-                            }
-                            
-                            fastBitmap = pooledBitmap ?: Bitmap.createBitmap(FAST_WIDTH, height, Bitmap.Config.ARGB_8888)
-                            fastBitmap!!.eraseColor(Color.WHITE)
-                            page.render(fastBitmap!!, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
-                            memoryCache.put(fastKey, fastBitmap)
+                            val rendered = Bitmap.createBitmap(FAST_WIDTH, height, Bitmap.Config.ARGB_8888)
+                            rendered.eraseColor(Color.WHITE)
+                            page.render(rendered, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
+                            fastBitmap = rendered
+                            memoryCache.put(fastKey, rendered)
                         } finally {
                             page.close()
                         }
                     } catch (e: Exception) {
                         if (e is CancellationException) throw e
-                        pooledBitmap?.recycle()
                     }
                 }
             }
@@ -487,30 +447,22 @@ private fun PdfPageItem(
             if (highResBitmap == null) {
                 pdfMutex.withLock {
                     if (!isActive) return@withContext
-                    var pooledBitmap: Bitmap? = null
                     try {
                         val page = pdfRenderer.openPage(pageIndex)
                         try {
                             val HIGH_RES_WIDTH = 1800
                             val renderScale = HIGH_RES_WIDTH.toFloat() / page.width.toFloat()
                             val height = (page.height * renderScale).roundToInt().coerceAtLeast(1)
-                            
-                            pooledBitmap = highResBitmapPool.poll()
-                            while (pooledBitmap != null && (pooledBitmap.width != HIGH_RES_WIDTH || pooledBitmap.height != height)) {
-                                pooledBitmap.recycle()
-                                pooledBitmap = highResBitmapPool.poll()
-                            }
-                            
-                            highResBitmap = pooledBitmap ?: Bitmap.createBitmap(HIGH_RES_WIDTH, height, Bitmap.Config.ARGB_8888)
-                            highResBitmap!!.eraseColor(Color.WHITE)
-                            page.render(highResBitmap!!, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
-                            memoryCache.put(highKey, highResBitmap)
+                            val rendered = Bitmap.createBitmap(HIGH_RES_WIDTH, height, Bitmap.Config.ARGB_8888)
+                            rendered.eraseColor(Color.WHITE)
+                            page.render(rendered, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
+                            highResBitmap = rendered
+                            memoryCache.put(highKey, rendered)
                         } finally {
                             page.close()
                         }
                     } catch (e: Exception) {
                         if (e is CancellationException) throw e
-                        pooledBitmap?.recycle()
                     }
                 }
             }
@@ -530,13 +482,15 @@ private fun PdfPageItem(
         if (pageResult.fastBitmap == null) {
             CircularProgressIndicator()
         } else {
-            val bitmapToDraw = pageResult.highResBitmap ?: pageResult.fastBitmap!!
+            val bitmapToDraw = pageResult.highResBitmap ?: pageResult.fastBitmap
+            if (bitmapToDraw != null) {
             Image(
                 bitmap = bitmapToDraw.asImageBitmap(),
                 contentDescription = androidx.compose.ui.res.stringResource(it.polimi.webeep.R.string.cd_pdf_page, pageIndex + 1),
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.FillWidth
             )
+            }
         }
     }
 }

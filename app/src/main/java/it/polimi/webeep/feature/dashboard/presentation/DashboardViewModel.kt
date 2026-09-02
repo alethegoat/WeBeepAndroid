@@ -105,11 +105,15 @@ class DashboardViewModel @Inject constructor(
     }
 
     private suspend fun loadCoursesInternal() {
-        _vmState.update { it.copy(isLoading = true, error = null) }
+        if (_vmState.value.courses == null) {
+            _vmState.update { it.copy(isLoading = true, error = null) }
+        }
         getCoursesUseCase().collectLatest { resource ->
             when (resource) {
                 is Resource.Loading -> {
-                    _vmState.update { it.copy(isLoading = true, error = null) }
+                    if (_vmState.value.courses == null) {
+                        _vmState.update { it.copy(isLoading = true, error = null) }
+                    }
                 }
                 is Resource.Success -> {
                     _vmState.update {

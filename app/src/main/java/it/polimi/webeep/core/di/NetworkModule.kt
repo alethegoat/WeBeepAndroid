@@ -10,19 +10,21 @@ import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.defaultRequest
 import io.ktor.serialization.kotlinx.json.json
 import it.polimi.webeep.BuildConfig
+import it.polimi.webeep.core.datastore.TokenProvider
 import it.polimi.webeep.core.network.MoodleApiService
 import it.polimi.webeep.core.network.MoodleApiServiceImpl
+import it.polimi.webeep.core.network.NoStoreAuthCacheInterceptor
+import it.polimi.webeep.core.network.PluginFileAuthInterceptor
 import it.polimi.webeep.core.network.RetryInterceptor
 import it.polimi.webeep.core.network.TokenInterceptor
 import kotlinx.serialization.json.Json
-import okhttp3.CertificatePinner
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import java.util.concurrent.TimeUnit
 import javax.inject.Singleton
 
 /**
- * hilt module for network dependencies configuration (ktor).
+ * Hilt module for network dependencies (Ktor over OkHttp).
  */
 @Module
 @InstallIn(SingletonComponent::class)
@@ -55,14 +57,20 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    fun provideCertificatePinner(): CertificatePinner {
-        return CertificatePinner.DEFAULT
+    fun provideTokenInterceptor(tokenProvider: TokenProvider): TokenInterceptor {
+        return TokenInterceptor(tokenProvider)
     }
 
     @Provides
     @Singleton
-    fun provideTokenInterceptor(tokenProvider: it.polimi.webeep.core.datastore.TokenProvider): TokenInterceptor {
-        return TokenInterceptor(tokenProvider)
+    fun providePluginFileAuthInterceptor(tokenProvider: TokenProvider): PluginFileAuthInterceptor {
+        return PluginFileAuthInterceptor(tokenProvider)
+    }
+
+    @Provides
+    @Singleton
+    fun provideNoStoreAuthCacheInterceptor(): NoStoreAuthCacheInterceptor {
+        return NoStoreAuthCacheInterceptor()
     }
 
     @Provides
@@ -77,17 +85,19 @@ object NetworkModule {
         @dagger.hilt.android.qualifiers.ApplicationContext context: android.content.Context,
         loggingInterceptor: HttpLoggingInterceptor,
         tokenInterceptor: TokenInterceptor,
-        retryInterceptor: RetryInterceptor,
-        certificatePinner: CertificatePinner
+        pluginFileAuthInterceptor: PluginFileAuthInterceptor,
+        noStoreAuthCacheInterceptor: NoStoreAuthCacheInterceptor,
+        retryInterceptor: RetryInterceptor
     ): OkHttpClient {
-        val cacheSize = 10 * 1024 * 1024L // 10 mib
+        val cacheSize = 10 * 1024 * 1024L
         val cacheDir = java.io.File(context.cacheDir, "http_cache")
         return OkHttpClient.Builder()
             .cache(okhttp3.Cache(cacheDir, cacheSize))
-            .certificatePinner(certificatePinner)
             .addInterceptor(retryInterceptor)
+            .addInterceptor(pluginFileAuthInterceptor)
             .addInterceptor(tokenInterceptor)
             .addInterceptor(loggingInterceptor)
+            .addNetworkInterceptor(noStoreAuthCacheInterceptor)
             .connectTimeout(CONNECT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
             .readTimeout(READ_TIMEOUT_SECONDS, TimeUnit.SECONDS)
             .writeTimeout(WRITE_TIMEOUT_SECONDS, TimeUnit.SECONDS)

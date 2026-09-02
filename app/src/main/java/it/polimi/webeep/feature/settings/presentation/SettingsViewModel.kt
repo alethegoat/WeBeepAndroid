@@ -6,7 +6,8 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import it.polimi.webeep.core.datastore.SettingsManager
 import it.polimi.webeep.core.datastore.SyncFrequency
 import it.polimi.webeep.core.datastore.ThemePreference
-import it.polimi.webeep.core.datastore.TokenManager
+import it.polimi.webeep.feature.auth.domain.AuthRepository
+import it.polimi.webeep.feature.sync.SyncScheduler
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -17,14 +18,15 @@ import javax.inject.Inject
 data class SettingsUiState(
     val themePreference: ThemePreference = ThemePreference.SYSTEM_DEFAULT,
     val dynamicColorPreference: Boolean = true,
-    val wifiOnlySync: Boolean = true,
+    val wifiOnlySync: Boolean = false,
     val syncFrequency: SyncFrequency = SyncFrequency.FIFTEEN_MINUTES
 )
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val settingsManager: SettingsManager,
-    private val tokenManager: TokenManager
+    private val authRepository: AuthRepository,
+    private val syncScheduler: SyncScheduler
 ) : ViewModel() {
 
     val uiState: StateFlow<SettingsUiState> = combine(
@@ -60,19 +62,20 @@ class SettingsViewModel @Inject constructor(
     fun setWifiOnlySync(enabled: Boolean) {
         viewModelScope.launch {
             settingsManager.setWifiOnlySync(enabled)
+            syncScheduler.applyCurrentSettings()
         }
     }
 
     fun setSyncFrequency(frequency: SyncFrequency) {
         viewModelScope.launch {
             settingsManager.setSyncFrequency(frequency)
-            // notice: updating workmanager constraints/interval is not implemented yet.
+            syncScheduler.applyCurrentSettings()
         }
     }
 
     fun logout(onComplete: () -> Unit) {
         viewModelScope.launch {
-            tokenManager.clearAll()
+            authRepository.logout()
             onComplete()
         }
     }

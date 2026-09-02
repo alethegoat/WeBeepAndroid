@@ -1,14 +1,32 @@
 package it.polimi.webeep.core.network
 
-import android.net.Uri
+import java.net.URI
 import java.net.URLEncoder
 
 /**
- * normalizes moodle file urls and manages tokens in query strings.
+ * Normalizes Moodle file URLs and manages tokens in query strings.
+ * Tokens are appended only to HTTPS pluginfile URLs on webeep.polimi.it.
  */
 object MoodleFileUrlBuilder {
 
+    const val TRUSTED_HOST = "webeep.polimi.it"
+
     private val AUTH_QUERY_PARAMS = setOf("token", "wstoken")
+    private val AUTH_TOKEN_QUERY_REGEX = Regex("""[?&](token|wstoken)=""")
+
+    fun isTrustedHost(host: String?): Boolean =
+        host.equals(TRUSTED_HOST, ignoreCase = true)
+
+    fun isMoodleRestPath(encodedPath: String): Boolean =
+        encodedPath.contains("/webservice/rest/server.php")
+
+    fun isPluginFilePath(encodedPath: String): Boolean =
+        encodedPath.contains("/pluginfile.php")
+
+    fun isTrustedWeBeepUrl(url: String): Boolean {
+        val uri = parseUri(url) ?: return false
+        return uri.scheme.equals("https", ignoreCase = true) && isTrustedHost(uri.host)
+    }
 
     fun buildAuthenticatedUrl(url: String, token: String): String {
         val normalizedUrl = normalizePluginFileUrl(url)
@@ -16,11 +34,7 @@ object MoodleFileUrlBuilder {
             return normalizedUrl
         }
 
-        // security validation: token is appended only to trusted urls
-        val uri = Uri.parse(normalizedUrl)
-        val isTrustedDomain = uri.scheme.equals("https", ignoreCase = true) &&
-            uri.host?.endsWith("polimi.it", ignoreCase = true) == true
-        if (!isTrustedDomain) {
+        if (!isTrustedWeBeepUrl(normalizedUrl) || !isPluginFilePath(normalizedUrl)) {
             return normalizedUrl
         }
 
@@ -30,7 +44,7 @@ object MoodleFileUrlBuilder {
     }
 
     /**
-     * removes tokens from query strings before persisting urls to disk (room).
+     * Removes tokens from query strings before persisting URLs to disk (Room, nav args).
      */
     fun stripAuthFromUrl(url: String): String {
         if (url.isBlank()) return url
@@ -59,7 +73,7 @@ object MoodleFileUrlBuilder {
         return null
     }
 
-    private fun normalizePluginFileUrl(url: String): String {
+    fun normalizePluginFileUrl(url: String): String {
         return if (url.contains("/webservice/pluginfile.php/")) {
             url
         } else {
@@ -67,5 +81,11 @@ object MoodleFileUrlBuilder {
         }
     }
 
-    private val AUTH_TOKEN_QUERY_REGEX = Regex("""[?&](token|wstoken)=""")
+    private fun parseUri(url: String): URI? {
+        return try {
+            URI(url)
+        } catch (_: Exception) {
+            null
+        }
+    }
 }

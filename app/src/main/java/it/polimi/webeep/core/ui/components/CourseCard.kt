@@ -41,6 +41,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -100,18 +101,24 @@ fun CourseCard(
     modifier: Modifier = Modifier,
     onFavouriteClick: (() -> Unit)? = null,
 ) {
+    val openLabel = stringResource(R.string.cd_open_course)
+    val cardShape = RoundedCornerShape(24.dp)
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .height(240.dp)
-            .bouncyClickable { onClick() },
-        shape = RoundedCornerShape(32.dp),
+            .height(228.dp)
+            .shadow(8.dp, cardShape, clip = false, ambientColor = Color.Black.copy(alpha = 0.08f))
+            .bouncyClickable(
+                role = Role.Button,
+                onClickLabel = openLabel
+            ) { onClick() },
+        shape = cardShape,
         border = androidx.compose.foundation.BorderStroke(
             width = 1.dp,
-            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
         ),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface,
+            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
@@ -127,7 +134,7 @@ fun CourseCard(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(0.45f) // takes about half the card
+                    .weight(0.5f)
                     .background(gradientBrush)
             ) {
                 if (course.courseImage != null) {
@@ -138,6 +145,16 @@ fun CourseCard(
                         contentScale = ContentScale.Crop,
                     )
                 }
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            Brush.verticalGradient(
+                                0f to Color.Black.copy(alpha = 0.08f),
+                                1f to Color.Black.copy(alpha = 0.28f)
+                            )
+                        )
+                )
 
                 // category and star in overlay on image
                 Row(
@@ -147,9 +164,10 @@ fun CourseCard(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.Top,
                 ) {
-                    val showCategory = course.category != null && course.category.isNotBlank() && !course.category.all { it.isDigit() }
+                    val category = course.category
+                    val showCategory = category != null && category.isNotBlank() && !category.all { it.isDigit() }
                     if (showCategory) {
-                        CategoryChip(category = course.category!!)
+                        CategoryChip(category = category)
                     } else {
                         Spacer(modifier = Modifier.width(1.dp))
                     }
@@ -177,8 +195,8 @@ fun CourseCard(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(0.55f)
-                    .padding(16.dp),
+                    .weight(0.5f)
+                    .padding(horizontal = 16.dp, vertical = 14.dp),
                 verticalArrangement = Arrangement.SpaceBetween,
             ) {
                 Column {

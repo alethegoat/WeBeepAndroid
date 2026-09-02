@@ -94,8 +94,8 @@ class CourseDetailViewModel @Inject constructor(
     private var courseName: String = ""
     private var contentsJob: Job? = null
 
-    // map to keep track of current download jobs for structured concurrency
     private val downloadJobs = ConcurrentHashMap<String, Job>()
+    private val downloadIds = ConcurrentHashMap<String, Long>()
 
     init {
         loadCourseName()
@@ -114,11 +114,15 @@ class CourseDetailViewModel @Inject constructor(
     fun loadContents() {
         contentsJob?.cancel()
         contentsJob = viewModelScope.launch {
-            _uiState.update { CourseDetailUiState.Loading }
+            if (_uiState.value !is CourseDetailUiState.Success) {
+                _uiState.update { CourseDetailUiState.Loading }
+            }
             getCourseContentsUseCase(courseId).collectLatest { resource ->
                 when (resource) {
                     is Resource.Loading -> {
-                        _uiState.update { CourseDetailUiState.Loading }
+                        if (_uiState.value !is CourseDetailUiState.Success) {
+                            _uiState.update { CourseDetailUiState.Loading }
+                        }
                     }
                     is Resource.Success -> {
                         val uiSections = kotlinx.coroutines.withContext(ioDispatcher) {
@@ -165,8 +169,8 @@ class CourseDetailViewModel @Inject constructor(
     }
 
     fun downloadFile(file: FileUiModel) {
-        // cancel any previous download for the same file to prevent duplicates
         downloadJobs[file.fileUrl]?.cancel()
+        downloadIds.remove(file.fileUrl)?.let { downloadRepository.cancelDownload(it) }
 
         val job = viewModelScope.launch {
             updateFileDownloadState(file.fileUrl, DownloadState.DOWNLOADING)
@@ -177,16 +181,19 @@ class CourseDetailViewModel @Inject constructor(
                     displayName = file.filename,
                     mimeType = file.mimeType
                 )
-                
+                downloadIds[file.fileUrl] = downloadId
+
                 downloadRepository.getDownloadProgress(downloadId).collect { progress ->
                     when (progress) {
                         100 -> {
                             updateFileDownloadState(file.fileUrl, DownloadState.COMPLETED)
                             downloadJobs.remove(file.fileUrl)
+                            downloadIds.remove(file.fileUrl)
                         }
                         -1 -> {
                             updateFileDownloadState(file.fileUrl, DownloadState.FAILED)
                             downloadJobs.remove(file.fileUrl)
+                            downloadIds.remove(file.fileUrl)
                         }
                         else -> updateFileDownloadState(file.fileUrl, DownloadState.DOWNLOADING)
                     }
@@ -195,6 +202,7 @@ class CourseDetailViewModel @Inject constructor(
                 if (e is CancellationException) throw e
                 updateFileDownloadState(file.fileUrl, DownloadState.FAILED)
                 downloadJobs.remove(file.fileUrl)
+                downloadIds.remove(file.fileUrl)
             }
         }
         downloadJobs[file.fileUrl] = job
@@ -265,5 +273,7 @@ class CourseDetailViewModel @Inject constructor(
         super.onCleared()
         downloadJobs.values.forEach { it.cancel() }
         downloadJobs.clear()
+        downloadIds.values.forEach { downloadRepository.cancelDownload(it) }
+        downloadIds.clear()
     }
 }

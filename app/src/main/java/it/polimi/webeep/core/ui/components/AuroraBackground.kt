@@ -1,13 +1,11 @@
 package it.polimi.webeep.core.ui.components
 
-import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
@@ -15,15 +13,19 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.currentStateAsState
+import it.polimi.webeep.core.ui.theme.WeBeepMotion
 
 /**
- * A beautiful, animated aurora/glow background that adapts to light/dark mode.
- * In dark mode: deep dark base with neon cyan and electric blue soft glows.
- * In light mode: ice white base with soft pastel sky blue and indigo glows.
+ * Animated aurora/glow background that adapts to light/dark mode.
+ * Animation runs only while the host lifecycle is RESUMED.
  */
 @Composable
 fun AuroraBackground(
@@ -31,164 +33,130 @@ fun AuroraBackground(
     isDark: Boolean = MaterialTheme.colorScheme.background.luminance() < 0.5f,
     content: @Composable () -> Unit
 ) {
+    val lifecycleState by LocalLifecycleOwner.current.lifecycle.currentStateAsState()
+    val animateAurora = lifecycleState.isAtLeast(Lifecycle.State.RESUMED)
+    val motion = auroraMotion(animateAurora)
+
+    val backgroundColor = MaterialTheme.colorScheme.background
+
+    val primary = if (isDark) {
+        Color(0xFF1B6FD6).copy(alpha = 0.38f)
+    } else {
+        Color(0xFF8BB6FF).copy(alpha = 0.42f)
+    }
+    val secondary = if (isDark) {
+        Color(0xFF00B7E0).copy(alpha = 0.22f)
+    } else {
+        Color(0xFF6EC8FF).copy(alpha = 0.28f)
+    }
+    val tertiary = if (isDark) {
+        Color(0xFF6B4CFF).copy(alpha = 0.14f)
+    } else {
+        Color(0xFFFFC1D6).copy(alpha = 0.22f)
+    }
+
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(backgroundColor)
+            .drawBehind {
+                fun glow(color: Color, center: Offset, radius: Float) {
+                    drawRect(
+                        brush = Brush.radialGradient(
+                            colors = listOf(
+                                color,
+                                color.copy(alpha = color.alpha * 0.45f),
+                                color.copy(alpha = color.alpha * 0.12f),
+                                Color.Transparent
+                            ),
+                            center = center,
+                            radius = radius
+                        )
+                    )
+                }
+                glow(primary, Offset(motion.x1, motion.y1), size.minDimension * 0.95f * motion.pulse)
+                glow(secondary, Offset(motion.x2, motion.y2), size.minDimension * 0.8f * (1.08f - (motion.pulse - 1f)))
+                glow(tertiary, Offset(motion.x3, motion.y3), size.minDimension * 0.7f * motion.pulse)
+            },
+        contentAlignment = Alignment.Center
+    ) {
+        content()
+    }
+}
+
+private data class AuroraMotion(
+    val x1: Float,
+    val y1: Float,
+    val x2: Float,
+    val y2: Float,
+    val x3: Float,
+    val y3: Float,
+    val pulse: Float
+)
+
+@Composable
+private fun auroraMotion(animate: Boolean): AuroraMotion {
+    if (!animate) {
+        return AuroraMotion(
+            x1 = 280f,
+            y1 = 220f,
+            x2 = 860f,
+            y2 = 980f,
+            x3 = 520f,
+            y3 = 720f,
+            pulse = 1f
+        )
+    }
+
     val infiniteTransition = rememberInfiniteTransition(label = "aurora_anim")
-    
-    // main aurora glow paths
-    val glowX1 by infiniteTransition.animateFloat(
-        initialValue = -500f,
-        targetValue = 1500f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(15000, easing = LinearEasing),
+    val spec = { duration: Int ->
+        infiniteRepeatable(
+            animation = tween<Float>(duration, easing = WeBeepMotion.SoftInOut),
             repeatMode = RepeatMode.Reverse
-        ),
+        )
+    }
+    val glowX1 by infiniteTransition.animateFloat(
+        initialValue = -180f,
+        targetValue = 980f,
+        animationSpec = spec(18000),
         label = "aurora_x1"
     )
     val glowY1 by infiniteTransition.animateFloat(
-        initialValue = -500f,
-        targetValue = 2000f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(22000, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
+        initialValue = -120f,
+        targetValue = 860f,
+        animationSpec = spec(24000),
         label = "aurora_y1"
     )
-
-    // secondary aurora glow paths
     val glowX2 by infiniteTransition.animateFloat(
-        initialValue = 1800f,
-        targetValue = -200f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(18000, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
+        initialValue = 1180f,
+        targetValue = 80f,
+        animationSpec = spec(21000),
         label = "aurora_x2"
     )
     val glowY2 by infiniteTransition.animateFloat(
-        initialValue = 800f,
-        targetValue = 1200f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(14000, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
+        initialValue = 420f,
+        targetValue = 1180f,
+        animationSpec = spec(16000),
         label = "aurora_y2"
     )
-
-    // tertiary aurora glow paths
     val glowX3 by infiniteTransition.animateFloat(
-        initialValue = 500f,
-        targetValue = 1200f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(20000, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
+        initialValue = 240f,
+        targetValue = 920f,
+        animationSpec = spec(26000),
         label = "aurora_x3"
     )
     val glowY3 by infiniteTransition.animateFloat(
-        initialValue = 2200f,
-        targetValue = -300f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(25000, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
+        initialValue = 1400f,
+        targetValue = 80f,
+        animationSpec = spec(28000),
         label = "aurora_y3"
     )
-
-    // breathing effect for radius
     val pulseScale by infiniteTransition.animateFloat(
-        initialValue = 0.85f,
-        targetValue = 1.15f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(8000, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
+        initialValue = 0.94f,
+        targetValue = 1.08f,
+        animationSpec = spec(12000),
         label = "aurora_pulse"
     )
 
-    // palette based on mode
-    val backgroundColor = if (isDark) Color(0xFF020813) else Color(0xFFF4F7FA)
-    
-    val primaryGlowColor = if (isDark) {
-        Color(0xFF0066CC).copy(alpha = 0.45f)
-    } else {
-        Color(0xFFA5C8FF).copy(alpha = 0.6f) // soft pastel blue
-    }
-    
-    val primaryGlowFade = if (isDark) {
-        Color(0xFF0A3366).copy(alpha = 0.2f)
-    } else {
-        Color(0xFF0091FF).copy(alpha = 0.1f)
-    }
-
-    val secondaryGlowColor = if (isDark) {
-        Color(0xFF00C2FF).copy(alpha = 0.3f) // neon cyan
-    } else {
-        Color(0xFF81B5FF).copy(alpha = 0.45f) // indigo/blue pastel
-    }
-
-    val tertiaryGlowColor = if (isDark) {
-        Color(0xFF8A2BE2).copy(alpha = 0.2f) // deep purple for dark mode
-    } else {
-        Color(0xFFFFB6C1).copy(alpha = 0.35f) // soft pastel pink for light mode
-    }
-
-    Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        // base solid background
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(backgroundColor)
-        )
-
-        // main aurora glow
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    brush = Brush.radialGradient(
-                        colors = listOf(
-                            primaryGlowColor,
-                            primaryGlowFade,
-                            Color.Transparent
-                        ),
-                        center = Offset(glowX1, glowY1),
-                        radius = 1800f * pulseScale
-                    )
-                )
-        )
-
-        // secondary counter-phase aurora glow
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    brush = Brush.radialGradient(
-                        colors = listOf(
-                            secondaryGlowColor,
-                            Color.Transparent
-                        ),
-                        center = Offset(glowX2, glowY2),
-                        radius = 1400f * (2f - pulseScale) // inverse pulse
-                    )
-                )
-        )
-
-        // tertiary dynamic aurora glow
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    brush = Brush.radialGradient(
-                        colors = listOf(
-                            tertiaryGlowColor,
-                            Color.Transparent
-                        ),
-                        center = Offset(glowX3, glowY3),
-                        radius = 1600f * pulseScale
-                    )
-                )
-        )
-
-        // the actual screen content
-        content()
-    }
+    return AuroraMotion(glowX1, glowY1, glowX2, glowY2, glowX3, glowY3, pulseScale)
 }

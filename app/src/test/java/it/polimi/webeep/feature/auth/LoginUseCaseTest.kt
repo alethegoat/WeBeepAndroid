@@ -1,11 +1,15 @@
 package it.polimi.webeep.feature.auth
 
-import it.polimi.webeep.core.network.dto.SiteInfoDto
+import it.polimi.webeep.core.datastore.TokenProvider
 import it.polimi.webeep.core.util.Resource
 import it.polimi.webeep.feature.auth.domain.AuthRepository
 import it.polimi.webeep.feature.auth.domain.LoginUseCase
+import it.polimi.webeep.feature.auth.domain.UserSession
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -15,61 +19,58 @@ class LoginUseCaseTest {
 
     private lateinit var loginUseCase: LoginUseCase
     private lateinit var fakeAuthRepository: FakeAuthRepository
+    private lateinit var fakeTokenProvider: FakeTokenProvider
 
-    private val sampleSiteInfo = SiteInfoDto(
-        sitename = "WeBeep",
-        username = "mariorossi",
-        firstname = "Mario",
-        lastname = "Rossi",
-        fullname = "Mario Rossi",
-        lang = "it",
-        userid = 12345,
-        siteurl = "https://webeep.polimi.it",
-        userpictureurl = "avatar.png",
-        downloadfiles = 1,
-        release = "4.2",
-        version = "123",
-        functions = emptyList()
+    private val passport = "test-passport-value"
+
+    private val sampleSession = UserSession(
+        userId = 12345,
+        fullName = "Mario Rossi",
+        userName = "mariorossi",
+        siteUrl = "https://webeep.polimi.it",
+        avatarUrl = "avatar.png"
     )
 
     @Before
     fun setup() {
         fakeAuthRepository = FakeAuthRepository()
-        loginUseCase = LoginUseCase(fakeAuthRepository)
+        fakeTokenProvider = FakeTokenProvider()
+        fakeTokenProvider.savePendingPassportSync(passport)
+        loginUseCase = LoginUseCase(fakeAuthRepository, fakeTokenProvider)
     }
 
     @Test
     fun `execute with valid encoded SSO token decodes, validates and saves auth data`() = runTest {
-        val rawTokenData = "passport_hash:::wstoken_123:::private_token_456"
-        val encodedToken = Base64.getEncoder().encodeToString(rawTokenData.toByteArray())
-        
-        fakeAuthRepository.validateResult = Result.success(sampleSiteInfo)
+        val encodedToken = encodeSsoPayload(LoginUseCase.md5Hex(passport), "wstoken_123", "private_token_456")
+        fakeAuthRepository.validateResult = Result.success(sampleSession)
 
         val result = loginUseCase.execute(encodedToken)
 
         assertTrue(result is Resource.Success)
-        assertEquals(sampleSiteInfo, (result as Resource.Success).data)
-        
+        assertEquals(sampleSession, (result as Resource.Success).data)
         assertEquals("wstoken_123", fakeAuthRepository.savedToken)
         assertEquals("private_token_456", fakeAuthRepository.savedPrivateToken)
-        assertEquals(sampleSiteInfo, fakeAuthRepository.savedSiteInfo)
+        assertEquals(sampleSession, fakeAuthRepository.savedSession)
+        assertNull(fakeTokenProvider.getPendingPassportSync())
     }
 
     @Test
     fun `execute with invalid base64 string returns Resource Error`() = runTest {
         val invalidBase64 = "!!!NotBase64!!!"
-        
+
         val result = loginUseCase.execute(invalidBase64)
-        
+
         assertTrue(result is Resource.Error)
-        assertTrue((result as Resource.Error).message.contains("invalid access token") || (result as Resource.Error).message.contains("unable to process access token"))
+        assertTrue(
+            (result as Resource.Error).message.contains("invalid access token") ||
+                result.message.contains("unable to process access token")
+        )
     }
 
     @Test
     fun `execute preserves plus characters in base64 token`() = runTest {
         val encodedToken = generateEncodedTokenContainingPlus()
-
-        fakeAuthRepository.validateResult = Result.success(sampleSiteInfo)
+        fakeAuthRepository.validateResult = Result.success(sampleSession)
 
         val result = loginUseCase.execute(encodedToken)
 
@@ -80,8 +81,7 @@ class LoginUseCaseTest {
     @Test
     fun `execute decodes percent encoded plus characters in base64 token`() = runTest {
         val encodedToken = generateEncodedTokenContainingPlus().replace("+", "%2B")
-
-        fakeAuthRepository.validateResult = Result.success(sampleSiteInfo)
+        fakeAuthRepository.validateResult = Result.success(sampleSession)
 
         val result = loginUseCase.execute(encodedToken)
 
@@ -91,20 +91,89 @@ class LoginUseCaseTest {
 
     @Test
     fun `execute with base64 having missing segments returns Resource Error`() = runTest {
-        val invalidRawData = "only_one_segment"
-        val encodedToken = Base64.getEncoder().encodeToString(invalidRawData.toByteArray())
-        
+        val encodedToken = Base64.getEncoder().encodeToString("only_one_segment".toByteArray())
+
         val result = loginUseCase.execute(encodedToken)
-        
+
         assertTrue(result is Resource.Error)
         assertEquals("invalid token format", (result as Resource.Error).message)
     }
 
     @Test
+    fun `execute accepts Moodle siteid hash of wwwroot plus passport`() = runTest {
+        val encodedToken = encodeSsoPayload(
+            LoginUseCase.md5Hex(LoginUseCase.SITE_WWWROOT + passport),
+            "wstoken_123",
+            "private_token_456"
+        )
+        fakeAuthRepository.validateResult = Result.success(sampleSession)
+
+        val result = loginUseCase.execute(encodedToken)
+
+        assertTrue(result is Resource.Success)
+        assertEquals("wstoken_123", fakeAuthRepository.savedToken)
+        assertNull(fakeTokenProvider.getPendingPassportSync())
+    }
+
+    @Test
+    fun `execute accepts http wwwroot variant used by official Moodle app`() = runTest {
+        val httpRoot = LoginUseCase.SITE_WWWROOT.replaceFirst("https://", "http://")
+        val encodedToken = encodeSsoPayload(
+            LoginUseCase.md5Hex(httpRoot + passport),
+            "wstoken_123",
+            "private_token_456"
+        )
+        fakeAuthRepository.validateResult = Result.success(sampleSession)
+
+        val result = loginUseCase.execute(encodedToken)
+
+        assertTrue(result is Resource.Success)
+        assertEquals("wstoken_123", fakeAuthRepository.savedToken)
+    }
+
+    @Test
+    fun `execute accepts an earlier passport after a second login tap`() = runTest {
+        val firstPassport = "first-passport"
+        fakeTokenProvider.savePendingPassportSync(firstPassport)
+        fakeTokenProvider.savePendingPassportSync(passport)
+        fakeAuthRepository.validateResult = Result.success(sampleSession)
+
+        val encodedToken = encodeSsoPayload(LoginUseCase.md5Hex(firstPassport), "wstoken_123", "private_token_456")
+        val result = loginUseCase.execute(encodedToken)
+
+        assertTrue(result is Resource.Success)
+        assertEquals("wstoken_123", fakeAuthRepository.savedToken)
+    }
+
+    @Test
+    fun `generateSsoLaunchUrl stores a numeric passport like the official Moodle app`() {
+        fakeTokenProvider.clearPendingPassportSync()
+
+        val url = loginUseCase.generateSsoLaunchUrl()
+        val stored = fakeTokenProvider.getPendingPassportSync()
+
+        assertTrue(stored != null && stored.all { it.isDigit() })
+        assertTrue(url.startsWith("${LoginUseCase.SITE_WWWROOT}/admin/tool/mobile/launch.php"))
+        assertTrue(url.contains("passport=$stored"))
+        assertTrue(url.contains("urlscheme=${LoginUseCase.SSO_URL_SCHEME}"))
+        assertTrue(url.contains("service=${LoginUseCase.SSO_SERVICE}"))
+    }
+
+    @Test
+    fun `execute with mismatched passport returns error and saves nothing`() = runTest {
+        val encodedToken = encodeSsoPayload("wronghash", "wstoken_123", "private_token_456")
+        fakeAuthRepository.validateResult = Result.success(sampleSession)
+
+        val result = loginUseCase.execute(encodedToken)
+
+        assertTrue(result is Resource.Error)
+        assertTrue((result as Resource.Error).message.contains("passport"))
+        assertNull(fakeAuthRepository.savedToken)
+    }
+
+    @Test
     fun `execute with server validation failure returns Resource Error and saves nothing`() = runTest {
-        val rawTokenData = "passport_hash:::wstoken_123:::private_token_456"
-        val encodedToken = Base64.getEncoder().encodeToString(rawTokenData.toByteArray())
-        
+        val encodedToken = encodeSsoPayload(LoginUseCase.md5Hex(passport), "wstoken_123", "private_token_456")
         fakeAuthRepository.validateResult = Result.failure(Exception("Token non valido"))
 
         val result = loginUseCase.execute(encodedToken)
@@ -115,20 +184,18 @@ class LoginUseCaseTest {
     }
 
     private class FakeAuthRepository : AuthRepository {
-        var validateResult: Result<SiteInfoDto> = Result.failure(Exception("Not initialized"))
+        var validateResult: Result<UserSession> = Result.failure(Exception("Not initialized"))
         var savedToken: String? = null
         var savedPrivateToken: String? = null
-        var savedSiteInfo: SiteInfoDto? = null
+        var savedSession: UserSession? = null
         var isLoggedInValue: Boolean = false
 
-        override suspend fun validateToken(token: String): Result<SiteInfoDto> {
-            return validateResult
-        }
+        override suspend fun validateToken(token: String): Result<UserSession> = validateResult
 
-        override suspend fun saveAuthData(token: String, privateToken: String?, siteInfo: SiteInfoDto) {
+        override suspend fun saveAuthData(token: String, privateToken: String?, session: UserSession) {
             savedToken = token
             savedPrivateToken = privateToken
-            savedSiteInfo = siteInfo
+            savedSession = session
             isLoggedInValue = true
         }
 
@@ -139,10 +206,43 @@ class LoginUseCaseTest {
         }
     }
 
-    private fun generateEncodedTokenContainingPlus(): String {
-        val rawTokenData = "passport_hash:::wstoken_123:::private_token_456:::>"
-        return Base64.getEncoder().encodeToString(rawTokenData.toByteArray()).also { encodedToken ->
-            check("+" in encodedToken)
+    private class FakeTokenProvider : TokenProvider {
+        private var passport: String? = null
+        private val passports = mutableListOf<String>()
+        override val isLoggedIn: Flow<Boolean> = MutableStateFlow(false)
+        override val wsToken: Flow<String?> = MutableStateFlow(null)
+        override fun getTokenSync(): String? = null
+        override suspend fun saveAuthData(token: String, privateToken: String?, userId: Int, fullName: String) = Unit
+        override suspend fun updateUserProfile(userId: Int, fullName: String) = Unit
+        override suspend fun getToken(): String? = null
+        override suspend fun getUserId(): Int? = null
+        override suspend fun getUserFullName(): String? = null
+        override suspend fun clearAll() = Unit
+        override fun clearSessionSync() = Unit
+        override fun savePendingPassportSync(passport: String) {
+            this.passport = passport
+            passports.add(passport)
         }
+        override fun getPendingPassportSync(): String? = passport
+        override fun getPendingPassportsSync(): List<String> = passports.toList()
+        override fun clearPendingPassportSync() {
+            passport = null
+            passports.clear()
+        }
+    }
+
+    private fun encodeSsoPayload(hash: String, wsToken: String, privateToken: String): String {
+        val raw = "$hash:::$wsToken:::$privateToken"
+        return Base64.getEncoder().encodeToString(raw.toByteArray())
+    }
+
+    private fun generateEncodedTokenContainingPlus(): String {
+        val hash = LoginUseCase.md5Hex(passport)
+        for (extra in 0 until 10_000) {
+            val rawTokenData = "$hash:::wstoken_123:::private_token_456:::pad-$extra->"
+            val encodedToken = Base64.getEncoder().encodeToString(rawTokenData.toByteArray())
+            if ('+' in encodedToken) return encodedToken
+        }
+        error("could not generate a base64 SSO token containing '+'")
     }
 }

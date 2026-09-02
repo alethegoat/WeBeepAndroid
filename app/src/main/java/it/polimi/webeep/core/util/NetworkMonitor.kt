@@ -37,7 +37,7 @@ class NetworkMonitor @Inject constructor(application: Application) {
             }
 
             override fun onLost(network: Network) {
-                trySend(false)
+                trySend(isCurrentlyOnline())
             }
 
             override fun onCapabilitiesChanged(
@@ -58,19 +58,20 @@ class NetworkMonitor @Inject constructor(application: Application) {
             .build()
 
         connectivityManager.registerNetworkCallback(networkRequest, networkCallback)
-
-        // emits the initial connection state
-        val currentNetwork = connectivityManager.activeNetwork
-        val currentCapabilities = connectivityManager.getNetworkCapabilities(currentNetwork)
-        val isCurrentlyConnected = currentCapabilities?.hasCapability(
-            NetworkCapabilities.NET_CAPABILITY_INTERNET
-        ) == true && currentCapabilities.hasCapability(
-            NetworkCapabilities.NET_CAPABILITY_VALIDATED
-        )
-        trySend(isCurrentlyConnected)
+        trySend(isCurrentlyOnline())
 
         awaitClose {
             connectivityManager.unregisterNetworkCallback(networkCallback)
         }
     }.distinctUntilChanged()
+
+    private fun isCurrentlyOnline(): Boolean {
+        val currentNetwork = connectivityManager.activeNetwork
+        val currentCapabilities = connectivityManager.getNetworkCapabilities(currentNetwork)
+        return currentCapabilities?.hasCapability(
+            NetworkCapabilities.NET_CAPABILITY_INTERNET
+        ) == true && currentCapabilities.hasCapability(
+            NetworkCapabilities.NET_CAPABILITY_VALIDATED
+        )
+    }
 }

@@ -1,33 +1,43 @@
 package it.polimi.webeep.feature.auth.data
 
+import android.app.Application
+import android.webkit.CookieManager
+import android.webkit.WebStorage
 import it.polimi.webeep.core.datastore.TokenManager
 import it.polimi.webeep.core.network.MoodleApiService
+import it.polimi.webeep.core.network.MoodleFileUrlBuilder
 import it.polimi.webeep.core.network.dto.SiteInfoDto
 import it.polimi.webeep.feature.auth.domain.AuthRepository
+import it.polimi.webeep.feature.auth.domain.UserSession
+import it.polimi.webeep.feature.sync.SyncScheduler
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withContext
+import java.io.File
 import javax.inject.Inject
 
 /**
- * implementation of [AuthRepository] using moodle apis and [TokenManager].
+ * Implementation of [AuthRepository] using Moodle APIs and [TokenManager].
  */
 class AuthRepositoryImpl @Inject constructor(
     private val apiService: MoodleApiService,
-    private val tokenManager: TokenManager
+    private val tokenManager: TokenManager,
+    private val application: Application,
+    private val syncScheduler: SyncScheduler
 ) : AuthRepository {
 
-    override suspend fun validateToken(token: String): Result<SiteInfoDto> {
-        // attempt to retrieve the user's site info; if it fails, the token is considered invalid
+    override suspend fun validateToken(token: String): Result<UserSession> {
         return runCatching {
-            apiService.getSiteInfo(wsToken = token)
+            apiService.getSiteInfo(wsToken = token).toUserSession()
         }
     }
 
-    override suspend fun saveAuthData(token: String, privateToken: String?, siteInfo: SiteInfoDto) {
+    override suspend fun saveAuthData(token: String, privateToken: String?, session: UserSession) {
         tokenManager.saveAuthData(
             token = token,
             privateToken = privateToken,
-            userId = siteInfo.userid,
-            fullName = siteInfo.fullname
+            userId = session.userId,
+            fullName = session.fullName
         )
     }
 
@@ -36,8 +46,29 @@ class AuthRepositoryImpl @Inject constructor(
     }
 
     override suspend fun logout() {
+        syncScheduler.cancelAll()
         tokenManager.clearAll()
-        android.webkit.CookieManager.getInstance().removeAllCookies(null)
-        android.webkit.CookieManager.getInstance().flush()
+        withContext(Dispatchers.Main) {
+            CookieManager.getInstance().removeAllCookies(null)
+            CookieManager.getInstance().flush()
+            WebStorage.getInstance().deleteAllData()
+        }
+        deleteQuietly(File(application.cacheDir, "http_cache"))
+        deleteQuietly(File(application.cacheDir, "viewer"))
+        deleteQuietly(File(application.cacheDir, "image_cache"))
+    }
+
+    private fun SiteInfoDto.toUserSession(): UserSession {
+        return UserSession(
+            userId = userid,
+            fullName = fullname,
+            userName = username,
+            siteUrl = siteurl,
+            avatarUrl = MoodleFileUrlBuilder.stripAuthFromUrl(userpictureurl)
+        )
+    }
+
+    private fun deleteQuietly(file: File) {
+        runCatching { file.deleteRecursively() }
     }
 }

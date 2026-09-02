@@ -3,6 +3,7 @@ package it.polimi.webeep.core.datastore
 import android.app.Application
 import androidx.test.core.app.ApplicationProvider
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -24,7 +25,7 @@ class TokenManagerTest {
         application = ApplicationProvider.getApplicationContext()
         // Istanziazione del TokenManager con contesto Android simulato
         // Questo innescherà la creazione di EncryptedSharedPreferences e MasterKey (StrongBox o fallback TEE)
-        tokenManager = TokenManager(application)
+        tokenManager = TokenManager(application, Dispatchers.IO)
     }
 
     @Test

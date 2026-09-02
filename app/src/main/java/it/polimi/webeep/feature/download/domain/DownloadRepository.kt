@@ -8,9 +8,14 @@ import kotlinx.coroutines.flow.Flow
  */
 interface DownloadRepository {
     /**
-     * enqueues a download via downloadmanager and returns the download id.
+     * Starts an in-app download and returns a local download id.
      */
     fun downloadFile(url: String, token: String?, localFileName: String, displayName: String, mimeType: String?): Long
+
+    /**
+     * Cancels an in-flight download started by [downloadFile].
+     */
+    fun cancelDownload(downloadId: Long)
 
     /**
      * monitors the download progress as a flow of percentage (0-100).

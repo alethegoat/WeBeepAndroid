@@ -5,7 +5,7 @@
   
   **A native Android client for Politecnico di Milano's WeBeep (Moodle) platform.**
   
-  ![Kotlin](https://img.shields.io/badge/Kotlin-1.9+-blue.svg?logo=kotlin)
+  ![Kotlin](https://img.shields.io/badge/Kotlin-2.1-blue.svg?logo=kotlin)
   ![Android](https://img.shields.io/badge/Android-8.0+-green.svg?logo=android)
   ![Jetpack Compose](https://img.shields.io/badge/Compose-Material_3-4285F4.svg?logo=android)
   ![License](https://img.shields.io/github/license/alethegoat/WeBeepAndroid)
@@ -44,11 +44,22 @@ WeBeep Android is a native application designed to make it easier for Politecnic
 2. Open the project in Android Studio.
 3. Sync the project and run it on an emulator or device.
 
+Release builds minify with R8. If `KEYSTORE_FILE` is unset, Gradle signs release with the debug keystore (CI smoke). For Play, export:
+
+```
+KEYSTORE_FILE=/path/to/upload.jks
+KEYSTORE_PASSWORD=...
+KEY_ALIAS=...
+KEY_PASSWORD=...
+```
+
+Keep a backup of the upload keystore. Losing it means you cannot update the app on Play.
+
 ---
 
 ### Tech Stack
 
-This project follows Clean Architecture and the MVI (Model-View-Intent) pattern.
+This project follows Clean Architecture and the MVVM pattern (StateFlow + Compose).
 
 * **UI**: Jetpack Compose
 * **State Management**: Kotlin Coroutines & StateFlow
@@ -83,11 +94,22 @@ WeBeep Android è un'app nativa che semplifica l'accesso ai corsi di WeBeep per 
 2. Apri il progetto in Android Studio.
 3. Fai la sync di Gradle e avvia l'app su un emulatore o un telefono fisico.
 
+Le build release usano R8. Se `KEYSTORE_FILE` non è impostato, Gradle firma con il keystore debug (smoke CI). Per Play:
+
+```
+KEYSTORE_FILE=/path/to/upload.jks
+KEYSTORE_PASSWORD=...
+KEY_ALIAS=...
+KEY_PASSWORD=...
+```
+
+Tieni un backup del keystore di upload. Senza quello non puoi aggiornare l'app sullo store.
+
 ---
 
 ### Tech Stack
 
-Il progetto segue le regole della Clean Architecture e usa il pattern MVI (Model-View-Intent).
+Il progetto segue le regole della Clean Architecture e usa il pattern MVVM (StateFlow + Compose).
 
 * **UI**: Jetpack Compose
 * **State Management**: Kotlin Coroutines & StateFlow

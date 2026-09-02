@@ -12,17 +12,16 @@ import it.polimi.webeep.core.network.MoodleApiService
 import it.polimi.webeep.core.network.dto.CourseDto
 import it.polimi.webeep.core.network.dto.SiteInfoDto
 import it.polimi.webeep.feature.dashboard.data.DashboardRepositoryImpl
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.runTest
-import android.net.Uri
-import io.mockk.mockk
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
-import io.mockk.mockkStatic
+
 class DashboardRepositoryTest {
 
     @MockK
@@ -94,26 +93,11 @@ class DashboardRepositoryTest {
     @Before
     fun setup() {
         MockKAnnotations.init(this, relaxUnitFun = true)
-        
-        mockkStatic(Uri::class)
-        every { Uri.parse(any()) } answers {
-            val urlString = firstArg<String>()
-            val isHttps = urlString.startsWith("https", ignoreCase = true)
-            val isPolimi = urlString.contains("webeep.polimi.it", ignoreCase = true)
-            
-            mockk<Uri> {
-                every { scheme } returns if (isHttps) "https" else "http"
-                every { host } returns if (isPolimi) "webeep.polimi.it" else "other.com"
-            }
-        }
-        
-        every { tokenManager.wsToken } returns MutableStateFlow(null)
-        repository = DashboardRepositoryImpl(apiService, courseDao, tokenManager)
+        repository = DashboardRepositoryImpl(apiService, courseDao, tokenManager, Dispatchers.Unconfined)
     }
 
     @Test
     fun `getCoursesFromCache retrieves and maps entities to domain models`() = runTest {
-        every { tokenManager.wsToken } returns flowOf("mock_token")
         every { courseDao.getAllCourses() } returns flowOf(sampleCourseEntities)
 
         val result = repository.getCoursesFromCache().first()
@@ -150,7 +134,7 @@ class DashboardRepositoryTest {
         val courses = result.getOrThrow()
         assertEquals(1, courses.size)
         assertEquals("Intro to CS", courses.first().fullname)
-        
+
         coVerify(exactly = 1) { courseDao.replaceAllCourses(any()) }
     }
 
@@ -158,22 +142,23 @@ class DashboardRepositoryTest {
     fun `syncCourses updates userId if missing locally`() = runTest {
         coEvery { tokenManager.getToken() } returns "mock_token"
         coEvery { tokenManager.getUserId() } returns null
-        coEvery { apiService.getSiteInfo(wsToken = "mock_token") } returns sampleSiteInfo
-        coEvery { tokenManager.saveAuthData("mock_token", null, 12345, "Mario Rossi") } returns Unit
+        coEvery { apiService.getSiteInfo(wsToken = null) } returns sampleSiteInfo
+        coEvery { tokenManager.updateUserProfile(12345, "Mario Rossi") } returns Unit
         coEvery { apiService.getEnrolledCourses(userId = 12345) } returns sampleCourseDtos
         coEvery { courseDao.replaceAllCourses(any()) } returns Unit
 
         val result = repository.syncCourses()
 
         assertTrue(result.isSuccess)
-        coVerify(exactly = 1) { tokenManager.saveAuthData("mock_token", null, 12345, "Mario Rossi") }
+        coVerify(exactly = 1) { tokenManager.updateUserProfile(12345, "Mario Rossi") }
+        coVerify(exactly = 0) { tokenManager.saveAuthData(any(), any(), any(), any()) }
     }
 
     @Test
-    fun `getUserInfo fetches and maps site info successfully`() = runTest {
+    fun `getUserInfo fetches site info without putting token in avatar url`() = runTest {
         coEvery { tokenManager.getToken() } returns "mock_token"
-        coEvery { apiService.getSiteInfo(wsToken = "mock_token") } returns sampleSiteInfo
-        coEvery { tokenManager.saveAuthData("mock_token", null, 12345, "Mario Rossi") } returns Unit
+        coEvery { apiService.getSiteInfo(wsToken = null) } returns sampleSiteInfo
+        coEvery { tokenManager.updateUserProfile(12345, "Mario Rossi") } returns Unit
 
         val result = repository.getUserInfo()
 
@@ -181,6 +166,6 @@ class DashboardRepositoryTest {
         val (name, avatar) = result.getOrThrow()
         assertEquals("Mario Rossi", name)
         assertTrue(avatar.contains("/webservice/pluginfile.php/"))
-        assertTrue(avatar.contains("token=mock_token"))
+        assertFalse(avatar.contains("token="))
     }
 }

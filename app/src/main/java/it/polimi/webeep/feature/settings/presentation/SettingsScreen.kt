@@ -45,7 +45,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -74,15 +74,14 @@ fun SettingsScreen(
     onBackClick: () -> Unit,
     onLogoutSuccess: () -> Unit
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val scrollState = rememberScrollState()
 
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(rememberTopAppBarState())
 
-    it.polimi.webeep.core.ui.components.AuroraBackground {
-        Scaffold(
-            modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-            containerColor = Color.Transparent,
+    Scaffold(
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+        containerColor = Color.Transparent,
             topBar = {
                 val backgroundColor = MaterialTheme.colorScheme.background
                 TopAppBar(
@@ -230,7 +229,6 @@ fun SettingsScreen(
         }
     }
 }
-}
 
 @Composable
 private fun SettingsSectionTitle(title: String) {
@@ -290,7 +288,7 @@ private fun ThemeSelectionRow(
                         .clip(RoundedCornerShape(8.dp))
                         .background(background)
                         .bouncyClickable { onThemeSelected(theme) }
-                        .padding(vertical = 10.dp),
+                        .padding(vertical = 12.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(

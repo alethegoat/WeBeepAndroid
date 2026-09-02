@@ -9,6 +9,7 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import it.polimi.webeep.core.datastore.TokenManager
 import it.polimi.webeep.core.di.IoDispatcher
+import it.polimi.webeep.core.network.MoodleBinaryDownload
 import it.polimi.webeep.core.network.MoodleFileUrlBuilder
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
@@ -28,12 +29,15 @@ sealed interface FileViewerUiState {
     data class Media(val url: String) : FileViewerUiState
     data class Code(val content: String) : FileViewerUiState
     data class Web(val url: String) : FileViewerUiState
+    data class CustomTab(val url: String) : FileViewerUiState
     data class ExternalViewer(val file: File, val mimeType: String) : FileViewerUiState
     data class Error(val message: String) : FileViewerUiState
 }
 
 /**
- * viewmodel for handling file viewer state and loading logic.
+ * ViewModel for file preview. Auth tokens are added by OkHttp interceptors
+ * (pluginfile) or, for ExoPlayer only, via [MoodleFileUrlBuilder]. WebView never
+ * receives a token in the URL.
  */
 @HiltViewModel
 class FileViewerViewModel @Inject constructor(
@@ -45,7 +49,7 @@ class FileViewerViewModel @Inject constructor(
 ) : ViewModel() {
 
     val title: String = savedStateHandle["title"] ?: "Preview"
-    private val url: String = savedStateHandle["url"] ?: ""
+    private val url: String = MoodleFileUrlBuilder.stripAuthFromUrl(savedStateHandle["url"] ?: "")
     private val mimeType: String = savedStateHandle["mimeType"] ?: ""
 
     private val _uiState = MutableStateFlow<FileViewerUiState>(FileViewerUiState.Loading)
@@ -60,44 +64,41 @@ class FileViewerViewModel @Inject constructor(
             _uiState.value = FileViewerUiState.Loading
             try {
                 if (isExternalWebLink(url)) {
-                    _uiState.value = FileViewerUiState.Web(url)
+                    _uiState.value = FileViewerUiState.CustomTab(url)
                     return@launch
                 }
 
-                val token = tokenManager.getToken() ?: throw IllegalStateException("Session expired. Please login again.")
-                val authenticatedUrl = MoodleFileUrlBuilder.buildAuthenticatedUrl(url, token)
+                val token = tokenManager.getToken()
+                    ?: throw IllegalStateException("Session expired. Please login again.")
 
                 _uiState.value = when {
-                    mimeType.startsWith("image/") -> FileViewerUiState.Image(authenticatedUrl)
+                    mimeType.startsWith("image/") -> FileViewerUiState.Image(url)
                     mimeType == "application/pdf" || title.endsWith(".pdf", ignoreCase = true) -> {
-                        // pdf files require local caching to be rendered by the native pdfrenderer
-                        val file = downloadToCache(authenticatedUrl, "pdf")
+                        val file = downloadToCache(url, "pdf")
                         FileViewerUiState.Pdf(file = file, pageCount = getPdfPageCount(file))
                     }
                     mimeType.startsWith("video/") || mimeType.startsWith("audio/") || title.endsWith(".mp4", ignoreCase = true) -> {
-                        FileViewerUiState.Media(url = authenticatedUrl)
+                        FileViewerUiState.Media(
+                            url = MoodleFileUrlBuilder.buildAuthenticatedUrl(url, token)
+                        )
                     }
                     isCodeFile(title, mimeType) -> {
-                        val file = downloadToCache(authenticatedUrl, MoodleFileUrlBuilder.extractExtension(title) ?: "txt")
+                        val file = downloadToCache(url, MoodleFileUrlBuilder.extractExtension(title) ?: "txt")
                         FileViewerUiState.Code(content = file.readText())
                     }
-                    mimeType == "text/html" -> FileViewerUiState.Web(authenticatedUrl)
+                    mimeType == "text/html" -> FileViewerUiState.Web(url)
                     else -> {
                         val ext = MoodleFileUrlBuilder.extractExtension(title) ?: "tmp"
-                        val file = downloadToCache(authenticatedUrl, ext)
-                        
-                        // ensure word/excel/etc. files open correctly if moodle
-                        // returns fake mimetypes like 'application/octet-stream' or 'application/forcedownload'
+                        val file = downloadToCache(url, ext)
                         val resolvedMimeType = if (
-                            mimeType.isBlank() || 
-                            mimeType == "application/octet-stream" || 
+                            mimeType.isBlank() ||
+                            mimeType == "application/octet-stream" ||
                             mimeType == "application/forcedownload"
                         ) {
                             android.webkit.MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext.lowercase()) ?: "*/*"
                         } else {
                             mimeType
                         }
-                        
                         FileViewerUiState.ExternalViewer(file = file, mimeType = resolvedMimeType)
                     }
                 }
@@ -111,31 +112,52 @@ class FileViewerViewModel @Inject constructor(
     private fun isExternalWebLink(url: String): Boolean {
         val lowerUrl = url.lowercase()
         return (lowerUrl.startsWith("http://") || lowerUrl.startsWith("https://")) &&
-                !lowerUrl.contains("pluginfile.php")
+            !lowerUrl.contains("pluginfile.php")
     }
 
     private fun downloadToCache(url: String, extension: String): File {
         val cacheDir = File(application.cacheDir, CACHE_DIR).apply { mkdirs() }
+        evictCacheIfNeeded(cacheDir)
         val target = File(cacheDir, "${url.hashCode()}.$extension")
+        val part = File(cacheDir, "${url.hashCode()}.$extension.part")
+        if (part.exists()) {
+            part.delete()
+        }
 
         val request = Request.Builder().url(url).build()
         okHttpClient.newCall(request).execute().use { response ->
-            if (!response.isSuccessful) {
-                throw IllegalStateException("Preview download failed (${response.code})")
-            }
-            val body = response.body ?: throw IllegalStateException("Empty response from server")
-            target.outputStream().use { output ->
+            val body = MoodleBinaryDownload.requireBinaryBody(response)
+            part.outputStream().use { output ->
                 body.byteStream().use { input ->
                     input.copyTo(output)
                 }
             }
         }
+        if (target.exists()) {
+            target.delete()
+        }
+        if (!part.renameTo(target)) {
+            part.copyTo(target, overwrite = true)
+            part.delete()
+        }
 
         return target
     }
 
+    private fun evictCacheIfNeeded(cacheDir: File) {
+        val files = cacheDir.listFiles() ?: return
+        var total = files.sumOf { it.length() }
+        if (total <= MAX_CACHE_BYTES) return
+        files.sortedBy { it.lastModified() }.forEach { file ->
+            if (total <= MAX_CACHE_BYTES) return
+            val size = file.length()
+            if (file.delete()) {
+                total -= size
+            }
+        }
+    }
+
     private fun getPdfPageCount(file: File): Int {
-        // read the first few bytes of the pdf to determine the total number of pages
         val descriptor = ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
         descriptor.use { parcelFileDescriptor ->
             PdfRenderer(parcelFileDescriptor).use { renderer ->
@@ -153,5 +175,6 @@ class FileViewerViewModel @Inject constructor(
 
     private companion object {
         const val CACHE_DIR = "viewer"
+        const val MAX_CACHE_BYTES = 80L * 1024L * 1024L
     }
 }

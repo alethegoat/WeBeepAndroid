@@ -97,4 +97,10 @@
     <string name="filter_active">In corso</string>
     <string name="filter_past">Passati</string>
     <string name="filter_all">Tutti</string>
+    <string name="media_playback_error">Errore nella riproduzione del video</string>
+    <string name="search_materials_placeholder">Cerca materiali...</string>
+    <string name="no_materials_found">Nessun materiale trovato</string>
+    <string name="cd_open_course">Apri corso</string>
+    <string name="cd_expand_section">Espandi sezione</string>
+    <string name="cd_collapse_section">Comprimi sezione</string>
 </resources>

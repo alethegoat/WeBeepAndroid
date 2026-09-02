@@ -1,28 +1,11 @@
 package it.polimi.webeep.core.network
 
-import android.net.Uri
-import io.mockk.every
-import io.mockk.mockk
-import io.mockk.mockkStatic
 import org.junit.Assert.assertEquals
-import org.junit.Before
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
-class MoodleFileUrlBuilderTest {
 
-    @Before
-    fun setup() {
-        mockkStatic(Uri::class)
-        every { Uri.parse(any()) } answers {
-            val urlString = firstArg<String>()
-            val isHttps = urlString.startsWith("https", ignoreCase = true)
-            val isPolimi = urlString.contains("webeep.polimi.it", ignoreCase = true)
-            
-            mockk<Uri> {
-                every { scheme } returns if (isHttps) "https" else "http"
-                every { host } returns if (isPolimi) "webeep.polimi.it" else "other.com"
-            }
-        }
-    }
+class MoodleFileUrlBuilderTest {
 
     @Test
     fun `buildAuthenticatedUrl converts pluginfile url and appends token`() {
@@ -73,5 +56,40 @@ class MoodleFileUrlBuilderTest {
             "https://webeep.polimi.it/webservice/pluginfile.php/123/file.pdf?token=abc123",
             result
         )
+    }
+
+    @Test
+    fun `buildAuthenticatedUrl does not append token to suffix lookalike hosts`() {
+        val result = MoodleFileUrlBuilder.buildAuthenticatedUrl(
+            url = "https://attackerpolimi.it/webservice/pluginfile.php/123/file.pdf",
+            token = "secret"
+        )
+        assertFalse(result.contains("token="))
+    }
+
+    @Test
+    fun `buildAuthenticatedUrl does not append token to other polimi subdomains`() {
+        val result = MoodleFileUrlBuilder.buildAuthenticatedUrl(
+            url = "https://www.polimi.it/webservice/pluginfile.php/123/file.pdf",
+            token = "secret"
+        )
+        assertFalse(result.contains("token="))
+    }
+
+    @Test
+    fun `buildAuthenticatedUrl does not append token to non pluginfile webeep pages`() {
+        val result = MoodleFileUrlBuilder.buildAuthenticatedUrl(
+            url = "https://webeep.polimi.it/mod/url/view.php?id=5",
+            token = "secret"
+        )
+        assertEquals("https://webeep.polimi.it/mod/url/view.php?id=5", result)
+    }
+
+    @Test
+    fun `trusted host helper is exact match`() {
+        assertTrue(MoodleFileUrlBuilder.isTrustedHost("webeep.polimi.it"))
+        assertTrue(MoodleFileUrlBuilder.isTrustedHost("WeBeep.Polimi.IT"))
+        assertFalse(MoodleFileUrlBuilder.isTrustedHost("attackerpolimi.it"))
+        assertFalse(MoodleFileUrlBuilder.isTrustedHost("evil.polimi.it"))
     }
 }

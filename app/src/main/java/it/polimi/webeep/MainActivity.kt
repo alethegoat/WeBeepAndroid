@@ -13,17 +13,13 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.navigation.NavHostController
-import androidx.work.Constraints
-import androidx.work.ExistingPeriodicWorkPolicy
-import androidx.work.NetworkType
-import androidx.work.PeriodicWorkRequestBuilder
-import androidx.work.WorkManager
+import androidx.lifecycle.lifecycleScope
 import dagger.hilt.android.AndroidEntryPoint
 import it.polimi.webeep.core.datastore.SettingsManager
 import it.polimi.webeep.core.datastore.TokenManager
-import it.polimi.webeep.feature.sync.CourseSyncWorker
+import it.polimi.webeep.feature.sync.SyncScheduler
 import it.polimi.webeep.navigation.Screen
-import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 import android.view.WindowManager
@@ -39,6 +35,9 @@ class MainActivity : AppCompatActivity() {
 
     @Inject
     lateinit var settingsManager: SettingsManager
+
+    @Inject
+    lateinit var syncScheduler: SyncScheduler
 
     private var navController: NavHostController? = null
     private var pendingToken: String? = null
@@ -74,7 +73,9 @@ class MainActivity : AppCompatActivity() {
                     // consume pending course id if the user clicked a notification
                     // we immediately redirect them to the relevant course details.
                     pendingCourseId?.let { courseId ->
-                        controller.navigate(Screen.CourseDetail.createRoute(courseId))
+                        if (tokenManager.getTokenSync() != null) {
+                            controller.navigate(Screen.CourseDetail.createRoute(courseId))
+                        }
                         pendingCourseId = null
                     }
                 }
@@ -101,20 +102,10 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupPeriodicSync() {
-        val constraints = Constraints.Builder()
-            .setRequiredNetworkType(NetworkType.CONNECTED)
-            .setRequiresBatteryNotLow(true) // battery optimization: do not sync if battery is low
-            .build()
-
-        val syncRequest = PeriodicWorkRequestBuilder<CourseSyncWorker>(15, TimeUnit.MINUTES)
-            .setConstraints(constraints)
-            .build()
-
-        WorkManager.getInstance(this).enqueueUniquePeriodicWork(
-            "CourseSyncWorker",
-            ExistingPeriodicWorkPolicy.UPDATE, // update ensures the change takes effect even for those who already had the rule active
-            syncRequest
-        )
+        lifecycleScope.launch {
+            syncScheduler.applyCurrentSettings(replaceExisting = false)
+            syncScheduler.enqueueImmediate()
+        }
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -134,7 +125,9 @@ class MainActivity : AppCompatActivity() {
         
         // handle notification click to jump into course details
         pendingCourseId?.let { courseId ->
-            navController?.navigate(Screen.CourseDetail.createRoute(courseId))
+            if (tokenManager.getTokenSync() != null) {
+                navController?.navigate(Screen.CourseDetail.createRoute(courseId))
+            }
             pendingCourseId = null
         }
     }
@@ -146,7 +139,7 @@ class MainActivity : AppCompatActivity() {
         val data = intent?.data ?: return
         if (data.scheme !in SSO_CALLBACK_SCHEMES) return
 
-        extractToken(data)?.let { token ->
+        it.polimi.webeep.feature.auth.domain.SsoCallbackParser.extractToken(data)?.let { token ->
             pendingToken = token
         }
     }
@@ -160,22 +153,6 @@ class MainActivity : AppCompatActivity() {
         if (courseId != -1) {
             pendingCourseId = courseId
         }
-    }
-
-    private fun extractToken(data: Uri): String? {
-        data.getQueryParameter("token")?.takeIf { it.isNotBlank() }?.let { return it }
-
-        val encodedSchemeSpecificPart = data.encodedSchemeSpecificPart.orEmpty()
-        val encodedToken = when {
-            encodedSchemeSpecificPart.startsWith("//token=") ->
-                encodedSchemeSpecificPart.removePrefix("//token=").substringBefore("&")
-            encodedSchemeSpecificPart.startsWith("token=") ->
-                encodedSchemeSpecificPart.removePrefix("token=").substringBefore("&")
-            else ->
-                data.toString().substringAfter("token=", missingDelimiterValue = "").substringBefore("&")
-        }
-
-        return Uri.decode(encodedToken).takeIf { it.isNotBlank() }
     }
 
     private companion object {

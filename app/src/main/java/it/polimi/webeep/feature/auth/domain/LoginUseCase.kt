@@ -1,38 +1,52 @@
 package it.polimi.webeep.feature.auth.domain
 
-import it.polimi.webeep.core.network.dto.SiteInfoDto
+import it.polimi.webeep.core.datastore.TokenProvider
 import it.polimi.webeep.core.util.Resource
 import java.net.URLDecoder
+import java.security.MessageDigest
+import java.security.SecureRandom
 import java.util.Base64
 import javax.inject.Inject
 
 /**
- * use case to handle login via webeep sso.
- * decodes the base64 token and validates it via api.
+ * Handles login via WeBeep SSO.
+ * Decodes the base64 token, verifies the Moodle passport hash, then validates via API.
  */
 class LoginUseCase @Inject constructor(
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepository,
+    private val tokenProvider: TokenProvider
 ) {
-    /**
-     * executes the login flow starting from the base64 encoded token.
-     *
-     * @param encodedToken the base64 encoded token (e.g. passport:::wstoken:::privateToken).
-     * @return [Resource] with the login result.
-     */
-    suspend fun execute(encodedToken: String): Resource<SiteInfoDto> {
+    fun generateSsoLaunchUrl(): String {
+        val passport = generatePassport()
+        tokenProvider.savePendingPassportSync(passport)
+        return buildSsoLaunchUrl(passport)
+    }
+
+    suspend fun execute(encodedToken: String): Resource<UserSession> {
         val (wstoken, privateToken) = try {
-            val decodedBytes = Base64.getDecoder().decode(decodeTokenParameter(encodedToken))
+            val decodedBytes = decodeBase64Token(decodeTokenParameter(encodedToken))
             val decodedString = String(decodedBytes, Charsets.UTF_8)
-            
-            // the moodle format is passport_hash:::wstoken:::private_token
+
             val parts = decodedString.split(":::")
             if (parts.size < 2) {
                 return Resource.Error("invalid token format")
             }
-            
+
+            val passports = tokenProvider.getPendingPassportsSync()
+            if (passports.isEmpty()) {
+                return Resource.Error("login session expired. please try logging in with sso again.")
+            }
+            val receivedHash = parts[0].trim()
+            val passportMatches = passports.any { passport ->
+                passportHashes(passport).any { it.equals(receivedHash, ignoreCase = true) }
+            }
+            if (!passportMatches) {
+                return Resource.Error("invalid sso passport. please try logging in again.")
+            }
+
             val wsToken = parts[1]
             val privateToken = parts.getOrNull(2)
-            
+
             wsToken to privateToken
         } catch (e: IllegalArgumentException) {
             return Resource.Error("invalid access token. please try logging in with sso again.", e)
@@ -44,8 +58,8 @@ class LoginUseCase @Inject constructor(
         val result = authRepository.validateToken(wstoken)
         return if (result.isSuccess) {
             val siteInfo = result.getOrThrow()
-            // save the extracted token securely for subsequent api calls
             authRepository.saveAuthData(wstoken, privateToken, siteInfo)
+            tokenProvider.clearPendingPassportSync()
             Resource.Success(siteInfo)
         } else {
             val exception = result.exceptionOrNull()
@@ -63,6 +77,57 @@ class LoginUseCase @Inject constructor(
         } catch (e: Exception) {
             if (e is kotlinx.coroutines.CancellationException) throw e
             token
+        }
+    }
+
+    companion object {
+        const val SITE_WWWROOT = "https://webeep.polimi.it"
+        const val SSO_SERVICE = "moodle_mobile_app"
+        const val SSO_URL_SCHEME = "webeepandroid"
+
+        fun generatePassport(): String {
+            // Official Moodle app sends Math.random() * 1000 (numeric). Older Moodle
+            // used PARAM_INT, which would collapse a UUID to 0 and break the hash.
+            return (SecureRandom().nextInt(Int.MAX_VALUE - 1) + 1).toString()
+        }
+
+        fun buildSsoLaunchUrl(passport: String): String =
+            "$SITE_WWWROOT/admin/tool/mobile/launch.php" +
+                "?service=$SSO_SERVICE" +
+                "&passport=$passport" +
+                "&urlscheme=$SSO_URL_SCHEME"
+
+        /**
+         * Moodle 4+/5 launch.php hashes md5($CFG->wwwroot . $passport).
+         * Official app also retries http/https. Keep bare md5(passport) for older sites.
+         */
+        fun passportHashes(passport: String): Set<String> {
+            val hashes = LinkedHashSet<String>(5)
+            hashes.add(md5Hex(passport))
+            for (root in wwwrootVariants()) {
+                hashes.add(md5Hex(root + passport))
+            }
+            return hashes
+        }
+
+        fun md5Hex(input: String): String {
+            val bytes = MessageDigest.getInstance("MD5").digest(input.toByteArray(Charsets.UTF_8))
+            return bytes.joinToString("") { "%02x".format(it) }
+        }
+
+        fun decodeBase64Token(encoded: String): ByteArray {
+            val cleaned = encoded.replace("\\s".toRegex(), "")
+            return try {
+                Base64.getDecoder().decode(cleaned)
+            } catch (_: IllegalArgumentException) {
+                Base64.getUrlDecoder().decode(cleaned)
+            }
+        }
+
+        private fun wwwrootVariants(): List<String> {
+            val https = SITE_WWWROOT
+            val http = SITE_WWWROOT.replaceFirst("https://", "http://")
+            return listOf(https, "$https/", http, "$http/")
         }
     }
 }

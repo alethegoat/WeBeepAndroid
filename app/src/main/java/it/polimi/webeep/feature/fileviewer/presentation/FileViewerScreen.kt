@@ -9,6 +9,7 @@ import android.os.ParcelFileDescriptor
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import it.polimi.webeep.core.network.MoodleFileUrlBuilder
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
@@ -52,7 +53,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -76,6 +77,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.FileProvider
 import androidx.compose.runtime.LaunchedEffect
+import android.net.Uri
+import androidx.browser.customtabs.CustomTabsIntent
 import coil.compose.SubcomposeAsyncImage
 import coil.compose.SubcomposeAsyncImageContent
 import it.polimi.webeep.R
@@ -100,7 +103,7 @@ fun FileViewerScreen(
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val pageSubtitle = when (val state = uiState) {
         is FileViewerUiState.Pdf -> androidx.compose.ui.res.pluralStringResource(R.plurals.file_viewer_pdf_pages, state.pageCount, state.pageCount)
         is FileViewerUiState.Image -> stringResource(R.string.file_viewer_image)
@@ -116,7 +119,7 @@ fun FileViewerScreen(
 
     Scaffold(
         modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-        containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
+        containerColor = androidx.compose.ui.graphics.Color.Transparent,
         topBar = {
             if (!isLandscape) {
                 AnimatedVisibility(
@@ -188,6 +191,10 @@ fun FileViewerScreen(
                     is FileViewerUiState.Media -> MediaViewer(url = state.url)
                     is FileViewerUiState.Code -> CodeViewer(content = state.content)
                     is FileViewerUiState.Web -> WebContent(url = state.url)
+                    is FileViewerUiState.CustomTab -> CustomTabLauncher(
+                        url = state.url,
+                        onLaunched = onBackClick
+                    )
                     is FileViewerUiState.ExternalViewer -> ExternalFileContent(
                         file = state.file,
                         mimeType = state.mimeType,
@@ -408,6 +415,21 @@ private fun ExternalFileContent(
     )
 }
 
+@Composable
+private fun CustomTabLauncher(
+    url: String,
+    onLaunched: () -> Unit
+) {
+    val context = LocalContext.current
+    LaunchedEffect(url) {
+        CustomTabsIntent.Builder()
+            .build()
+            .launchUrl(context, Uri.parse(url))
+        onLaunched()
+    }
+    FileViewerLoading()
+}
+
 @android.annotation.SuppressLint("SetJavaScriptEnabled")
 @Composable
 private fun WebContent(
@@ -477,18 +499,19 @@ private fun WebContent(
                             useWideViewPort = true
                             builtInZoomControls = true
                             displayZoomControls = false
-                            mediaPlaybackRequiresUserGesture = false // allow video autoplay
-                            javaScriptCanOpenWindowsAutomatically = true // open popups in the same webview instead of ignoring them
+                            mediaPlaybackRequiresUserGesture = false
+                            javaScriptCanOpenWindowsAutomatically = true
                         }
-                        
-                        android.webkit.CookieManager.getInstance().setAcceptThirdPartyCookies(this, true)
-                        
-                        loadUrl(url)
+
+                        android.webkit.CookieManager.getInstance().setAcceptThirdPartyCookies(this, false)
+
+                        loadUrl(MoodleFileUrlBuilder.stripAuthFromUrl(url))
                     }
                 },
                 update = { webView ->
-                    if (webView.url != url) {
-                        webView.loadUrl(url)
+                    val cleanUrl = MoodleFileUrlBuilder.stripAuthFromUrl(url)
+                    if (webView.url != cleanUrl) {
+                        webView.loadUrl(cleanUrl)
                     }
                 }
             )

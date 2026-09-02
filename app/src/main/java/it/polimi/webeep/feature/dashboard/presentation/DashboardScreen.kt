@@ -1,8 +1,7 @@
 package it.polimi.webeep.feature.dashboard.presentation
 
-import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.Crossfade
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.fadeIn
@@ -43,18 +42,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Book
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.FilterList
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -63,14 +55,20 @@ import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
@@ -83,6 +81,10 @@ import it.polimi.webeep.R
 import it.polimi.webeep.core.ui.components.CourseCard
 import it.polimi.webeep.core.ui.components.EmptyStateView
 import it.polimi.webeep.core.ui.components.ShimmerCourseList
+import it.polimi.webeep.core.ui.components.WeBeepSearchField
+import it.polimi.webeep.core.ui.theme.WeBeepMotion
+import it.polimi.webeep.core.ui.theme.WeBeepSpacing
+import it.polimi.webeep.core.ui.util.LocalReduceMotion
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -92,22 +94,26 @@ fun DashboardScreen(
     onSettingsClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val uiState by viewModel.uiState.collectAsState()
-    val isOnline by viewModel.isOnline.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val isOnline by viewModel.isOnline.collectAsStateWithLifecycle()
 
-    var searchQuery by remember { mutableStateOf("") }
-    var courseFilter by remember { mutableStateOf(CourseFilter.Active) }
+    var searchQuery by rememberSaveable { mutableStateOf("") }
+    var courseFilter by rememberSaveable { mutableStateOf(CourseFilter.Active) }
 
     val haptic = LocalHapticFeedback.current
     val lazyGridState = rememberLazyGridState()
-    val context = LocalContext.current
+    val keyboard = LocalSoftwareKeyboardController.current
+    val reduceMotion = LocalReduceMotion.current
+
+    LaunchedEffect(lazyGridState.isScrollInProgress) {
+        if (lazyGridState.isScrollInProgress) keyboard?.hide()
+    }
 
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(rememberTopAppBarState())
 
-    it.polimi.webeep.core.ui.components.AuroraBackground {
-        Scaffold(
-            modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-            containerColor = Color.Transparent,
+    Scaffold(
+        modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+        containerColor = Color.Transparent,
             topBar = {
                 val backgroundColor = MaterialTheme.colorScheme.background
                 TopAppBar(
@@ -174,18 +180,12 @@ fun DashboardScreen(
                     }
                     is DashboardUiState.Success -> {
                         val filteredCourses = remember(state.courses, searchQuery, courseFilter) {
-                            state.courses.filter { course ->
-                                val matchesSearch = course.fullname.contains(searchQuery, ignoreCase = true) ||
-                                        course.shortname.contains(searchQuery, ignoreCase = true)
-                                
-                                val now = System.currentTimeMillis() / 1000
-                                val matchesFilter = when (courseFilter) {
-                                    CourseFilter.All -> true
-                                    CourseFilter.Active -> course.endDate == 0L || course.endDate >= now
-                                    CourseFilter.Past -> course.endDate != 0L && course.endDate < now
-                                }
-                                matchesSearch && matchesFilter
-                            }
+                            filterCourses(
+                                courses = state.courses,
+                                query = searchQuery,
+                                filter = courseFilter,
+                                nowEpochSeconds = System.currentTimeMillis() / 1000
+                            )
                         }
 
                         PullToRefreshBox(
@@ -203,7 +203,7 @@ fun DashboardScreen(
                                 columns = GridCells.Adaptive(minSize = 300.dp),
                                 contentPadding = PaddingValues(
                                     top = innerPadding.calculateTopPadding() + 8.dp,
-                                    bottom = 16.dp,
+                                    bottom = innerPadding.calculateBottomPadding() + 16.dp,
                                     start = 16.dp,
                                     end = 16.dp
                                 ),
@@ -220,15 +220,28 @@ fun DashboardScreen(
                                                 .fillMaxWidth()
                                                 .padding(vertical = 8.dp)
                                         ) {
-                                            AsyncImage(
-                                                model = avatarUrl.ifEmpty { null },
-                                                contentDescription = stringResource(R.string.cd_user_avatar),
+                                            Box(
                                                 modifier = Modifier
                                                     .size(56.dp)
                                                     .clip(CircleShape)
-                                                    .border(2.dp, MaterialTheme.colorScheme.primary, CircleShape),
-                                                contentScale = ContentScale.Crop
-                                            )
+                                                    .background(MaterialTheme.colorScheme.primaryContainer)
+                                                    .border(1.5.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.55f), CircleShape),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Text(
+                                                    text = userName.trim().take(1).uppercase(),
+                                                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                                )
+                                                if (avatarUrl.isNotEmpty()) {
+                                                    AsyncImage(
+                                                        model = avatarUrl,
+                                                        contentDescription = stringResource(R.string.cd_user_avatar),
+                                                        modifier = Modifier.fillMaxSize(),
+                                                        contentScale = ContentScale.Crop
+                                                    )
+                                                }
+                                            }
                                             Spacer(modifier = Modifier.width(16.dp))
                                             Column {
                                                 Text(
@@ -280,64 +293,18 @@ fun DashboardScreen(
                                             }
                                         }
 
-                                        // search section
-                                        Box(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .padding(vertical = 8.dp)
-                                        ) {
-                                            TextField(
-                                                value = searchQuery,
-                                                onValueChange = { searchQuery = it },
-                                                placeholder = { 
-                                                    Text(
-                                                        text = stringResource(R.string.search_courses_placeholder),
-                                                        style = MaterialTheme.typography.bodyMedium,
-                                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                                                    ) 
-                                                },
-                                                leadingIcon = {
-                                                    Icon(
-                                                        imageVector = Icons.Default.Search,
-                                                        contentDescription = stringResource(R.string.cd_search),
-                                                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                                                        modifier = Modifier.size(20.dp)
-                                                    )
-                                                },
-                                                trailingIcon = {
-                                                    if (searchQuery.isNotEmpty()) {
-                                                        IconButton(onClick = { searchQuery = "" }) {
-                                                            Icon(
-                                                                imageVector = Icons.Default.Close,
-                                                                contentDescription = stringResource(R.string.clear_search),
-                                                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                                                                modifier = Modifier.size(20.dp)
-                                                            )
-                                                        }
-                                                    }
-                                                },
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .height(48.dp),
-                                                singleLine = true,
-                                                shape = CircleShape,
-                                                colors = TextFieldDefaults.colors(
-                                                    focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                                                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-                                                    focusedIndicatorColor = Color.Transparent,
-                                                    unfocusedIndicatorColor = Color.Transparent,
-                                                    disabledIndicatorColor = Color.Transparent
-                                                ),
-                                                textStyle = MaterialTheme.typography.bodyMedium
-                                            )
-                                        }
+                                        WeBeepSearchField(
+                                            value = searchQuery,
+                                            onValueChange = { searchQuery = it },
+                                            placeholder = stringResource(R.string.search_courses_placeholder),
+                                            modifier = Modifier.padding(vertical = WeBeepSpacing.xs)
+                                        )
 
-                                        // course filter segmented control
                                         BoxWithConstraints(
                                             modifier = Modifier
                                                 .fillMaxWidth()
                                                 .padding(vertical = 6.dp)
-                                                .clip(RoundedCornerShape(16.dp))
+                                                .clip(RoundedCornerShape(WeBeepSpacing.chipRadius))
                                                 .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
                                                 .padding(4.dp)
                                         ) {
@@ -351,17 +318,16 @@ fun DashboardScreen(
                                             val selectedIndex = filters.indexOfFirst { it.first == courseFilter }
                                             val pillOffset by animateDpAsState(
                                                 targetValue = pillWidth * selectedIndex,
-                                                animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
+                                                animationSpec = WeBeepMotion.softSpring(reduceMotion),
                                                 label = "pillOffset"
                                             )
 
-                                            // pill background
                                             Box(
                                                 modifier = Modifier
                                                     .offset { androidx.compose.ui.unit.IntOffset(pillOffset.roundToPx(), 0) }
                                                     .width(pillWidth)
-                                                    .height(36.dp) // forced height
-                                                    .clip(RoundedCornerShape(12.dp))
+                                                    .height(WeBeepSpacing.touchTarget)
+                                                    .clip(RoundedCornerShape(WeBeepSpacing.sm))
                                                     .background(MaterialTheme.colorScheme.primary)
                                             )
 
@@ -371,13 +337,28 @@ fun DashboardScreen(
                                             ) {
                                                 filters.forEach { (filter, label) ->
                                                     val isSelected = courseFilter == filter
-                                                    val contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                                                    val contentColor by animateColorAsState(
+                                                        targetValue = if (isSelected) {
+                                                            MaterialTheme.colorScheme.onPrimary
+                                                        } else {
+                                                            MaterialTheme.colorScheme.onSurfaceVariant
+                                                        },
+                                                        animationSpec = WeBeepMotion.smooth(reduceMotion = reduceMotion),
+                                                        label = "filterColor"
+                                                    )
                                                     
                                                     Box(
                                                         modifier = Modifier
                                                             .width(pillWidth)
-                                                            .height(36.dp)
-                                                            .bouncyClickable { courseFilter = filter },
+                                                            .height(WeBeepSpacing.touchTarget)
+                                                            .semantics {
+                                                                role = Role.Tab
+                                                                selected = isSelected
+                                                            }
+                                                            .bouncyClickable(
+                                                                role = Role.Tab,
+                                                                onClickLabel = label
+                                                            ) { courseFilter = filter },
                                                         contentAlignment = Alignment.Center
                                                     ) {
                                                         Text(
@@ -426,7 +407,11 @@ fun DashboardScreen(
                                         CourseCard(
                                             course = course,
                                             onClick = { onCourseClick(course.id) },
-                                            modifier = Modifier.animateItem()
+                                            modifier = Modifier.animateItem(
+                                                fadeInSpec = WeBeepMotion.enter(reduceMotion = reduceMotion),
+                                                fadeOutSpec = WeBeepMotion.exit(reduceMotion = reduceMotion),
+                                                placementSpec = WeBeepMotion.softSpring(reduceMotion)
+                                            )
                                         )
                                     }
                                 }
@@ -446,7 +431,6 @@ fun DashboardScreen(
                 }
             }
         }
-    }
 }
 
 enum class CourseFilter {

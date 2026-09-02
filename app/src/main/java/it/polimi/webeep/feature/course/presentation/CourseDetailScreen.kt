@@ -67,9 +67,14 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -82,6 +87,9 @@ import androidx.compose.ui.unit.dp
 import it.polimi.webeep.R
 import it.polimi.webeep.core.ui.components.EmptyStateView
 import it.polimi.webeep.core.ui.components.ShimmerCourseList
+import it.polimi.webeep.core.ui.components.WeBeepSearchField
+import it.polimi.webeep.core.ui.theme.WeBeepMotion
+import it.polimi.webeep.core.ui.theme.WeBeepSpacing
 import it.polimi.webeep.core.ui.util.bouncyClickable
 import it.polimi.webeep.feature.download.presentation.DownloadProgressIndicator
 
@@ -96,15 +104,20 @@ fun CourseDetailScreen(
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val lazyListState = rememberLazyListState()
+    val keyboard = LocalSoftwareKeyboardController.current
+    var searchQuery by rememberSaveable { mutableStateOf("") }
+
+    LaunchedEffect(lazyListState.isScrollInProgress) {
+        if (lazyListState.isScrollInProgress) keyboard?.hide()
+    }
 
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(rememberTopAppBarState())
 
-    it.polimi.webeep.core.ui.components.AuroraBackground {
-        Scaffold(
-            modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-            containerColor = Color.Transparent,
+    Scaffold(
+        modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+        containerColor = Color.Transparent,
             topBar = {
                 val backgroundColor = MaterialTheme.colorScheme.background
                 TopAppBar(
@@ -167,6 +180,9 @@ fun CourseDetailScreen(
                     }
                 }
                 is CourseDetailUiState.Success -> {
+                    val visibleSections = remember(state.sections, searchQuery) {
+                        filterSections(state.sections, searchQuery)
+                    }
                     if (state.sections.isEmpty()) {
                         EmptyStateView(
                             icon = Icons.Default.Book,
@@ -189,22 +205,42 @@ fun CourseDetailScreen(
                                     .widthIn(max = 840.dp),
                                 contentPadding = androidx.compose.foundation.layout.PaddingValues(
                                     top = innerPadding.calculateTopPadding() + 8.dp,
-                                    bottom = 16.dp
+                                    bottom = innerPadding.calculateBottomPadding() + 16.dp
                                 ),
                                 verticalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
                             item {
                                 val courseName = state.courseName ?: stringResource(R.string.course_content_title)
-                                Text(
-                                    text = courseName,
-                                    style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold),
-                                    color = MaterialTheme.colorScheme.onBackground,
-                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp)
-                                )
+                                Column(modifier = Modifier.padding(horizontal = WeBeepSpacing.md)) {
+                                    Text(
+                                        text = courseName,
+                                        style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold),
+                                        color = MaterialTheme.colorScheme.onBackground,
+                                        modifier = Modifier.padding(vertical = WeBeepSpacing.md)
+                                    )
+                                    WeBeepSearchField(
+                                        value = searchQuery,
+                                        onValueChange = { searchQuery = it },
+                                        placeholder = stringResource(R.string.search_materials_placeholder),
+                                        modifier = Modifier.padding(bottom = WeBeepSpacing.sm)
+                                    )
+                                }
                             }
                             
+                            if (visibleSections.isEmpty()) {
+                                item {
+                                    EmptyStateView(
+                                        icon = Icons.Default.Description,
+                                        title = stringResource(R.string.no_materials_found),
+                                        subtitle = stringResource(R.string.try_changing_filters),
+                                        actionLabel = stringResource(R.string.reset_filters),
+                                        onAction = { searchQuery = "" },
+                                        modifier = Modifier.height(320.dp)
+                                    )
+                                }
+                            } else {
                             items(
-                                items = state.sections,
+                                items = visibleSections,
                                 key = { it.id },
                                 contentType = { "section_item" }
                             ) { section ->
@@ -215,6 +251,7 @@ fun CourseDetailScreen(
                                     onDownloadClick = { viewModel.downloadFile(it) },
                                     onOpenClick = { viewModel.openFile(it) }
                                 )
+                            }
                             }
                             item {
                                 Spacer(modifier = Modifier.height(16.dp))
@@ -236,7 +273,6 @@ fun CourseDetailScreen(
         }
     }
 }
-}
 
 @Composable
 private fun SectionItem(
@@ -249,13 +285,19 @@ private fun SectionItem(
 ) {
     val rotationState by animateFloatAsState(
         targetValue = if (section.isExpanded) 180f else 0f,
+        animationSpec = WeBeepMotion.smooth(),
         label = "arrow_rotation"
     )
 
     Card(
         shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
+            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f)
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = androidx.compose.foundation.BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
         ),
         modifier = modifier
             .fillMaxWidth()
@@ -293,7 +335,11 @@ private fun SectionItem(
                 }
                 Icon(
                     imageVector = Icons.Default.ExpandMore,
-                    contentDescription = null,
+                    contentDescription = if (section.isExpanded) {
+                        stringResource(R.string.cd_collapse_section)
+                    } else {
+                        stringResource(R.string.cd_expand_section)
+                    },
                     modifier = Modifier
                         .graphicsLayer { rotationZ = rotationState }
                         .size(24.dp)
@@ -302,8 +348,10 @@ private fun SectionItem(
 
             AnimatedVisibility(
                 visible = section.isExpanded,
-                enter = expandVertically(animationSpec = spring(stiffness = Spring.StiffnessMedium)) + fadeIn(),
-                exit = shrinkVertically(animationSpec = spring(stiffness = Spring.StiffnessMedium)) + fadeOut()
+                enter = expandVertically(animationSpec = WeBeepMotion.enter()) +
+                    fadeIn(WeBeepMotion.enter()),
+                exit = shrinkVertically(animationSpec = WeBeepMotion.exit()) +
+                    fadeOut(WeBeepMotion.exit())
             ) {
                 Column(modifier = Modifier.fillMaxWidth()) {
                     if (section.modules.isEmpty()) {
@@ -411,7 +459,11 @@ private fun ModuleItem(
             )
             
             if (isFolder) {
-                val rotation by animateFloatAsState(if (isFolderExpanded.value) 180f else 0f, label="rot")
+                val rotation by animateFloatAsState(
+                    if (isFolderExpanded.value) 180f else 0f,
+                    animationSpec = WeBeepMotion.smooth(),
+                    label = "rot"
+                )
                 Icon(
                     imageVector = Icons.Default.ExpandMore,
                     contentDescription = null,
@@ -463,7 +515,7 @@ private fun ModuleItem(
                         if (!current.subfolders.containsKey(segment)) {
                             current.subfolders[segment] = FolderNode(segment, pathAccumulator)
                         }
-                        current = current.subfolders[segment]!!
+                        current = current.subfolders.getValue(segment)
                     }
                     current.files.add(file)
                 }

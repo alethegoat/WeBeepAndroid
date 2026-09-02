@@ -1,11 +1,11 @@
 package it.polimi.webeep.navigation
 
 import androidx.compose.animation.AnimatedContentTransitionScope
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.runtime.Composable
+import it.polimi.webeep.core.ui.theme.WeBeepMotion
+import it.polimi.webeep.core.ui.util.LocalReduceMotion
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -24,6 +24,7 @@ import it.polimi.webeep.feature.dashboard.presentation.DashboardScreen
 import it.polimi.webeep.feature.dashboard.presentation.DashboardViewModel
 import it.polimi.webeep.feature.fileviewer.presentation.FileViewerScreen
 import it.polimi.webeep.feature.fileviewer.presentation.FileViewerViewModel
+import it.polimi.webeep.core.network.MoodleFileUrlBuilder
 import it.polimi.webeep.feature.settings.presentation.SettingsScreen
 import it.polimi.webeep.feature.settings.presentation.SettingsViewModel
 
@@ -36,33 +37,54 @@ fun NavGraph(
     modifier: Modifier = Modifier,
     navController: NavHostController = rememberNavController()
 ) {
+    val reduceMotion = LocalReduceMotion.current
     NavHost(
         navController = navController,
         startDestination = startDestination,
         modifier = modifier,
         enterTransition = {
-            slideIntoContainer(
-                AnimatedContentTransitionScope.SlideDirection.Left,
-                animationSpec = tween(350, easing = FastOutSlowInEasing)
-            ) + fadeIn(animationSpec = tween(350))
+            if (reduceMotion) {
+                fadeIn(animationSpec = WeBeepMotion.enter(durationMs = 0, reduceMotion = true))
+            } else {
+                slideIntoContainer(
+                    AnimatedContentTransitionScope.SlideDirection.Left,
+                    animationSpec = WeBeepMotion.enter(),
+                    initialOffset = { it / 6 }
+                ) + fadeIn(animationSpec = WeBeepMotion.enter())
+            }
         },
         exitTransition = {
-            slideOutOfContainer(
-                AnimatedContentTransitionScope.SlideDirection.Left,
-                animationSpec = tween(350, easing = FastOutSlowInEasing)
-            ) + fadeOut(animationSpec = tween(350))
+            if (reduceMotion) {
+                fadeOut(animationSpec = WeBeepMotion.exit(durationMs = 0, reduceMotion = true))
+            } else {
+                slideOutOfContainer(
+                    AnimatedContentTransitionScope.SlideDirection.Left,
+                    animationSpec = WeBeepMotion.exit(),
+                    targetOffset = { it / 10 }
+                ) + fadeOut(animationSpec = WeBeepMotion.exit())
+            }
         },
         popEnterTransition = {
-            slideIntoContainer(
-                AnimatedContentTransitionScope.SlideDirection.Right,
-                animationSpec = tween(350, easing = FastOutSlowInEasing)
-            ) + fadeIn(animationSpec = tween(350))
+            if (reduceMotion) {
+                fadeIn(animationSpec = WeBeepMotion.enter(durationMs = 0, reduceMotion = true))
+            } else {
+                slideIntoContainer(
+                    AnimatedContentTransitionScope.SlideDirection.Right,
+                    animationSpec = WeBeepMotion.enter(),
+                    initialOffset = { it / 6 }
+                ) + fadeIn(animationSpec = WeBeepMotion.enter())
+            }
         },
         popExitTransition = {
-            slideOutOfContainer(
-                AnimatedContentTransitionScope.SlideDirection.Right,
-                animationSpec = tween(350, easing = FastOutSlowInEasing)
-            ) + fadeOut(animationSpec = tween(350))
+            if (reduceMotion) {
+                fadeOut(animationSpec = WeBeepMotion.exit(durationMs = 0, reduceMotion = true))
+            } else {
+                slideOutOfContainer(
+                    AnimatedContentTransitionScope.SlideDirection.Right,
+                    animationSpec = WeBeepMotion.exit(),
+                    targetOffset = { it / 10 }
+                ) + fadeOut(animationSpec = WeBeepMotion.exit())
+            }
         }
     ) {
         // login entry point without token
@@ -133,7 +155,7 @@ fun NavGraph(
                 onPreviewFile = { file ->
                     navController.navigate(
                         Screen.FileViewer.createRoute(
-                            url = file.fileUrl,
+                            url = MoodleFileUrlBuilder.stripAuthFromUrl(file.fileUrl),
                             title = file.filename,
                             mimeType = file.mimeType
                         )

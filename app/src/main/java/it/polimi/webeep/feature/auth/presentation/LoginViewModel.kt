@@ -6,12 +6,12 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import it.polimi.webeep.core.util.Resource
 import it.polimi.webeep.feature.auth.domain.AuthRepository
 import it.polimi.webeep.feature.auth.domain.LoginUseCase
+import it.polimi.webeep.feature.sync.SyncScheduler
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import java.util.UUID
 import javax.inject.Inject
 
 sealed interface LoginUiState {
@@ -34,7 +34,8 @@ sealed interface LoginIntent {
 @HiltViewModel
 class LoginViewModel @Inject constructor(
     private val loginUseCase: LoginUseCase,
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepository,
+    private val syncScheduler: SyncScheduler
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<LoginUiState>(LoginUiState.Idle)
@@ -69,14 +70,7 @@ class LoginViewModel @Inject constructor(
     /**
      * generates the url to start the sso login via browser or custom tab.
      */
-    fun generateSsoUrl(): String {
-        val passport = UUID.randomUUID().toString()
-        // official url of webeep sso / launch.php for mobile app
-        return "https://webeep.polimi.it/admin/tool/mobile/launch.php" +
-                "?service=moodle_mobile_app" +
-                "&passport=$passport" +
-                "&urlscheme=webeepandroid"
-    }
+    fun generateSsoUrl(): String = loginUseCase.generateSsoLaunchUrl()
 
     // keeping for temporary backward compatibility with ui until it uses intents
     fun resetState() = onIntent(LoginIntent.ResetState)
@@ -92,6 +86,8 @@ class LoginViewModel @Inject constructor(
         viewModelScope.launch {
             when (val resource = loginUseCase.execute(encodedToken)) {
                 is Resource.Success -> {
+                    syncScheduler.applyCurrentSettings()
+                    syncScheduler.enqueueImmediate()
                     _uiState.update { LoginUiState.Success }
                 }
                 is Resource.Error -> {

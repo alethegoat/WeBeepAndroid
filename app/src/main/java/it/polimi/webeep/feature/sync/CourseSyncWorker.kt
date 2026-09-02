@@ -8,6 +8,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
+import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
@@ -18,181 +19,83 @@ import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import it.polimi.webeep.MainActivity
 import it.polimi.webeep.R
-import it.polimi.webeep.core.database.dao.CourseContentDao
 import it.polimi.webeep.core.database.dao.CourseDao
 import it.polimi.webeep.core.datastore.TokenManager
-import it.polimi.webeep.core.network.MoodleApiService
-
-import kotlinx.coroutines.flow.firstOrNull
-import it.polimi.webeep.core.database.entity.CourseModuleEntity
-import it.polimi.webeep.core.database.entity.CourseSectionEntity
-import it.polimi.webeep.core.database.entity.ModuleContentEntity
+import it.polimi.webeep.feature.course.data.CourseContentMapper
+import it.polimi.webeep.feature.course.domain.CourseRepository
+import it.polimi.webeep.feature.course.domain.model.Section
+import it.polimi.webeep.feature.dashboard.domain.DashboardRepository
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.supervisorScope
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
-
-import android.util.Log
-import it.polimi.webeep.core.util.MoodleText
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
- * worker for synchronizing course files in the background.
+ * Background worker that syncs course files and notifies when new ones appear.
  */
 @HiltWorker
 class CourseSyncWorker @AssistedInject constructor(
     @Assisted private val appContext: Context,
     @Assisted workerParams: WorkerParameters,
-    private val moodleApiService: MoodleApiService,
     private val courseDao: CourseDao,
-    private val courseContentDao: CourseContentDao,
+    private val courseRepository: CourseRepository,
+    private val dashboardRepository: DashboardRepository,
     private val tokenManager: TokenManager
 ) : CoroutineWorker(appContext, workerParams) {
 
     data class NewFileRecord(val courseId: Int, val courseName: String, val fileName: String)
 
     override suspend fun doWork(): Result {
-        Log.d("CourseSyncWorker", "🔄 Worker avviato: Inizio controllo nuovi file")
-        val token = tokenManager.getToken() ?: run {
-            Log.d("CourseSyncWorker", "❌ Token non trovato. Interruzione Worker.")
+        Log.d("CourseSyncWorker", "Worker started")
+        tokenManager.getToken() ?: run {
+            Log.d("CourseSyncWorker", "No token. Stopping worker.")
             return Result.failure()
         }
 
         try {
+            dashboardRepository.syncCourses()
+
             val courses = courseDao.getAllCourses().firstOrNull()
             if (courses.isNullOrEmpty()) {
-                Log.d("CourseSyncWorker", "⚠️ Nessun corso trovato nel DB locale. Interruzione Worker.")
+                Log.d("CourseSyncWorker", "No local courses. Stopping worker.")
                 return Result.success()
             }
-            Log.d("CourseSyncWorker", "📚 Trovati ${courses.size} corsi nel DB locale da controllare.")
 
             var totalNewFiles = 0
             val newFileRecords = mutableListOf<NewFileRecord>()
             val hasErrors = AtomicBoolean(false)
-            // Each course sync performs network I/O, parsing and a Room transaction.
-            // Cap parallelism to avoid saturating the radio, CPU and database.
             val courseSyncSemaphore = Semaphore(MAX_CONCURRENT_COURSE_SYNCS)
 
-            // supervisorscope prevents a course failure from cancelling the processing of the others
-            kotlinx.coroutines.supervisorScope {
+            supervisorScope {
                 val jobs = courses.map { course ->
                     async {
                         courseSyncSemaphore.withPermit {
                             try {
-                            Log.d("CourseSyncWorker", "🔍 [${course.shortname}] Inizio controllo...")
+                                val oldKeys = fileIdentitiesFrom(courseRepository.getCachedCourseContents(course.id).first())
+                                    .map { it.key }
+                                    .toSet()
+                                val syncResult = courseRepository.getCourseContents(course.id)
+                                val newFiles = fileIdentitiesFrom(syncResult.getOrElse { throw it })
 
-                            // 1. fetch old content
-                            val oldSections = courseContentDao.getSectionsByCourseSync(course.id)
-                            val oldFilesKeys = mutableSetOf<String>()
-                            
-                            oldSections.forEach { sectionWithModules ->
-                                sectionWithModules.modules.forEach { moduleWithContents ->
-                                    moduleWithContents.contents.forEach { content ->
-                                        // unique key: combine stripped url and filename to be immune to dynamic token changes
-                                        val cleanUrl = it.polimi.webeep.core.network.MoodleFileUrlBuilder.stripAuthFromUrl(content.fileUrl)
-                                        val uniqueKey = "${cleanUrl}_${content.filename}"
-                                        oldFilesKeys.add(uniqueKey)
-                                    }
-                                }
-                            }
-                            Log.d("CourseSyncWorker", "📦 [${course.shortname}] Trovati ${oldFilesKeys.size} file nella cache locale.")
-
-                            // 2. download new contents from api
-                            val newSectionsDto = moodleApiService.getCourseContents(courseId = course.id)
-                            
-                            val sectionEntities = mutableListOf<CourseSectionEntity>()
-                            val moduleEntities = mutableListOf<CourseModuleEntity>()
-                            val contentEntities = mutableListOf<ModuleContentEntity>()
-                            
-                            val currentNewFiles = mutableListOf<NewFileRecord>()
-                            var courseFilesCount = 0
-                            
-                            newSectionsDto.forEach { sectionDto ->
-                                sectionEntities.add(
-                                    CourseSectionEntity(
-                                        id = sectionDto.id,
-                                        courseId = course.id,
-                                        name = MoodleText.parse(sectionDto.name),
-                                        summary = MoodleText.parse(sectionDto.summary),
-                                        section = sectionDto.section,
-                                        visible = sectionDto.visible == 1 || sectionDto.uservisible == true
-                                    )
-                                )
-
-                                sectionDto.modules.forEach { mod ->
-                                    val directUrl = if (mod.modname in setOf("url", "lti", "webex")) {
-                                        mod.contents?.firstOrNull { it.type == "url" || !it.fileurl.isNullOrBlank() }?.fileurl
-                                    } else {
-                                        null
-                                    }
-                                    val finalUrl = directUrl ?: mod.url
-
-                                    moduleEntities.add(
-                                        CourseModuleEntity(
-                                            id = mod.id,
-                                            sectionId = sectionDto.id,
-                                            name = MoodleText.parse(mod.name),
-                                            modName = mod.modname,
-                                            iconUrl = mod.modicon,
-                                            description = MoodleText.parse(mod.description),
-                                            url = finalUrl
-                                        )
-                                    )
-
-                                    // only process contents for modules that actually contain physical files
-                                    val allowedFileModules = setOf("resource", "folder")
-                                    if (mod.modname in allowedFileModules) {
-                                        mod.contents?.forEach { content ->
-                                            // ignore empty directories from moodle api
-                                            if (content.type == "dir") return@forEach
-
-                                            courseFilesCount++
-                                            val filename = MoodleText.parse(content.filename ?: "Senza nome")
-                                            val rawUrl = content.fileurl ?: ""
-                                            val fileUrl = it.polimi.webeep.core.network.MoodleFileUrlBuilder.stripAuthFromUrl(rawUrl)
-                                            val filepath = content.filepath
-                                            
-                                            val uniqueKey = "${fileUrl}_${filename}"
-
-                                        // correct diffing: verify url+name.
-                                        // adding isnotempty() prevents notification spam on absolute first launch.
-                                        if (!oldFilesKeys.contains(uniqueKey) && oldFilesKeys.isNotEmpty()) {
-                                            Log.d("CourseSyncWorker", "✨ [${course.shortname}] Trovato nuovo file: $filename")
-                                            currentNewFiles.add(NewFileRecord(course.id, course.fullname, filename))
+                                if (oldKeys.isNotEmpty()) {
+                                    val added = newFiles.filter { it.key !in oldKeys }
+                                    if (added.isNotEmpty()) {
+                                        val records = added.map { file ->
+                                            NewFileRecord(course.id, course.fullname, file.filename)
                                         }
-
-                                            contentEntities.add(
-                                                ModuleContentEntity(
-                                                    moduleId = mod.id,
-                                                    filename = filename,
-                                                    filepath = filepath,
-                                                    fileUrl = rawUrl, // save raw url to maintain any required tracking params, auth is handled by builder
-                                                    fileSize = content.filesize,
-                                                    mimeType = content.mimetype,
-                                                    timeModified = content.timemodified
-                                                )
-                                            )
+                                        synchronized(newFileRecords) {
+                                            totalNewFiles += records.size
+                                            newFileRecords.addAll(records)
                                         }
                                     }
                                 }
-                            }
-                            Log.d("CourseSyncWorker", "🌐 [${course.shortname}] Scaricati $courseFilesCount file dalle API di Moodle.")
-
-                            // 3. update the db for this course atomically
-                            courseContentDao.replaceCourseContent(course.id, sectionEntities, moduleEntities, contentEntities)
-                            
-                            Log.d("CourseSyncWorker", "💾 [${course.shortname}] Database locale aggiornato con successo in transazione.")
-
-                            // 4. only if the db was updated correctly do we save notifications
-                            if (currentNewFiles.isNotEmpty()) {
-                                synchronized(newFileRecords) {
-                                    totalNewFiles += currentNewFiles.size
-                                    newFileRecords.addAll(currentNewFiles)
-                                }
-                            }
                             } catch (e: Exception) {
                                 if (e is kotlinx.coroutines.CancellationException) throw e
-                                Log.e("CourseSyncWorker", "❌ [${course.shortname}] Errore durante il sync: ${e.message}")
+                                Log.e("CourseSyncWorker", "Sync error for ${course.shortname}: ${e.message}")
                                 hasErrors.set(true)
                             }
                         }
@@ -200,26 +103,13 @@ class CourseSyncWorker @AssistedInject constructor(
                 }
                 jobs.awaitAll()
             }
-            
-            Log.d("CourseSyncWorker", "✅ Sync completato. File nuovi totali confermati: $totalNewFiles")
-            
+
             if (totalNewFiles > 0) {
-                Log.d("CourseSyncWorker", "🔔 Invio notifiche per i corsi con file nuovi.")
-                
-                // ensure the notification channel is created before sending anything
                 createNotificationChannel()
-                
-                // group the new files by course so that we can send a distinct notification for each course.
                 val filesByCourse = newFileRecords.groupBy { it.courseId }
-                
-                // create a summary notification if multiple courses have updates
-                // this is required by android to visually bundle the notifications together.
                 if (filesByCourse.size > 1) {
                     sendSummaryNotification(totalNewFiles)
                 }
-
-                // send individual notifications for each course containing new files.
-                // each notification will have a unique id (the course id) and a dedicated deep link.
                 filesByCourse.forEach { (courseId, records) ->
                     val courseName = records.first().courseName
                     sendNotification(courseId, courseName, records)
@@ -229,9 +119,23 @@ class CourseSyncWorker @AssistedInject constructor(
             return if (hasErrors.get()) Result.retry() else Result.success()
         } catch (e: Exception) {
             if (e is kotlinx.coroutines.CancellationException) throw e
-            Log.e("CourseSyncWorker", "💥 Errore fatale nel Worker: ${e.message}")
-            e.printStackTrace()
+            Log.e("CourseSyncWorker", "Fatal worker error: ${e.message}")
             return Result.retry()
+        }
+    }
+
+    private data class FileIdentity(val key: String, val filename: String)
+
+    private fun fileIdentitiesFrom(sections: List<Section>): List<FileIdentity> {
+        return sections.flatMap { section ->
+            section.modules.flatMap { module ->
+                module.files.map { file ->
+                    FileIdentity(
+                        key = CourseContentMapper.fileKey(file.fileUrl, file.filename, file.timeModified),
+                        filename = file.filename
+                    )
+                }
+            }
         }
     }
 
@@ -259,13 +163,13 @@ class CourseSyncWorker @AssistedInject constructor(
         val notificationManager = NotificationManagerCompat.from(appContext)
 
         val summaryNotification = NotificationCompat.Builder(appContext, channelId)
-            .setSmallIcon(android.R.drawable.sym_def_app_icon)
+            .setSmallIcon(R.drawable.ic_stat_notify)
             .setContentTitle(appContext.getString(R.string.sync_completed_title))
             .setContentText(appContext.getString(R.string.sync_completed, totalNewFiles))
-            .setSmallIcon(android.R.drawable.sym_def_app_icon)
-            .setStyle(NotificationCompat.InboxStyle()
-                .setBigContentTitle(appContext.getString(R.string.sync_completed_title))
-                .setSummaryText(appContext.getString(R.string.sync_summary, totalNewFiles))
+            .setStyle(
+                NotificationCompat.InboxStyle()
+                    .setBigContentTitle(appContext.getString(R.string.sync_completed_title))
+                    .setSummaryText(appContext.getString(R.string.sync_summary, totalNewFiles))
             )
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setGroup("WE_BEEP_SYNC_GROUP")
@@ -273,14 +177,13 @@ class CourseSyncWorker @AssistedInject constructor(
             .setAutoCancel(true)
             .build()
 
-        notificationManager.notify(1000, summaryNotification) // summary id
+        notificationManager.notify(1000, summaryNotification)
     }
 
     private fun sendNotification(courseId: Int, courseName: String, fileRecords: List<NewFileRecord>) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
             ContextCompat.checkSelfPermission(appContext, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
         ) {
-            Log.d("CourseSyncWorker", "🔕 Permesso notifiche non concesso.")
             return
         }
 
@@ -288,44 +191,33 @@ class CourseSyncWorker @AssistedInject constructor(
         val notificationManager = NotificationManagerCompat.from(appContext)
 
         val intent = Intent(appContext, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-            // attach the course id to the intent so that mainactivity can deep link directly to it
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
             putExtra("EXTRA_COURSE_ID", courseId)
         }
-        
+
         val pendingIntentFlags = PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        
-        // use courseid as requestcode so each course gets a mathematically distinct pendingintent
         val pendingIntent: PendingIntent = PendingIntent.getActivity(appContext, courseId, intent, pendingIntentFlags)
 
         val inboxStyle = NotificationCompat.InboxStyle()
-        val title = courseName
-        val summaryText = appContext.getString(R.string.sync_summary, fileRecords.size)
-        
-        inboxStyle.setBigContentTitle(title)
-        
+        inboxStyle.setBigContentTitle(courseName)
         fileRecords.take(5).forEach { record ->
-            inboxStyle.addLine("📄 ${record.fileName}")
+            inboxStyle.addLine(record.fileName)
         }
-        
         if (fileRecords.size > 5) {
             inboxStyle.setSummaryText(appContext.getString(R.string.sync_more_files, fileRecords.size - 5))
         }
 
         val builder = NotificationCompat.Builder(appContext, channelId)
-            .setSmallIcon(android.R.drawable.sym_def_app_icon)
-            .setContentTitle(title)
-            .setContentText(summaryText)
+            .setSmallIcon(R.drawable.ic_stat_notify)
+            .setContentTitle(courseName)
+            .setContentText(appContext.getString(R.string.sync_summary, fileRecords.size))
             .setStyle(inboxStyle)
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setContentIntent(pendingIntent)
-            // group key must match the summary notification
             .setGroup("WE_BEEP_SYNC_GROUP")
             .setAutoCancel(true)
 
-        // using courseid ensures notifications don't overwrite each other across different courses
         notificationManager.notify(courseId, builder.build())
-        Log.d("CourseSyncWorker", "📢 Notifica inviata per il corso $courseId")
     }
 
     private companion object {

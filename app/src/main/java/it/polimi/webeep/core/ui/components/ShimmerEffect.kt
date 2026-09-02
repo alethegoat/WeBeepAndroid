@@ -42,6 +42,7 @@ import it.polimi.webeep.core.ui.theme.WeBeepTheme
 
 import androidx.compose.ui.composed
 import androidx.compose.ui.draw.drawWithContent
+import it.polimi.webeep.core.ui.util.LocalReduceMotion
 
 /**
  * modifier that adds a performant animated shimmer effect.
@@ -76,16 +77,21 @@ fun ShimmerEffect(
     height: Dp = 16.dp,
     shape: RoundedCornerShape = RoundedCornerShape(8.dp),
 ) {
-    val transition = rememberInfiniteTransition(label = "shimmer")
-    val translateAnim = transition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1000f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 1200, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Restart,
-        ),
-        label = "shimmer_translate",
-    )
+    val reduceMotion = LocalReduceMotion.current
+    val translateAnim = if (reduceMotion) {
+        0f
+    } else {
+        val transition = rememberInfiniteTransition(label = "shimmer")
+        transition.animateFloat(
+            initialValue = 0f,
+            targetValue = 1000f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 1200, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Restart,
+            ),
+            label = "shimmer_translate",
+        ).value
+    }
 
     Box(
         modifier = modifier
@@ -94,10 +100,16 @@ fun ShimmerEffect(
             )
             .height(height)
             .clip(shape)
-            .shimmerShader(
-                translateValue = translateAnim.value,
-                baseColor = MaterialTheme.colorScheme.surfaceVariant,
-                highlightColor = MaterialTheme.colorScheme.surface
+            .then(
+                if (reduceMotion) {
+                    Modifier.background(MaterialTheme.colorScheme.surfaceVariant)
+                } else {
+                    Modifier.shimmerShader(
+                        translateValue = translateAnim,
+                        baseColor = MaterialTheme.colorScheme.surfaceVariant,
+                        highlightColor = MaterialTheme.colorScheme.surface
+                    )
+                }
             ),
     )
 }
@@ -112,28 +124,32 @@ fun ShimmerEffect(
 fun ShimmerCourseCard(
     modifier: Modifier = Modifier,
 ) {
-    val transition = rememberInfiniteTransition(label = "shimmer")
-    val translateAnim = transition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1000f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 1200, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Restart,
-        ),
-        label = "shimmer_translate",
-    )
-
-    val shimmerModifier = Modifier.shimmerShader(
-        translateValue = translateAnim.value,
-        baseColor = MaterialTheme.colorScheme.surfaceVariant,
-        highlightColor = MaterialTheme.colorScheme.surface
-    )
+    val reduceMotion = LocalReduceMotion.current
+    val shimmerModifier = if (reduceMotion) {
+        Modifier.background(MaterialTheme.colorScheme.surfaceVariant)
+    } else {
+        val transition = rememberInfiniteTransition(label = "shimmer")
+        val translateAnim = transition.animateFloat(
+            initialValue = 0f,
+            targetValue = 1000f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 1200, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Restart,
+            ),
+            label = "shimmer_translate",
+        )
+        Modifier.shimmerShader(
+            translateValue = translateAnim.value,
+            baseColor = MaterialTheme.colorScheme.surfaceVariant,
+            highlightColor = MaterialTheme.colorScheme.surface
+        )
+    }
 
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .height(180.dp),
-        shape = RoundedCornerShape(16.dp),
+            .height(228.dp),
+        shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
         ),

@@ -6,6 +6,7 @@ import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import it.polimi.webeep.BuildConfig
 import it.polimi.webeep.core.database.DatabaseMigrations
 import it.polimi.webeep.core.database.WeBeepDatabase
 import it.polimi.webeep.core.database.dao.CourseContentDao
@@ -29,14 +30,16 @@ object DatabaseModule {
     @Provides
     @Singleton
     fun provideDatabase(application: Application): WeBeepDatabase {
-        return Room.databaseBuilder(
+        val builder = Room.databaseBuilder(
             application,
             WeBeepDatabase::class.java,
             DATABASE_NAME
         )
             .addMigrations(DatabaseMigrations.MIGRATION_1_2, DatabaseMigrations.MIGRATION_2_3, DatabaseMigrations.MIGRATION_3_4)
-            .fallbackToDestructiveMigration(dropAllTables = true)
-            .build()
+        if (BuildConfig.DEBUG) {
+            builder.fallbackToDestructiveMigration(dropAllTables = true)
+        }
+        return builder.build()
     }
 
     /**

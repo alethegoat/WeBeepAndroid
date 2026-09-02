@@ -78,7 +78,7 @@ class DashboardViewModelTest {
             every { isOnline } returns flowOf(true)
         }
         
-        getCoursesUseCase = GetCoursesUseCase(fakeDashboardRepository)
+        getCoursesUseCase = GetCoursesUseCase(fakeDashboardRepository, fakeNetworkMonitor)
         syncCoursesUseCase = SyncCoursesUseCase(fakeDashboardRepository)
         
         fakeDashboardRepository.userInfoResult = Result.success("Alessio" to "avatar.png")
@@ -232,8 +232,8 @@ class DashboardViewModelTest {
 
     private class FakeAuthRepository : AuthRepository {
         var logoutCalled = false
-        override suspend fun validateToken(token: String): Result<it.polimi.webeep.core.network.dto.SiteInfoDto> = Result.failure(Exception())
-        override suspend fun saveAuthData(token: String, privateToken: String?, siteInfo: it.polimi.webeep.core.network.dto.SiteInfoDto) {}
+        override suspend fun validateToken(token: String): Result<it.polimi.webeep.feature.auth.domain.UserSession> = Result.failure(Exception())
+        override suspend fun saveAuthData(token: String, privateToken: String?, session: it.polimi.webeep.feature.auth.domain.UserSession) {}
         override suspend fun isLoggedIn(): Boolean = false
         override suspend fun logout() { logoutCalled = true }
     }

@@ -41,7 +41,7 @@ class SettingsManager @Inject constructor(
     }
 
     val wifiOnlySync: Flow<Boolean> = context.dataStore.data.map { preferences ->
-        preferences[WIFI_ONLY_SYNC_KEY] ?: true
+        preferences[WIFI_ONLY_SYNC_KEY] ?: false
     }
 
     val syncFrequency: Flow<SyncFrequency> = context.dataStore.data.map { preferences ->

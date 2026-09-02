@@ -5,8 +5,8 @@ import android.content.SharedPreferences
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
 import it.polimi.webeep.core.di.IoDispatcher
-import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -15,9 +15,8 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * authentication token manager for moodle apis.
- * uses encryptedsharedpreferences for secure storage of sensitive data.
- * implements [tokenprovider] to allow fake injection in tests.
+ * Authentication token manager for Moodle APIs.
+ * Uses EncryptedSharedPreferences for secure storage of sensitive data.
  */
 @Singleton
 class TokenManager @Inject constructor(
@@ -31,6 +30,9 @@ class TokenManager @Inject constructor(
         private const val KEY_PRIVATE_TOKEN = "private_token"
         private const val KEY_USER_ID = "user_id"
         private const val KEY_FULL_NAME = "full_name"
+        private const val KEY_PENDING_PASSPORT = "pending_sso_passport"
+        private const val KEY_PENDING_PASSPORTS = "pending_sso_passports"
+        private const val MAX_PENDING_PASSPORTS = 8
         private const val USER_ID_DEFAULT = -1
     }
 
@@ -39,10 +41,7 @@ class TokenManager @Inject constructor(
     private val _isLoggedIn = MutableStateFlow(false)
     private val _wsToken = MutableStateFlow<String?>(null)
 
-    /** flow emitting user authentication state. */
     override val isLoggedIn: Flow<Boolean> = _isLoggedIn.asStateFlow()
-
-    /** current ws token (null if not authenticated). used to combine offline cache. */
     override val wsToken: Flow<String?> = _wsToken.asStateFlow()
 
     @Volatile
@@ -64,10 +63,6 @@ class TokenManager @Inject constructor(
         refreshCacheFromPrefs()
     }
 
-    /**
-     * creates masterkey with strongbox (hardware-backed se) support where available.
-     * automatically falls back to standard tee if strongbox is not supported.
-     */
     private fun createMasterKey(application: Application): MasterKey {
         return try {
             MasterKey.Builder(application)
@@ -76,14 +71,12 @@ class TokenManager @Inject constructor(
                 .build()
         } catch (e: Exception) {
             if (e is CancellationException) throw e
-            // fallback to standard tee if strongbox is not available
             MasterKey.Builder(application)
                 .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
                 .build()
         }
     }
 
-    /** synchronous token read for okhttp (thread-safe, without runblocking). */
     override fun getTokenSync(): String? = cachedWsToken
 
     override suspend fun saveAuthData(
@@ -93,37 +86,61 @@ class TokenManager @Inject constructor(
         fullName: String
     ) {
         withContext(ioDispatcher) {
-            val success = encryptedPrefs.edit()
-                .putString(KEY_WS_TOKEN, token)
-                .putString(KEY_PRIVATE_TOKEN, privateToken)
-                .putInt(KEY_USER_ID, userId)
-                .putString(KEY_FULL_NAME, fullName)
-                .commit()
-
-            if (!success) {
-                throw SecurityException("Impossibile persistere i dati di autenticazione in modo sicuro")
+            synchronized(clearLock) {
+                val editor = encryptedPrefs.edit()
+                    .putString(KEY_WS_TOKEN, token)
+                    .putInt(KEY_USER_ID, userId)
+                    .putString(KEY_FULL_NAME, fullName)
+                    .remove(KEY_PENDING_PASSPORT)
+                    .remove(KEY_PENDING_PASSPORTS)
+                if (privateToken != null) {
+                    editor.putString(KEY_PRIVATE_TOKEN, privateToken)
+                }
+                val success = editor.commit()
+                if (!success) {
+                    throw SecurityException("Impossibile persistere i dati di autenticazione in modo sicuro")
+                }
+                refreshCacheFromPrefs()
             }
+        }
+    }
 
-            refreshCacheFromPrefs()
+    override suspend fun updateUserProfile(userId: Int, fullName: String) {
+        withContext(ioDispatcher) {
+            synchronized(clearLock) {
+                val success = encryptedPrefs.edit()
+                    .putInt(KEY_USER_ID, userId)
+                    .putString(KEY_FULL_NAME, fullName)
+                    .commit()
+                if (!success) {
+                    throw SecurityException("Impossibile aggiornare il profilo utente")
+                }
+            }
         }
     }
 
     override suspend fun getToken(): String? {
         return withContext(ioDispatcher) {
-            encryptedPrefs.getString(KEY_WS_TOKEN, null).also { cachedWsToken = it }
+            synchronized(clearLock) {
+                encryptedPrefs.getString(KEY_WS_TOKEN, null).also { cachedWsToken = it }
+            }
         }
     }
 
     override suspend fun getUserId(): Int? {
         return withContext(ioDispatcher) {
-            val userId = encryptedPrefs.getInt(KEY_USER_ID, USER_ID_DEFAULT)
-            if (userId == USER_ID_DEFAULT) null else userId
+            synchronized(clearLock) {
+                val userId = encryptedPrefs.getInt(KEY_USER_ID, USER_ID_DEFAULT)
+                if (userId == USER_ID_DEFAULT) null else userId
+            }
         }
     }
 
     override suspend fun getUserFullName(): String? {
         return withContext(ioDispatcher) {
-            encryptedPrefs.getString(KEY_FULL_NAME, null)
+            synchronized(clearLock) {
+                encryptedPrefs.getString(KEY_FULL_NAME, null)
+            }
         }
     }
 
@@ -133,19 +150,65 @@ class TokenManager @Inject constructor(
         }
     }
 
-    /** session invalidation from http interceptor — thread-safe with lock. */
     override fun clearSessionSync() {
         synchronized(clearLock) {
-            encryptedPrefs.edit().clear().apply()
+            encryptedPrefs.edit().clear().commit()
             cachedWsToken = null
             _wsToken.value = null
             _isLoggedIn.value = false
         }
     }
 
+    override fun savePendingPassportSync(passport: String) {
+        synchronized(clearLock) {
+            val passports = readPassportList().toMutableList()
+            passports.remove(passport)
+            passports.add(passport)
+            while (passports.size > MAX_PENDING_PASSPORTS) {
+                passports.removeAt(0)
+            }
+            encryptedPrefs.edit()
+                .putString(KEY_PENDING_PASSPORT, passport)
+                .putString(KEY_PENDING_PASSPORTS, passports.joinToString("\n"))
+                .commit()
+        }
+    }
+
+    override fun getPendingPassportSync(): String? {
+        synchronized(clearLock) {
+            return readPassportList().lastOrNull()
+                ?: encryptedPrefs.getString(KEY_PENDING_PASSPORT, null)
+        }
+    }
+
+    override fun getPendingPassportsSync(): List<String> {
+        synchronized(clearLock) {
+            val list = readPassportList()
+            if (list.isNotEmpty()) return list
+            return listOfNotNull(encryptedPrefs.getString(KEY_PENDING_PASSPORT, null))
+        }
+    }
+
+    override fun clearPendingPassportSync() {
+        synchronized(clearLock) {
+            encryptedPrefs.edit()
+                .remove(KEY_PENDING_PASSPORT)
+                .remove(KEY_PENDING_PASSPORTS)
+                .commit()
+        }
+    }
+
+    private fun readPassportList(): List<String> {
+        return encryptedPrefs.getString(KEY_PENDING_PASSPORTS, null)
+            ?.split('\n')
+            ?.map { it.trim() }
+            ?.filter { it.isNotEmpty() }
+            .orEmpty()
+    }
+
     private fun clearAllInternal() {
         synchronized(clearLock) {
-            encryptedPrefs.edit().clear().apply()
+            encryptedPrefs.edit().clear().commit()
             refreshCacheFromPrefs()
         }
     }

@@ -3,68 +3,53 @@ package it.polimi.webeep.feature.dashboard.data
 import it.polimi.webeep.core.database.dao.CourseDao
 import it.polimi.webeep.core.database.entity.CourseEntity
 import it.polimi.webeep.core.datastore.TokenManager
-import it.polimi.webeep.core.network.MoodleFileUrlBuilder
+import it.polimi.webeep.core.di.DefaultDispatcher
 import it.polimi.webeep.core.network.MoodleApiService
+import it.polimi.webeep.core.network.MoodleFileUrlBuilder
+import it.polimi.webeep.core.util.MoodleText
 import it.polimi.webeep.feature.dashboard.domain.DashboardRepository
 import it.polimi.webeep.feature.dashboard.domain.model.Course
-import it.polimi.webeep.core.util.MoodleText
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOn
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 
 /**
- * implementation of [DashboardRepository] that integrates room and retrofit.
+ * Dashboard repository backed by Room and the Moodle REST API.
  */
 class DashboardRepositoryImpl @Inject constructor(
     private val apiService: MoodleApiService,
     private val courseDao: CourseDao,
-    private val tokenManager: TokenManager
+    private val tokenManager: TokenManager,
+    @DefaultDispatcher private val defaultDispatcher: CoroutineDispatcher
 ) : DashboardRepository {
 
     override fun getCoursesFromCache(): Flow<List<Course>> {
-        return combine(courseDao.getAllCourses(), tokenManager.wsToken) { entities, token ->
+        return courseDao.getAllCourses().map { entities ->
             entities.map { entity ->
-                val courseImage = entity.courseImage?.let { url ->
-                    if (token != null && url.contains("/pluginfile.php/")) {
-                        MoodleFileUrlBuilder.buildAuthenticatedUrl(url, token)
-                    } else {
-                        url
-                    }
-                }
+                val courseImage = entity.courseImage?.let { MoodleFileUrlBuilder.stripAuthFromUrl(it) }
                 entity.copy(courseImage = courseImage).toDomain()
             }
-        }.flowOn(Dispatchers.Default)
+        }.flowOn(defaultDispatcher)
     }
 
     override suspend fun syncCourses(): Result<List<Course>> {
         return runCatching {
-            val token = tokenManager.getToken() ?: throw IllegalStateException("Token non disponibile. Effettua il login.")
-            
-            // retrieves or updates the user id to prepare for the course api call
+            tokenManager.getToken() ?: throw IllegalStateException("Token non disponibile. Effettua il login.")
+
             var userId = tokenManager.getUserId()
             if (userId == null) {
-                val siteInfo = apiService.getSiteInfo(wsToken = token)
-                tokenManager.saveAuthData(
-                    token = token,
-                    privateToken = null, // keeps existing data, but here we set what we have
-                    userId = siteInfo.userid,
-                    fullName = siteInfo.fullname
-                )
+                val siteInfo = apiService.getSiteInfo()
+                tokenManager.updateUserProfile(siteInfo.userid, siteInfo.fullname)
                 userId = siteInfo.userid
             }
 
             val courseDtos = apiService.getEnrolledCourses(userId = userId)
-            
+
             val entities = courseDtos.map { dto ->
                 val imageUrl = dto.overviewfiles?.firstOrNull()?.fileurl?.let { url ->
-                    val authenticated = if (url.contains("/pluginfile.php/")) {
-                        MoodleFileUrlBuilder.buildAuthenticatedUrl(url, token)
-                    } else {
-                        url
-                    }
-                    MoodleFileUrlBuilder.stripAuthFromUrl(authenticated)
+                    MoodleFileUrlBuilder.stripAuthFromUrl(url)
                 }
 
                 CourseEntity(
@@ -91,23 +76,12 @@ class DashboardRepositoryImpl @Inject constructor(
 
     override suspend fun getUserInfo(): Result<Pair<String, String>> {
         return runCatching {
-            val token = tokenManager.getToken() ?: throw IllegalStateException("Token non disponibile")
-            val siteInfo = apiService.getSiteInfo(wsToken = token)
-            
-            // converts the user image to support the token in case it's a private file
-            val avatarUrl = if (siteInfo.userpictureurl.contains("/pluginfile.php/")) {
-                MoodleFileUrlBuilder.buildAuthenticatedUrl(siteInfo.userpictureurl, token)
-            } else {
-                siteInfo.userpictureurl
-            }
+            tokenManager.getToken() ?: throw IllegalStateException("Token non disponibile")
+            val siteInfo = apiService.getSiteInfo()
 
-            tokenManager.saveAuthData(
-                token = token,
-                privateToken = null,
-                userId = siteInfo.userid,
-                fullName = siteInfo.fullname
-            )
+            tokenManager.updateUserProfile(siteInfo.userid, siteInfo.fullname)
 
+            val avatarUrl = MoodleFileUrlBuilder.stripAuthFromUrl(siteInfo.userpictureurl)
             siteInfo.fullname to avatarUrl
         }
     }
