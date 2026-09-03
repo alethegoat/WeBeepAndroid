@@ -28,8 +28,7 @@ import it.polimi.webeep.R
 import it.polimi.webeep.core.ui.theme.WeBeepSpacing
 
 /**
- * Single-line search field with IME Search, clear affordance, and TalkBack labels.
- * Filtering is expected to be local and immediate (no debounce).
+ * Filtering is local and immediate (no debounce).
  */
 @Composable
 fun WeBeepSearchField(

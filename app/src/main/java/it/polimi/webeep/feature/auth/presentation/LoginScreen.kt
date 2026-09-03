@@ -55,9 +55,6 @@ import it.polimi.webeep.core.ui.util.LocalReduceMotion
 import it.polimi.webeep.core.ui.util.bouncyClickable
 import kotlinx.coroutines.delay
 
-/**
- * screen displaying the login interface and handling user authentication via sso.
- */
 @Composable
 fun LoginScreen(
     viewModel: LoginViewModel,

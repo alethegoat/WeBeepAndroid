@@ -54,17 +54,7 @@ import it.polimi.webeep.core.ui.theme.WeBeepTheme
 import it.polimi.webeep.core.ui.util.bouncyClickable
 import it.polimi.webeep.core.ui.util.courseSharedBounds
 
-/**
- * ui model for a course card.
- *
- * @property id unique moodle course id.
- * @property shortname short course name (e.g. "info-2").
- * @property fullname full course name.
- * @property courseImage course cover image url, if available.
- * @property progress course progress (0f–1f), null if not available.
- * @property isFavourite whether the course is among the user's favorites.
- * @property category category or subject area of the course.
- */
+/** UI model for a course card. [progress] is 0f–1f, null if unavailable. */
 @Immutable
 data class CourseUiModel(
     val id: Int,
@@ -77,24 +67,6 @@ data class CourseUiModel(
     val endDate: Long = 0L,
 )
 
-/**
- * premium card for displaying a course.
- *
- * features:
- * - cover image loaded with coil ([asyncimage]) with dark gradient overlay.
- * - if image is not available, shows a polimi gradient (navy → blue).
- * - white title with shadow for readability on any background.
- * - semi-transparent subtitle (shortname).
- * - category chip on the top left.
- * - favorite star icon on the top right.
- * - progress bar at the bottom (optional).
- * - animated elevation on touch ("lift" effect).
- *
- * @param course course data to display.
- * @param onClick callback on card click.
- * @param onFavouriteClick callback on favorite icon click.
- * @param modifier external modifier.
- */
 @Composable
 fun CourseCard(
     course: CourseUiModel,
@@ -125,7 +97,6 @@ fun CourseCard(
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
-            // ── upper half: image or pattern ───────────────
             val gradientBrush = remember {
                 Brush.linearGradient(
                     colors = listOf(GradientDarkStart, GradientDarkEnd),
@@ -158,7 +129,6 @@ fun CourseCard(
                         )
                 )
 
-                // category and star in overlay on image
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -193,7 +163,6 @@ fun CourseCard(
                 }
             }
 
-            // ── lower half: content ────────────────────────
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -238,9 +207,6 @@ fun CourseCard(
     }
 }
 
-/**
- * compact chip for course category, with semi-transparent background.
- */
 @Composable
 private fun CategoryChip(
     category: String,
@@ -274,7 +240,7 @@ private fun CourseCardWithImagePreview() {
                     id = 1,
                     shortname = "051234 - INFO",
                     fullname = "Informatica e Elementi di Informatica Medica",
-                    courseImage = null, // in preview we don't load network
+                    courseImage = null,
                     progress = 0.65f,
                     isFavourite = true,
                     category = "Ingegneria",

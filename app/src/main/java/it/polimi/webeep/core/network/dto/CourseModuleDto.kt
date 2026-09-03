@@ -3,10 +3,7 @@ package it.polimi.webeep.core.network.dto
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
-/**
- * dto for a module inside a course section.
- * represents activities like files, forums, assignments, etc.
- */
+/** Module (activity) inside a course section. */
 @Serializable
 data class CourseModuleDto(
     @SerialName("id") val id: Int = 0,
@@ -24,9 +21,6 @@ data class CourseModuleDto(
     @SerialName("contents") val contents: List<ModuleContentDto>? = null
 )
 
-/**
- * dto for the content of a module (file, url, etc.).
- */
 @Serializable
 data class ModuleContentDto(
     @SerialName("type") val type: String = "",

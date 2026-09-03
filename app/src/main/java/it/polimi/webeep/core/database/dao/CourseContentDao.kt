@@ -31,16 +31,9 @@ data class SectionWithModules(
     val modules: List<ModuleWithContents>
 )
 
-/**
- * dao for accessing course section contents in local cache.
- */
 @Dao
 abstract class CourseContentDao {
 
-    /**
-     * retrieves all sections of a specific course, ordered by section number.
-     * returns a flow that automatically emits updates when data changes.
-     */
     @Transaction
     @Query("SELECT * FROM course_sections WHERE courseId = :courseId ORDER BY section ASC")
     abstract fun getSectionsByCourse(courseId: Int): Flow<List<SectionWithModules>>
@@ -49,10 +42,6 @@ abstract class CourseContentDao {
     @Query("SELECT * FROM course_sections WHERE courseId = :courseId ORDER BY section ASC")
     abstract suspend fun getSectionsByCourseSync(courseId: Int): List<SectionWithModules>
 
-    /**
-     * inserts a list of sections into the database.
-     * in case of conflict (same id), the existing section is replaced.
-     */
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     abstract suspend fun insertSections(sections: List<CourseSectionEntity>)
 
@@ -62,15 +51,11 @@ abstract class CourseContentDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     abstract suspend fun insertContents(contents: List<ModuleContentEntity>)
 
-    /**
-     * deletes all sections of a specific course. (cascade will also delete modules and files)
-     */
     @Query("DELETE FROM course_sections WHERE courseId = :courseId")
     abstract suspend fun deleteSectionsByCourse(courseId: Int)
 
     /**
-     * performs a complete replacement of course contents atomically.
-     * this prevents flickering in the user interface.
+     * Atomic replacement avoids UI flickering.
      */
     @Transaction
     open suspend fun replaceCourseContent(

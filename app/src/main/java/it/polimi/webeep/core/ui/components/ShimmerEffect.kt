@@ -44,10 +44,7 @@ import androidx.compose.ui.composed
 import androidx.compose.ui.draw.drawWithContent
 import it.polimi.webeep.core.ui.util.LocalReduceMotion
 
-/**
- * modifier that adds a performant animated shimmer effect.
- * avoids continuous recomposition by reading the animation only in the draw phase.
- */
+/** Draw-phase shimmer: no recomposition per animation frame. */
 fun Modifier.shimmerShader(
     translateValue: Float,
     baseColor: Color,
@@ -62,14 +59,6 @@ fun Modifier.shimmerShader(
     drawRect(brush = brush)
 }
 
-/**
- * base composable for a shimmer element with configurable dimensions.
- *
- * @param modifier modifier to customize layout and style.
- * @param width element width. if `null`, fills available space.
- * @param height element height.
- * @param shape element shape (default: rounded rectangle 8dp).
- */
 @Composable
 fun ShimmerEffect(
     modifier: Modifier = Modifier,
@@ -114,12 +103,6 @@ fun ShimmerEffect(
     )
 }
 
-/**
- * shimmer placeholder that mimics the shape of a [coursecard].
- *
- * shows a rounded rectangle with placeholder lines for title,
- * subtitle, category chip and progress indicator.
- */
 @Composable
 fun ShimmerCourseCard(
     modifier: Modifier = Modifier,
@@ -161,13 +144,11 @@ fun ShimmerCourseCard(
                 .padding(16.dp),
             verticalArrangement = Arrangement.SpaceBetween,
         ) {
-            // upper area: category chip + star
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                // placeholder chip
                 Box(
                     modifier = Modifier
                         .width(72.dp)
@@ -175,7 +156,6 @@ fun ShimmerCourseCard(
                         .clip(RoundedCornerShape(12.dp))
                         .then(shimmerModifier),
                 )
-                // placeholder star
                 Box(
                     modifier = Modifier
                         .size(24.dp)
@@ -186,9 +166,7 @@ fun ShimmerCourseCard(
 
             Spacer(modifier = Modifier.weight(1f))
 
-            // lower area: title, subtitle, progress
             Column {
-                // title (2 lines)
                 Box(
                     modifier = Modifier
                         .fillMaxWidth(0.85f)
@@ -206,7 +184,6 @@ fun ShimmerCourseCard(
                 )
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // subtitle
                 Box(
                     modifier = Modifier
                         .fillMaxWidth(0.4f)
@@ -216,7 +193,6 @@ fun ShimmerCourseCard(
                 )
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // progress bar placeholder
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -229,12 +205,6 @@ fun ShimmerCourseCard(
     }
 }
 
-/**
- * grid of [shimmercoursecard] to simulate course list loading.
- *
- * @param itemCount number of shimmer cards to show (default: 6).
- * @param columns number of grid columns (default: 1).
- */
 @Composable
 fun ShimmerCourseList(
     modifier: Modifier = Modifier,

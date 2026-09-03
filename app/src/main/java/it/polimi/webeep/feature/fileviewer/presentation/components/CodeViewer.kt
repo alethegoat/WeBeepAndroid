@@ -17,9 +17,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import it.polimi.webeep.core.ui.util.ScrollBoundaryHaptics
 
-/**
- * component to display code files.
- */
 @Composable
 fun CodeViewer(
     content: String,

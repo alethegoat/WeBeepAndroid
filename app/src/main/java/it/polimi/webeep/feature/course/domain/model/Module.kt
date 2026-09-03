@@ -1,8 +1,5 @@
 package it.polimi.webeep.feature.course.domain.model
 
-/**
- * domain model for a module (activity or resource) within a section.
- */
 data class Module(
     val id: Int,
     val name: String,

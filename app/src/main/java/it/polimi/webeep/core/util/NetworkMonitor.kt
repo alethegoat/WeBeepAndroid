@@ -12,11 +12,6 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import javax.inject.Inject
 import javax.inject.Singleton
 
-/**
- * monitor for network connection state.
- * uses connectivitymanager to observe connectivity changes
- * and exposes them as flow<boolean>.
- */
 @Singleton
 class NetworkMonitor @Inject constructor(application: Application) {
 
@@ -24,11 +19,7 @@ class NetworkMonitor @Inject constructor(application: Application) {
         application.getSystemService(ConnectivityManager::class.java)
 
     /**
-     * flow that emits the current network connection state.
-     * emits true when the device is connected to the internet, false otherwise.
-     *
-     * the flow emits the current value immediately upon subscription
-     * and subsequently emits updates on every network state change.
+     * Emits the current connectivity immediately upon subscription, then updates.
      */
     val isOnline: Flow<Boolean> = callbackFlow {
         val networkCallback = object : ConnectivityManager.NetworkCallback() {

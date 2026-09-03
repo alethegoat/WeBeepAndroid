@@ -17,9 +17,6 @@ import androidx.room.PrimaryKey
     ],
     indices = [Index(value = ["moduleId"])]
 )
-/**
- * room entity representing the content of a module.
- */
 data class ModuleContentEntity(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
     val moduleId: Int,

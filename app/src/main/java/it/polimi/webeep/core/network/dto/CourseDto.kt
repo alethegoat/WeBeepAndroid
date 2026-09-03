@@ -3,10 +3,7 @@ package it.polimi.webeep.core.network.dto
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
-/**
- * dto for a moodle course.
- * mapped from the response of core_enrol_get_users_courses.
- */
+/** Response of core_enrol_get_users_courses. */
 @Serializable
 data class CourseDto(
     @SerialName("id") val id: Int = 0,
@@ -28,9 +25,6 @@ data class CourseDto(
     @SerialName("category") val category: Int? = null
 )
 
-/**
- * dto for a course overview file.
- */
 @Serializable
 data class OverviewFileDto(
     @SerialName("filename") val filename: String? = null,

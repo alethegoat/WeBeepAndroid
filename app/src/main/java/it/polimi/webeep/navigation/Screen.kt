@@ -2,13 +2,7 @@ package it.polimi.webeep.navigation
 
 import android.net.Uri
 
-/**
- * represents the screens and their routes in the navigation graph.
- */
 sealed class Screen(val route: String) {
-    /**
-     * login without sso token (logout, app startup).
-     */
     data object Login : Screen("login") {
         const val TOKEN_ARG = "token"
         const val routeWithToken = "login?token={token}"

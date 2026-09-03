@@ -14,9 +14,6 @@ import it.polimi.webeep.feature.download.data.DownloadRepositoryImpl
 import it.polimi.webeep.feature.download.domain.DownloadRepository
 import javax.inject.Singleton
 
-/**
- * hilt module for repository dependency injection.
- */
 @Module
 @InstallIn(SingletonComponent::class)
 abstract class RepositoryModule {

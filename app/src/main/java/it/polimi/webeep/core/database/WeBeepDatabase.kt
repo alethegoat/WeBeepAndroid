@@ -9,14 +9,6 @@ import it.polimi.webeep.core.database.entity.CourseModuleEntity
 import it.polimi.webeep.core.database.entity.CourseSectionEntity
 import it.polimi.webeep.core.database.entity.ModuleContentEntity
 
-/**
- * main room database for the webeep app.
- * manages the local cache of courses and course sections.
- *
- * entities:
- * - [courseentity]: user courses
- * - [coursesectionentity]: course sections and contents
- */
 @Database(
     entities = [
         CourseEntity::class,
@@ -29,13 +21,7 @@ import it.polimi.webeep.core.database.entity.ModuleContentEntity
 )
 abstract class WeBeepDatabase : RoomDatabase() {
 
-    /**
-     * provides the dao for course data access.
-     */
     abstract fun courseDao(): CourseDao
 
-    /**
-     * provides the dao for course sections content access.
-     */
     abstract fun courseContentDao(): CourseContentDao
 }

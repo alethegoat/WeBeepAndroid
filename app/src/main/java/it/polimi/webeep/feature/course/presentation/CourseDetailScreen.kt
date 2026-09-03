@@ -94,9 +94,6 @@ import it.polimi.webeep.core.ui.util.bouncyClickable
 import it.polimi.webeep.core.ui.util.courseSharedBounds
 import it.polimi.webeep.feature.download.presentation.DownloadProgressIndicator
 
-/**
- * screen that shows the details of a course, its sections and materials.
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CourseDetailScreen(
@@ -125,7 +122,6 @@ fun CourseDetailScreen(
                     modifier = Modifier.drawBehind {
                         val fraction = scrollBehavior.state.overlappedFraction.coerceIn(0f, 1f)
                         if (fraction > 0f) {
-                            // To make it melt beautifully into the Aurora, we extend the bottom transparent part
                             drawRect(
                                 brush = androidx.compose.ui.graphics.Brush.verticalGradient(
                                     colors = listOf(
@@ -314,7 +310,6 @@ private fun SectionItem(
             .padding(horizontal = 16.dp, vertical = 6.dp)
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
-            // section header
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier

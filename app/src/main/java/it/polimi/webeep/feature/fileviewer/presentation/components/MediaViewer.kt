@@ -37,9 +37,6 @@ import androidx.media3.ui.PlayerView
 import it.polimi.webeep.R
 import it.polimi.webeep.core.network.MoodleFileUrlBuilder
 
-/**
- * Component to display and play media files.
- */
 @OptIn(UnstableApi::class)
 @Composable
 fun MediaViewer(

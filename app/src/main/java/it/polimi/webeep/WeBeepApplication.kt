@@ -12,10 +12,6 @@ import coil.disk.DiskCache
 import coil.memory.MemoryCache
 import okhttp3.OkHttpClient
 
-/**
- * main application class of the webeep app.
- * annotated with @hiltandroidapp to enable dependency injection via hilt.
- */
 @HiltAndroidApp
 class WeBeepApplication : Application(), Configuration.Provider, ImageLoaderFactory {
 
@@ -33,11 +29,10 @@ class WeBeepApplication : Application(), Configuration.Provider, ImageLoaderFact
     override fun newImageLoader(): ImageLoader {
         return ImageLoader.Builder(this)
             .callFactory { okHttpClientLazy.get() }
-            .crossfade(true) // crossfade for a premium image loading experience
+            .crossfade(true)
             .memoryCache {
                 MemoryCache.Builder(this)
-                    // Leave headroom for PdfRenderer and WebView, which share the
-                    // same application heap with Coil's memory cache.
+                    // Leave headroom for PdfRenderer and WebView sharing the app heap.
                     .maxSizePercent(0.15)
                     .build()
             }
@@ -47,7 +42,7 @@ class WeBeepApplication : Application(), Configuration.Provider, ImageLoaderFact
                     .maxSizePercent(0.05)
                     .build()
             }
-            .respectCacheHeaders(false) // optimize for aggressive local caching
+            .respectCacheHeaders(false)
             .build()
     }
 }

@@ -3,10 +3,7 @@ package it.polimi.webeep.core.network.dto
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
-/**
- * dto for a moodle course section.
- * mapped from the response of core_course_get_contents.
- */
+/** Response of core_course_get_contents (section level). */
 @Serializable
 data class CourseSectionDto(
     @SerialName("id") val id: Int = 0,

@@ -16,9 +16,6 @@ import androidx.compose.ui.unit.dp
 import it.polimi.webeep.core.ui.util.LocalReduceMotion
 import it.polimi.webeep.core.ui.util.rememberReduceMotion
 
-/**
- * light color scheme based on polimi palette.
- */
 private val LightColorScheme = lightColorScheme(
     primary = PoliMiNavy,
     onPrimary = OnPrimaryLight,
@@ -50,9 +47,6 @@ private val LightColorScheme = lightColorScheme(
     surfaceTint = LightSurfaceTint
 )
 
-/**
- * dark color scheme based on polimi palette.
- */
 private val DarkColorScheme = darkColorScheme(
     primary = PoliMiBrightBlueLight,
     onPrimary = OnPrimaryDark,
@@ -92,10 +86,7 @@ private val WeBeepShapes = Shapes(
 )
 
 /**
- * main theme of the webeep app.
- *
- * supports dynamic theming (android 12+) as requested, extracting colors
- * from the system background. edge-to-edge is now native in compose.
+ * Dynamic color applies on Android 12+ only; older versions use the PoliMi palette.
  */
 @Composable
 fun WeBeepTheme(

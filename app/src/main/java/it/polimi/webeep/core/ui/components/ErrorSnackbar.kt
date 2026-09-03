@@ -25,13 +25,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import it.polimi.webeep.core.ui.theme.WeBeepTheme
 
-/**
- * data to display an error snackbar.
- *
- * @param message error message to show.
- * @param actionLabel label for the action button (e.g. "retry"). null if no action.
- * @param duration display duration.
- */
 data class WeBeepSnackbarVisuals(
     override val message: String,
     override val actionLabel: String? = null,
@@ -39,15 +32,6 @@ data class WeBeepSnackbarVisuals(
     override val duration: SnackbarDuration = SnackbarDuration.Short,
 ) : SnackbarVisuals
 
-/**
- * custom snackbar host for webeep with material3 error style.
- *
- * each snackbar appears from the bottom with slide + fade animation,
- * and uses the `error`/`onerror` colors from the current theme.
- *
- * @param hostState snackbar state shared with the caller.
- * @param modifier modifier for positioning and layout.
- */
 @Composable
 fun WeBeepSnackbarHost(
     hostState: SnackbarHostState,
@@ -62,11 +46,6 @@ fun WeBeepSnackbarHost(
     )
 }
 
-/**
- * single snackbar styled with error colors and rounded shape.
- *
- * @param snackbarData current snackbar data.
- */
 @Composable
 private fun WeBeepSnackbar(
     snackbarData: SnackbarData,
@@ -131,25 +110,6 @@ private fun WeBeepSnackbar(
     }
 }
 
-/**
- * shows an error snackbar with retry option.
- *
- * utility function to simplify snackbar usage:
- * ```kotlin
- * showErrorSnackbar(
- *     snackbarHostState = snackbarHostState,
- *     message = "connection failed",
- *     actionLabel = "retry",
- *     onAction = { viewModel.retry() },
- * )
- * ```
- *
- * @param snackbarHostState state of the snackbar host.
- * @param message error message.
- * @param actionLabel button label (default: "retry").
- * @param onAction callback executed on action click.
- * @param onDismiss callback executed on dismissal without action.
- */
 suspend fun showErrorSnackbar(
     snackbarHostState: SnackbarHostState,
     message: String,

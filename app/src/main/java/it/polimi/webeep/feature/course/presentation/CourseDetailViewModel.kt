@@ -71,9 +71,6 @@ data class FileUiModel(
 
 enum class DownloadState { NOT_STARTED, DOWNLOADING, COMPLETED, FAILED }
 
-/**
- * viewmodel for the course detail screen, managing state and downloading logic.
- */
 @HiltViewModel
 class CourseDetailViewModel @Inject constructor(
     private val getCourseContentsUseCase: GetCourseContentsUseCase,
@@ -213,7 +210,6 @@ class CourseDetailViewModel @Inject constructor(
     }
 
     private fun updateFileDownloadState(fileUrl: String, newState: DownloadState) {
-        // recursively update the ui state by replacing only the affected file
         _uiState.update { state ->
             if (state is CourseDetailUiState.Success) {
                 val updatedSections = state.sections.map { section ->

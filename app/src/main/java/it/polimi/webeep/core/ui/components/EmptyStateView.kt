@@ -32,20 +32,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import it.polimi.webeep.core.ui.theme.WeBeepTheme
 
-/**
- * view for empty states (no results, no courses, etc.).
- *
- * shows a large icon, a descriptive title, an optional subtitle
- * and an optional action button. all elements appear with a spring
- * animation for a pleasant and modern effect.
- *
- * @param icon icon to show in the center.
- * @param title descriptive title of the empty state.
- * @param subtitle subtitle with additional details. null if not needed.
- * @param actionLabel action button label. null to hide the button.
- * @param onAction callback on action button click.
- * @param modifier modifier for external layout.
- */
 @Composable
 fun EmptyStateView(
     icon: ImageVector,
@@ -75,7 +61,6 @@ fun EmptyStateView(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
         ) {
-            // icon with spring scale-in animation
             AnimatedVisibility(
                 visibleState = remember {
                     MutableTransitionState(false).apply { targetState = true }
@@ -94,7 +79,6 @@ fun EmptyStateView(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // title with slide-in animation
             AnimatedVisibility(
                 visibleState = remember {
                     MutableTransitionState(false).apply { targetState = true }
@@ -112,7 +96,6 @@ fun EmptyStateView(
                 )
             }
 
-            // subtitle
             if (subtitle != null) {
                 Spacer(modifier = Modifier.height(8.dp))
 
@@ -134,7 +117,6 @@ fun EmptyStateView(
                 }
             }
 
-            // action button
             if (actionLabel != null && onAction != null) {
                 Spacer(modifier = Modifier.height(24.dp))
 

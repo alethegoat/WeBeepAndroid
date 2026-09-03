@@ -1,8 +1,5 @@
 package it.polimi.webeep.feature.dashboard.domain.model
 
-/**
- * domain model for a course.
- */
 data class Course(
     val id: Int,
     val shortname: String,

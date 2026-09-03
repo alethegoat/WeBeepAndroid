@@ -9,18 +9,10 @@ import it.polimi.webeep.core.datastore.TokenManager
 import it.polimi.webeep.core.datastore.TokenProvider
 import javax.inject.Singleton
 
-/**
- * hilt module for datastore and token management configuration.
- * provides the tokenmanager as a singleton for the entire application.
- */
 @Module
 @InstallIn(SingletonComponent::class)
 object DataStoreModule {
 
-    /**
-     * provides a singleton instance of tokenmanager for secure
-     * management of authentication tokens via encryptedsharedpreferences.
-     */
     @Provides
     @Singleton
     fun provideTokenManager(
@@ -31,8 +23,7 @@ object DataStoreModule {
     }
 
     /**
-     * provides the tokenprovider interface for dependency injection.
-     * allows replacing the implementation with a fake in tests.
+     * Exposed as interface so tests can inject a fake.
      */
     @Provides
     @Singleton

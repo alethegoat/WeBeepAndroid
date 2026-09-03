@@ -10,14 +10,7 @@ import androidx.compose.ui.unit.sp
 import it.polimi.webeep.R
 
 /**
- * webeep app typography based on material3.
- *
- * uses two font families:
- * - **outfit** for titles, headlines and displays → geometric, modern.
- * - **inter** for body and label → optimized for screen readability.
- *
- * in production fonts can be loaded from google fonts or local assets.
- * for simplicity, here [fontfamily.default] is used with custom weights.
+ * Outfit for titles/headlines/displays, Inter for body/labels.
  */
 
 val provider = GoogleFont.Provider(
@@ -42,12 +35,6 @@ val InterFamily = FontFamily(
     Font(googleFont = InterFont, fontProvider = provider, weight = FontWeight.SemiBold)
 )
 
-/**
- * full material3 typography for webeep.
- *
- * dimensions follow the typographic scale recommended by material design 3,
- * with tracking and line-height calibrated for comfortable reading.
- */
 val WeBeepTypography = Typography(
 
     // ── display ──────────────────────────────────────────────────────

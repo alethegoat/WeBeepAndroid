@@ -63,9 +63,6 @@ import kotlinx.coroutines.sync.withLock
 import java.io.File
 import kotlin.math.roundToInt
 
-/**
- * component for viewing pdf files with pinch-to-zoom and lazy loading.
- */
 @Composable
 fun PdfViewer(
     file: File,
@@ -86,7 +83,7 @@ fun PdfViewer(
     }
     val pdfRenderer = pdfSession.renderer
 
-    // calculate the aspect ratio of the first page as default to prevent visual jumps during scroll
+    // First-page ratio as placeholder to prevent scroll jumps.
     val defaultAspectRatio = remember(pdfRenderer) {
         try {
             val page = pdfRenderer.openPage(0)
@@ -101,8 +98,8 @@ fun PdfViewer(
 
     val pdfMutex = remember { Mutex() }
 
-    // Keep a small, hard-capped cache. Do not recycle evicted bitmaps: a composed
-    // Image may still be drawing them. Recycle only when the viewer leaves composition.
+    // Small hard-capped cache. Never recycle evicted bitmaps here: a composed
+    // Image may still be drawing them; recycle only when leaving composition.
     val memoryCache = remember {
         val maxMemory = (Runtime.getRuntime().maxMemory() / 1024).toInt()
         val cacheSize = (maxMemory / 10)
@@ -127,10 +124,8 @@ fun PdfViewer(
         }
     }
 
-    // scroll state and page tracking
     val lazyListState = rememberLazyListState()
-    
-    // activate scroll haptic feedback at the top/bottom boundaries of the pdf
+
     ScrollBoundaryHaptics(state = lazyListState)
 
     val currentPage by remember {
@@ -155,13 +150,12 @@ fun PdfViewer(
         if (lazyListState.isScrollInProgress) {
             isIndicatorVisible = true
         } else {
-            // stay visible for 1500ms after scrolling stops
             kotlinx.coroutines.delay(1500)
             isIndicatorVisible = false
         }
     }
 
-    // silent pre-fetching: preload the next and previous pages
+    // Prefetch neighbours of the current page.
     LaunchedEffect(currentPage) {
         val pagesToFetch = listOf(currentPage + 1, currentPage - 1).filter { it in 0 until pageCount }
         pagesToFetch.forEach { pageIndex ->
@@ -232,11 +226,9 @@ fun PdfViewer(
             userScrollEnabled = scale <= 1f,
             modifier = Modifier
                 .fillMaxSize()
-                // custom pinch-to-zoom management: intercepts only multi-touch gestures (2+ fingers),
-                // letting single-finger drags pass to the lazycolumn for fluid scrolling.
+                // Multi-touch zooms/pans; single-finger drags fall through to the LazyColumn.
                 .pointerInput(Unit) {
                     awaitEachGesture {
-                        // wait for the first touch
                         awaitFirstDown(requireUnconsumed = false)
 
                         do {
@@ -244,7 +236,6 @@ fun PdfViewer(
                             val pointers = event.changes.filter { it.pressed }
 
                             if (pointers.size >= 2) {
-                                // multi-touch: handle zoom and pan
                                 val zoom = event.calculateZoom()
                                 val pan = event.calculatePan()
 
@@ -261,14 +252,14 @@ fun PdfViewer(
                                     offsetY = 0f
                                 }
 
-                                // consume pointers to avoid conflicts with the lazycolumn
+                                // Consume so the LazyColumn doesn't steal the gesture.
                                 event.changes.forEach { change ->
                                     if (change.positionChanged()) {
                                         change.consume()
                                     }
                                 }
                             } else if (pointers.size == 1 && scale > 1f) {
-                                // one finger + active zoom: pan on the zoomed view
+                                // Pan the zoomed page with one finger.
                                 val pan = event.calculatePan()
                                 val maxX = (size.width * (scale - 1)) / 2
                                 val maxY = (size.height * (scale - 1)) / 2
@@ -281,7 +272,7 @@ fun PdfViewer(
                                     }
                                 }
                             }
-                            // one finger + scale == 1f: do not consume anything -> the lazycolumn handles scrolling
+                            // At scale 1f consume nothing: the LazyColumn scrolls.
                         } while (event.changes.any { it.pressed })
                     }
                 }
@@ -308,7 +299,6 @@ fun PdfViewer(
             }
         }
 
-        // floating page indicator overlay
         AnimatedVisibility(
             visible = isIndicatorVisible,
             enter = fadeIn(animationSpec = tween(300)),
@@ -366,20 +356,18 @@ private fun PdfPageItem(
         ), 
         pdfRenderer, pageIndex
     ) {
-        // if the hd version is already in ram, we don't need to consume cpu or battery.
+        // Skip rendering entirely when HD is cached: saves CPU/battery.
         if (value.highResBitmap != null) {
             return@produceState
         }
 
         withContext(ioDispatcher) {
-            // debounce for extremely fast scrolling
             kotlinx.coroutines.delay(100)
             if (!isActive) return@withContext
 
             var fastBitmap: Bitmap? = memoryCache.get(fastKey)
             var currentAspectRatio = defaultAspectRatio
 
-            // 1. render fast bitmap if not in cache
             if (fastBitmap == null) {
                 pdfMutex.withLock {
                     if (!isActive) return@withContext
@@ -406,14 +394,12 @@ private fun PdfPageItem(
 
             if (fastBitmap == null) return@withContext
 
-            // emit the fastbitmap to show it instantly
+            // Show the fast bitmap instantly, upgrade to HD once scrolling settles.
             value = PageRenderResult(fastBitmap = fastBitmap, aspectRatio = currentAspectRatio)
 
-            // 2. wait before loading the hd version
             kotlinx.coroutines.delay(250)
             if (!isActive) return@withContext
 
-            // 3. render high res bitmap if not in cache
             var highResBitmap: Bitmap? = memoryCache.get(highKey)
             if (highResBitmap == null) {
                 pdfMutex.withLock {

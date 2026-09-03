@@ -17,9 +17,6 @@ import androidx.room.PrimaryKey
     ],
     indices = [Index(value = ["sectionId"])]
 )
-/**
- * room entity representing a module within a course section.
- */
 data class CourseModuleEntity(
     @PrimaryKey val id: Int,
     val sectionId: Int,

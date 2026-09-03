@@ -13,10 +13,6 @@ import it.polimi.webeep.core.database.dao.CourseContentDao
 import it.polimi.webeep.core.database.dao.CourseDao
 import javax.inject.Singleton
 
-/**
- * hilt module for room database configuration.
- * provides the database, coursedao and coursecontentdao as singletons.
- */
 @Module
 @InstallIn(SingletonComponent::class)
 object DatabaseModule {
@@ -24,8 +20,7 @@ object DatabaseModule {
     private const val DATABASE_NAME = "webeep_database"
 
     /**
-     * provides the room database instance.
-     * explicit migrations; destructive fallback only if version is unknown.
+     * Destructive fallback is DEBUG-only; production relies on explicit migrations.
      */
     @Provides
     @Singleton
@@ -42,18 +37,12 @@ object DatabaseModule {
         return builder.build()
     }
 
-    /**
-     * provides the course dao from the database instance.
-     */
     @Provides
     @Singleton
     fun provideCourseDao(database: WeBeepDatabase): CourseDao {
         return database.courseDao()
     }
 
-    /**
-     * provides the course content dao from the database instance.
-     */
     @Provides
     @Singleton
     fun provideCourseContentDao(database: WeBeepDatabase): CourseContentDao {

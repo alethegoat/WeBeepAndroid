@@ -8,17 +8,9 @@ import androidx.room.Transaction
 import it.polimi.webeep.core.database.entity.CourseEntity
 import kotlinx.coroutines.flow.Flow
 
-/**
- * dao for accessing course data in local cache.
- * provides crud operations and reactive queries via flow.
- */
 @Dao
 interface CourseDao {
 
-    /**
-     * retrieves all courses ordered by full name in ascending order.
-     * returns a flow that automatically emits updates when data changes.
-     */
     @Query("SELECT * FROM courses ORDER BY fullname ASC")
     fun getAllCourses(): Flow<List<CourseEntity>>
 
@@ -35,9 +27,8 @@ interface CourseDao {
     suspend fun getAllCourseIds(): List<Int>
 
     /**
-     * replaces all courses in the database in a single atomic transaction,
-     * updating existing ones to avoid triggering cascade delete on sections,
-     * and deleting only courses that are no longer present.
+     * Updates in place to avoid triggering cascade delete on sections;
+     * deletes only courses that disappeared remotely.
      */
     @Transaction
     suspend fun replaceAllCourses(courses: List<CourseEntity>) {
@@ -52,16 +43,11 @@ interface CourseDao {
         for (course in courses) {
             val id = insertCourse(course)
             if (id == -1L) {
-                // if it already exists, update it so we don't trigger cascade delete
                 updateCourse(course)
             }
         }
     }
 
-    /**
-     * retrieves a single course by its id.
-     * returns null if the course is not present in the cache.
-     */
     @Query("SELECT * FROM courses WHERE id = :courseId")
     suspend fun getCourseById(courseId: Int): CourseEntity?
 }

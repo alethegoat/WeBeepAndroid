@@ -3,10 +3,7 @@ package it.polimi.webeep.core.network.dto
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
-/**
- * dto for the moodle site information.
- * mapped from the response of core_webservice_get_site_info.
- */
+/** Response of core_webservice_get_site_info. */
 @Serializable
 data class SiteInfoDto(
     @SerialName("sitename") val sitename: String = "",
@@ -24,9 +21,6 @@ data class SiteInfoDto(
     @SerialName("functions") val functions: List<FunctionDto>? = null
 )
 
-/**
- * dto for a web service function available on the moodle site.
- */
 @Serializable
 data class FunctionDto(
     @SerialName("name") val name: String = "",

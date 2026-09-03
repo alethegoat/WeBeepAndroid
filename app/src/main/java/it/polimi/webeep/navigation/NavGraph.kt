@@ -36,9 +36,6 @@ import it.polimi.webeep.core.network.MoodleFileUrlBuilder
 import it.polimi.webeep.feature.settings.presentation.SettingsScreen
 import it.polimi.webeep.feature.settings.presentation.SettingsViewModel
 
-/**
- * main navigation graph for the webeep app.
- */
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun NavGraph(
@@ -97,7 +94,6 @@ fun NavGraph(
             }
         }
     ) {
-        // login entry point without token
         composable(route = Screen.Login.route) {
             LoginEntry(
                 token = null,
@@ -105,7 +101,6 @@ fun NavGraph(
             )
         }
 
-        // login entry point invoked via sso deep link containing the token
         composable(
             route = Screen.Login.routeWithToken,
             arguments = listOf(
@@ -142,7 +137,6 @@ fun NavGraph(
                 viewModel = viewModel,
                 onBackClick = { navController.navigateUp() },
                 onLogoutSuccess = {
-                    // clear the backstack when logging out to prevent going back
                     navController.navigate(Screen.Login.route) {
                         popUpTo(navController.graph.findStartDestination().id) {
                             inclusive = true

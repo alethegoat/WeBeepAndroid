@@ -16,9 +16,6 @@ import kotlinx.coroutines.withContext
 import java.io.File
 import javax.inject.Inject
 
-/**
- * Implementation of [AuthRepository] using Moodle APIs and [TokenManager].
- */
 class AuthRepositoryImpl @Inject constructor(
     private val apiService: MoodleApiService,
     private val tokenManager: TokenManager,

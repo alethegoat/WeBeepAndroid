@@ -22,9 +22,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import it.polimi.webeep.feature.course.presentation.DownloadState
 
-/**
- * animated progress indicator for the various states of a download.
- */
 @Composable
 fun DownloadProgressIndicator(
     state: DownloadState,
