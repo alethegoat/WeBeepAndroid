@@ -1,7 +1,6 @@
 package it.polimi.webeep.feature.auth.domain
 
 import it.polimi.webeep.core.datastore.TokenProvider
-import it.polimi.webeep.core.util.Resource
 import java.net.URLDecoder
 import java.security.MessageDigest
 import java.security.SecureRandom
@@ -11,6 +10,7 @@ import javax.inject.Inject
 /**
  * Handles login via WeBeep SSO.
  * Decodes the base64 token, verifies the Moodle passport hash, then validates via API.
+ * Failures are typed ([LoginError]) so the UI can localize them.
  */
 class LoginUseCase @Inject constructor(
     private val authRepository: AuthRepository,
@@ -22,26 +22,26 @@ class LoginUseCase @Inject constructor(
         return buildSsoLaunchUrl(passport)
     }
 
-    suspend fun execute(encodedToken: String): Resource<UserSession> {
+    suspend fun execute(encodedToken: String): LoginResult {
         val (wstoken, privateToken) = try {
             val decodedBytes = decodeBase64Token(decodeTokenParameter(encodedToken))
             val decodedString = String(decodedBytes, Charsets.UTF_8)
 
             val parts = decodedString.split(":::")
             if (parts.size < 2) {
-                return Resource.Error("invalid token format")
+                return LoginResult.Failure(LoginError.InvalidTokenFormat)
             }
 
             val passports = tokenProvider.getPendingPassportsSync()
             if (passports.isEmpty()) {
-                return Resource.Error("login session expired. please try logging in with sso again.")
+                return LoginResult.Failure(LoginError.SessionExpired)
             }
             val receivedHash = parts[0].trim()
             val passportMatches = passports.any { passport ->
                 passportHashes(passport).any { it.equals(receivedHash, ignoreCase = true) }
             }
             if (!passportMatches) {
-                return Resource.Error("invalid sso passport. please try logging in again.")
+                return LoginResult.Failure(LoginError.InvalidPassport)
             }
 
             val wsToken = parts[1]
@@ -49,24 +49,25 @@ class LoginUseCase @Inject constructor(
 
             wsToken to privateToken
         } catch (e: IllegalArgumentException) {
-            return Resource.Error("invalid access token. please try logging in with sso again.", e)
+            return LoginResult.Failure(LoginError.InvalidAccessToken)
         } catch (e: Exception) {
             if (e is kotlinx.coroutines.CancellationException) throw e
-            return Resource.Error("unable to process access token. please try again.", e)
+            return LoginResult.Failure(LoginError.TokenProcessingFailed)
         }
 
-        val result = authRepository.validateToken(wstoken)
-        return if (result.isSuccess) {
-            val siteInfo = result.getOrThrow()
-            authRepository.saveAuthData(wstoken, privateToken, siteInfo)
-            tokenProvider.clearPendingPassportSync()
-            Resource.Success(siteInfo)
-        } else {
-            val exception = result.exceptionOrNull()
-            Resource.Error(
-                message = exception?.localizedMessage ?: "unable to validate token with moodle server",
-                throwable = exception
-            )
+        return try {
+            val result = authRepository.validateToken(wstoken)
+            if (result.isSuccess) {
+                val siteInfo = result.getOrThrow()
+                authRepository.saveAuthData(wstoken, privateToken, siteInfo)
+                tokenProvider.clearPendingPassportSync()
+                LoginResult.Success(siteInfo)
+            } else {
+                LoginResult.Failure(LoginError.ValidationFailed(result.exceptionOrNull()))
+            }
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            LoginResult.Failure(LoginError.ValidationFailed(e))
         }
     }
 

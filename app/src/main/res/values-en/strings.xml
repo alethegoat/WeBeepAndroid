@@ -106,4 +106,10 @@
     <string name="error_session_expired">Session expired. Please log in again.</string>
     <string name="error_cannot_open_file">Cannot open file</string>
     <string name="error_refresh_courses">Couldn\'t refresh courses</string>
+    <string name="error_login_invalid_format">Invalid token format.</string>
+    <string name="error_login_session_expired">Login session expired. Please try SSO again.</string>
+    <string name="error_login_invalid_passport">Invalid SSO passport. Please try logging in again.</string>
+    <string name="error_login_invalid_token">Invalid access token. Please try logging in with SSO again.</string>
+    <string name="error_login_process_failed">Unable to process access token. Please try again.</string>
+    <string name="error_login_validation_failed">Unable to validate the token with the server.</string>
 </resources>

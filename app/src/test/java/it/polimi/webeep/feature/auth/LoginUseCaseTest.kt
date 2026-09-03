@@ -1,8 +1,9 @@
 package it.polimi.webeep.feature.auth
 
 import it.polimi.webeep.core.datastore.TokenProvider
-import it.polimi.webeep.core.util.Resource
 import it.polimi.webeep.feature.auth.domain.AuthRepository
+import it.polimi.webeep.feature.auth.domain.LoginError
+import it.polimi.webeep.feature.auth.domain.LoginResult
 import it.polimi.webeep.feature.auth.domain.LoginUseCase
 import it.polimi.webeep.feature.auth.domain.UserSession
 import kotlinx.coroutines.flow.Flow
@@ -46,8 +47,8 @@ class LoginUseCaseTest {
 
         val result = loginUseCase.execute(encodedToken)
 
-        assertTrue(result is Resource.Success)
-        assertEquals(sampleSession, (result as Resource.Success).data)
+        assertTrue(result is LoginResult.Success)
+        assertEquals(sampleSession, (result as LoginResult.Success).session)
         assertEquals("wstoken_123", fakeAuthRepository.savedToken)
         assertEquals("private_token_456", fakeAuthRepository.savedPrivateToken)
         assertEquals(sampleSession, fakeAuthRepository.savedSession)
@@ -55,16 +56,13 @@ class LoginUseCaseTest {
     }
 
     @Test
-    fun `execute with invalid base64 string returns Resource Error`() = runTest {
+    fun `execute with invalid base64 string returns InvalidAccessToken failure`() = runTest {
         val invalidBase64 = "!!!NotBase64!!!"
 
         val result = loginUseCase.execute(invalidBase64)
 
-        assertTrue(result is Resource.Error)
-        assertTrue(
-            (result as Resource.Error).message.contains("invalid access token") ||
-                result.message.contains("unable to process access token")
-        )
+        assertTrue(result is LoginResult.Failure)
+        assertEquals(LoginError.InvalidAccessToken, (result as LoginResult.Failure).error)
     }
 
     @Test
@@ -74,7 +72,7 @@ class LoginUseCaseTest {
 
         val result = loginUseCase.execute(encodedToken)
 
-        assertTrue(result is Resource.Success)
+        assertTrue(result is LoginResult.Success)
         assertEquals("wstoken_123", fakeAuthRepository.savedToken)
     }
 
@@ -85,18 +83,18 @@ class LoginUseCaseTest {
 
         val result = loginUseCase.execute(encodedToken)
 
-        assertTrue(result is Resource.Success)
+        assertTrue(result is LoginResult.Success)
         assertEquals("wstoken_123", fakeAuthRepository.savedToken)
     }
 
     @Test
-    fun `execute with base64 having missing segments returns Resource Error`() = runTest {
+    fun `execute with base64 having missing segments returns InvalidTokenFormat failure`() = runTest {
         val encodedToken = Base64.getEncoder().encodeToString("only_one_segment".toByteArray())
 
         val result = loginUseCase.execute(encodedToken)
 
-        assertTrue(result is Resource.Error)
-        assertEquals("invalid token format", (result as Resource.Error).message)
+        assertTrue(result is LoginResult.Failure)
+        assertEquals(LoginError.InvalidTokenFormat, (result as LoginResult.Failure).error)
     }
 
     @Test
@@ -110,7 +108,7 @@ class LoginUseCaseTest {
 
         val result = loginUseCase.execute(encodedToken)
 
-        assertTrue(result is Resource.Success)
+        assertTrue(result is LoginResult.Success)
         assertEquals("wstoken_123", fakeAuthRepository.savedToken)
         assertNull(fakeTokenProvider.getPendingPassportSync())
     }
@@ -127,7 +125,7 @@ class LoginUseCaseTest {
 
         val result = loginUseCase.execute(encodedToken)
 
-        assertTrue(result is Resource.Success)
+        assertTrue(result is LoginResult.Success)
         assertEquals("wstoken_123", fakeAuthRepository.savedToken)
     }
 
@@ -141,7 +139,7 @@ class LoginUseCaseTest {
         val encodedToken = encodeSsoPayload(LoginUseCase.md5Hex(firstPassport), "wstoken_123", "private_token_456")
         val result = loginUseCase.execute(encodedToken)
 
-        assertTrue(result is Resource.Success)
+        assertTrue(result is LoginResult.Success)
         assertEquals("wstoken_123", fakeAuthRepository.savedToken)
     }
 
@@ -160,26 +158,28 @@ class LoginUseCaseTest {
     }
 
     @Test
-    fun `execute with mismatched passport returns error and saves nothing`() = runTest {
+    fun `execute with mismatched passport returns InvalidPassport failure and saves nothing`() = runTest {
         val encodedToken = encodeSsoPayload("wronghash", "wstoken_123", "private_token_456")
         fakeAuthRepository.validateResult = Result.success(sampleSession)
 
         val result = loginUseCase.execute(encodedToken)
 
-        assertTrue(result is Resource.Error)
-        assertTrue((result as Resource.Error).message.contains("passport"))
+        assertTrue(result is LoginResult.Failure)
+        assertEquals(LoginError.InvalidPassport, (result as LoginResult.Failure).error)
         assertNull(fakeAuthRepository.savedToken)
     }
 
     @Test
-    fun `execute with server validation failure returns Resource Error and saves nothing`() = runTest {
+    fun `execute with server validation failure returns ValidationFailed and saves nothing`() = runTest {
         val encodedToken = encodeSsoPayload(LoginUseCase.md5Hex(passport), "wstoken_123", "private_token_456")
         fakeAuthRepository.validateResult = Result.failure(Exception("Token non valido"))
 
         val result = loginUseCase.execute(encodedToken)
 
-        assertTrue(result is Resource.Error)
-        assertEquals("Token non valido", (result as Resource.Error).message)
+        assertTrue(result is LoginResult.Failure)
+        val error = (result as LoginResult.Failure).error
+        assertTrue(error is LoginError.ValidationFailed)
+        assertEquals("Token non valido", (error as LoginError.ValidationFailed).cause?.message)
         assertTrue(fakeAuthRepository.savedToken == null)
     }
 

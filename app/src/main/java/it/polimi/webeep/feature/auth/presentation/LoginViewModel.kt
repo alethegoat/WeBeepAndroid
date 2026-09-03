@@ -3,8 +3,10 @@ package it.polimi.webeep.feature.auth.presentation
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import it.polimi.webeep.core.util.Resource
+import it.polimi.webeep.R
 import it.polimi.webeep.feature.auth.domain.AuthRepository
+import it.polimi.webeep.feature.auth.domain.LoginError
+import it.polimi.webeep.feature.auth.domain.LoginResult
 import it.polimi.webeep.feature.auth.domain.LoginUseCase
 import it.polimi.webeep.feature.sync.SyncScheduler
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -29,7 +31,8 @@ sealed interface LoginUiState {
 class LoginViewModel @Inject constructor(
     private val loginUseCase: LoginUseCase,
     private val authRepository: AuthRepository,
-    private val syncScheduler: SyncScheduler
+    private val syncScheduler: SyncScheduler,
+    private val application: android.app.Application
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<LoginUiState>(LoginUiState.Idle)
@@ -61,19 +64,25 @@ class LoginViewModel @Inject constructor(
         }
         _uiState.update { LoginUiState.Loading }
         viewModelScope.launch {
-            when (val resource = loginUseCase.execute(encodedToken)) {
-                is Resource.Success -> {
+            when (val result = loginUseCase.execute(encodedToken)) {
+                is LoginResult.Success -> {
                     syncScheduler.applyCurrentSettings()
                     syncScheduler.enqueueImmediate()
                     _uiState.update { LoginUiState.Success }
                 }
-                is Resource.Error -> {
-                    _uiState.update { LoginUiState.Error(resource.message) }
-                }
-                is Resource.Loading -> {
-                    _uiState.update { LoginUiState.Loading }
+                is LoginResult.Failure -> {
+                    _uiState.update { LoginUiState.Error(result.error.toMessage()) }
                 }
             }
         }
+    }
+
+    private fun LoginError.toMessage(): String = when (this) {
+        LoginError.InvalidTokenFormat -> application.getString(R.string.error_login_invalid_format)
+        LoginError.SessionExpired -> application.getString(R.string.error_login_session_expired)
+        LoginError.InvalidPassport -> application.getString(R.string.error_login_invalid_passport)
+        LoginError.InvalidAccessToken -> application.getString(R.string.error_login_invalid_token)
+        LoginError.TokenProcessingFailed -> application.getString(R.string.error_login_process_failed)
+        is LoginError.ValidationFailed -> application.getString(R.string.error_login_validation_failed)
     }
 }
