@@ -52,8 +52,23 @@ class TokenInterceptor @Inject constructor(
             return response
         }
 
-        if (response.code == 401 || response.code == 403) {
+        // Fail-safe logout: 401 always means bad token. 403 alone is too
+        // broad (e.g. single-file permission), so require an explicit
+        // invalidtoken/accessexception marker before clearing the session.
+        if (response.code == 401) {
             tokenProvider.clearSessionSync()
+            return response
+        }
+
+        if (response.code == 403) {
+            val bodyPreview = try {
+                response.peekBody(TOKEN_PEEK_BYTES).string()
+            } catch (_: Exception) {
+                return response
+            }
+            if (INVALID_TOKEN_MARKERS.any { bodyPreview.contains(it) }) {
+                tokenProvider.clearSessionSync()
+            }
             return response
         }
 

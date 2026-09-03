@@ -24,9 +24,6 @@ import javax.inject.Inject
 
 import android.view.WindowManager
 
-/**
- * main activity of the webeep application.
- */
 @AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
 
@@ -46,7 +43,6 @@ class MainActivity : AppCompatActivity() {
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { isGranted: Boolean ->
-        // the background sync should run regardless of whether notifications are permitted
         setupPeriodicSync()
     }
 
@@ -55,7 +51,6 @@ class MainActivity : AppCompatActivity() {
         
         enableEdgeToEdge()
 
-        // check if the activity was launched via a sso deep link or a new file notification
         checkSsoDeepLink(intent)
         checkCourseIntent(intent)
 
@@ -66,12 +61,8 @@ class MainActivity : AppCompatActivity() {
                 initialDeepLinkToken = pendingToken,
                 onNavControllerReady = { controller ->
                     navController = controller
-                    
-                    // consume pending token if any
                     pendingToken = null
-                    
-                    // consume pending course id if the user clicked a notification
-                    // we immediately redirect them to the relevant course details.
+
                     pendingCourseId?.let { courseId ->
                         if (tokenManager.getTokenSync() != null) {
                             controller.navigate(Screen.CourseDetail.createRoute(courseId))
@@ -111,11 +102,9 @@ class MainActivity : AppCompatActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        // re-check for new intents if the app is already in the foreground or background
         checkSsoDeepLink(intent)
         checkCourseIntent(intent)
-        
-        // handle sso login callback
+
         pendingToken?.let { token ->
             navController?.navigate(Screen.Login.createRoute(token)) {
                 popUpTo(navController!!.graph.startDestinationId) { inclusive = true }
@@ -123,7 +112,6 @@ class MainActivity : AppCompatActivity() {
             pendingToken = null
         }
         
-        // handle notification click to jump into course details
         pendingCourseId?.let { courseId ->
             if (tokenManager.getTokenSync() != null) {
                 navController?.navigate(Screen.CourseDetail.createRoute(courseId))
@@ -132,9 +120,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    /**
-     * checks if the intent has a token for sso login and saves it
-     */
     private fun checkSsoDeepLink(intent: Intent?) {
         val data = intent?.data ?: return
         if (data.scheme !in SSO_CALLBACK_SCHEMES) return
@@ -144,13 +129,11 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    /**
-     * checks if the intent comes from a coursesyncworker notification
-     * and prepares the app to navigate to the specific course.
-     */
     private fun checkCourseIntent(intent: Intent?) {
-        val courseId = intent?.getIntExtra("EXTRA_COURSE_ID", -1) ?: -1
-        if (courseId != -1) {
+        val courseId = intent?.getIntExtra(
+            it.polimi.webeep.feature.sync.CourseSyncWorker.EXTRA_COURSE_ID, -1
+        ) ?: -1
+        if (courseId > 0) {
             pendingCourseId = courseId
         }
     }

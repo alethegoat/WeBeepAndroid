@@ -45,7 +45,7 @@ WeBeep Android is a native application designed to make it easier for Politecnic
 2. Open the project in Android Studio.
 3. Sync the project and run it on an emulator or device.
 
-Release builds minify with R8. If `KEYSTORE_FILE` is unset, Gradle signs release with the debug keystore (CI smoke). For Play, export:
+Release builds minify with R8 and fail fast if the release keystore is missing. If `KEYSTORE_FILE` is unset, set `ALLOW_DEBUG_RELEASE_SIGNING=true` for a debug-signed CI smoke build only. For Play, export:
 
 ```
 KEYSTORE_FILE=/path/to/upload.jks
@@ -98,7 +98,7 @@ WeBeep Android è un'app nativa che semplifica l'accesso ai corsi di WeBeep per 
 2. Apri il progetto in Android Studio.
 3. Fai la sync di Gradle e avvia l'app su un emulatore o un telefono fisico.
 
-Le build release usano R8. Se `KEYSTORE_FILE` non è impostato, Gradle firma con il keystore debug (smoke CI). Per Play:
+Le build release usano R8 e falliscono se il keystore release manca. Per uno smoke test CI firmato debug usa `ALLOW_DEBUG_RELEASE_SIGNING=true`. Per Play:
 
 ```
 KEYSTORE_FILE=/path/to/upload.jks

@@ -9,33 +9,18 @@ import it.polimi.webeep.core.network.dto.CourseSectionDto
 import it.polimi.webeep.core.network.dto.SiteInfoDto
 import it.polimi.webeep.core.network.dto.TimelineCoursesResponseDto
 
-/**
- * interface for moodle web service api calls.
- */
 interface MoodleApiService {
 
-    /**
-     * retrieves site and authenticated user information.
-     */
     suspend fun getSiteInfo(wsToken: String? = null): SiteInfoDto
 
-    /**
-     * retrieves the list of courses the user is enrolled in.
-     */
     suspend fun getEnrolledCourses(wsToken: String? = null, userId: Int): List<CourseDto>
 
-    /**
-     * retrieves courses classified by timeline (inprogress, past, future).
-     */
     suspend fun getCoursesByTimeline(
         classification: String = "inprogress",
         limit: Int = 0,
         offset: Int = 0
     ): TimelineCoursesResponseDto
 
-    /**
-     * retrieves course contents (sections, modules and files).
-     */
     suspend fun getCourseContents(
         wsToken: String? = null,
         courseId: Int
@@ -46,6 +31,10 @@ class MoodleApiServiceImpl(private val client: HttpClient) : MoodleApiService {
     
     private val serverPath = "webservice/rest/server.php"
     private val defaultFormat = "json"
+
+    // NOTE: explicit `wstoken` param is intentional for pre-login validation
+    // (token not yet saved in TokenManager). TokenInterceptor only injects
+    // when the query param is absent, so no duplicate is sent.
 
     override suspend fun getSiteInfo(wsToken: String?): SiteInfoDto {
         return client.get(serverPath) {

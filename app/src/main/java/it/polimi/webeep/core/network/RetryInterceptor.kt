@@ -8,6 +8,9 @@ import javax.inject.Inject
 /**
  * okhttp interceptor for automatic retry with exponential backoff.
  * retries failed requests for network errors or 5xx server errors.
+ * NOTE: OkHttp interceptors are blocking by design; Thread.sleep here holds
+ * one dispatcher thread (max ~7s total: 1s+2s+4s) with 30s timeouts configured
+ * in NetworkModule. Only idempotent GET/HEAD/OPTIONS are retried.
  */
 class RetryInterceptor @Inject constructor(
     private val maxRetries: Int = 3,
@@ -48,10 +51,8 @@ class RetryInterceptor @Inject constructor(
             }
         }
 
-        // if we have a response (server error), return it
         lastResponse?.let { return it }
 
-        // otherwise rethrow the last network exception
         throw lastException ?: IOException("Numero massimo di retry ($maxRetries) superato")
     }
 }

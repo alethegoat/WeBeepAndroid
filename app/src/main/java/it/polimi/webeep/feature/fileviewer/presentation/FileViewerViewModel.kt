@@ -129,13 +129,14 @@ class FileViewerViewModel @Inject constructor(
         }
 
         val cacheDir = File(application.cacheDir, CACHE_DIR).apply { mkdirs() }
-        val target = File(cacheDir, "${url.hashCode()}.$extension")
+        val cacheKey = it.polimi.webeep.core.util.FileUtils.stableUrlHash(url)
+        val target = File(cacheDir, "$cacheKey.$extension")
         if (target.exists() && target.length() > 0) {
             return target
         }
 
         evictCacheIfNeeded(cacheDir)
-        val part = File(cacheDir, "${url.hashCode()}.$extension.part")
+        val part = File(cacheDir, "$cacheKey.$extension.part")
         if (part.exists()) {
             part.delete()
         }

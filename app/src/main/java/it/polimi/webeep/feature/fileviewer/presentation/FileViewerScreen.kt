@@ -6,6 +6,8 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.pdf.PdfRenderer
 import android.os.ParcelFileDescriptor
+import android.webkit.SslErrorHandler
+import android.net.http.SslError
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -451,6 +453,15 @@ private fun WebContent(
                                 isLoading = false
                             }
 
+                            override fun onReceivedSslError(
+                                view: WebView?,
+                                handler: SslErrorHandler?,
+                                error: SslError?
+                            ) {
+                                // Fail closed: never ignore TLS errors for course content.
+                                handler?.cancel()
+                            }
+
                             override fun shouldOverrideUrlLoading(
                                 view: WebView?,
                                 request: WebResourceRequest?
@@ -479,8 +490,11 @@ private fun WebContent(
                             useWideViewPort = true
                             builtInZoomControls = true
                             displayZoomControls = false
-                            mediaPlaybackRequiresUserGesture = false
-                            javaScriptCanOpenWindowsAutomatically = true
+                            // Harden: no autoplay, no popups, no file/content access.
+                            mediaPlaybackRequiresUserGesture = true
+                            javaScriptCanOpenWindowsAutomatically = false
+                            allowFileAccess = false
+                            allowContentAccess = false
                         }
 
                         android.webkit.CookieManager.getInstance().setAcceptThirdPartyCookies(this, false)

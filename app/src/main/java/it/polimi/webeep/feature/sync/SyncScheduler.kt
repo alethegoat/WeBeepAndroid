@@ -17,9 +17,6 @@ import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
 
-/**
- * Applies DataStore sync settings to [CourseSyncWorker].
- */
 @Singleton
 class SyncScheduler @Inject constructor(
     @ApplicationContext private val context: Context,
@@ -51,6 +48,11 @@ class SyncScheduler @Inject constructor(
 
         val request = PeriodicWorkRequestBuilder<CourseSyncWorker>(interval, unit)
             .setConstraints(networkConstraints())
+            .setBackoffCriteria(
+                androidx.work.BackoffPolicy.EXPONENTIAL,
+                10L,
+                TimeUnit.MINUTES
+            )
             .build()
 
         val policy = if (replaceExisting) {
@@ -67,6 +69,11 @@ class SyncScheduler @Inject constructor(
 
         val request = OneTimeWorkRequestBuilder<CourseSyncWorker>()
             .setConstraints(networkConstraints())
+            .setBackoffCriteria(
+                androidx.work.BackoffPolicy.EXPONENTIAL,
+                10L,
+                TimeUnit.MINUTES
+            )
             .build()
         workManager.enqueueUniqueWork(
             UNIQUE_ONE_SHOT_WORK,

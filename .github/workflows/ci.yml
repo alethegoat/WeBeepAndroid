@@ -20,8 +20,16 @@ jobs:
           java-version: 17
           cache: gradle
 
+      - name: Lint debug
+        run: ./gradlew :app:lintDebug --no-daemon
+
       - name: Build debug APK
         run: ./gradlew assembleDebug --no-daemon
 
       - name: Run unit tests
         run: ./gradlew test --no-daemon
+
+      - name: Verify release build (R8, debug-signed smoke only)
+        env:
+          ALLOW_DEBUG_RELEASE_SIGNING: "true"
+        run: ./gradlew :app:assembleRelease --no-daemon

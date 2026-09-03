@@ -39,3 +39,21 @@
     public static **[] values();
     public static ** valueOf(java.lang.String);
 }
+
+# ---- kotlinx.serialization (Moodle DTOs via Ktor) ----
+-keepattributes RuntimeVisibleAnnotations,AnnotationDefault
+-keepclassmembers class * {
+    @kotlinx.serialization.Serializable <fields>;
+}
+-keepclasseswithmembers class * {
+    @kotlinx.serialization.Serializable <methods>;
+}
+
+# ---- Strip verbose logging in release ----
+-assumenosideeffects class android.util.Log {
+    public static boolean isLoggable(java.lang.String, int);
+    public static int v(...);
+    public static int d(...);
+    public static int i(...);
+    public static int w(...);
+}

@@ -56,8 +56,8 @@ class DownloadRepositoryImpl @Inject constructor(
             directory.mkdirs()
         }
         val safeLocalFileName = sanitizeFileName(localFileName)
-        val destination = File(directory, safeLocalFileName)
-        val part = File(directory, "$safeLocalFileName.part")
+        val destination = containedFile(directory, safeLocalFileName) ?: return -1L
+        val part = containedFile(directory, "$safeLocalFileName.part") ?: return -1L
         if (part.exists()) {
             part.delete()
         }
@@ -84,7 +84,7 @@ class DownloadRepositoryImpl @Inject constructor(
                     val total = body.contentLength()
                     part.outputStream().use { output ->
                         body.byteStream().use { input ->
-                            val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
+                            val buffer = ByteArray(DOWNLOAD_BUFFER_SIZE)
                             var read = 0L
                             while (true) {
                                 val n = input.read(buffer)
@@ -154,13 +154,15 @@ class DownloadRepositoryImpl @Inject constructor(
     override fun openFile(fileName: String): Boolean {
         val safeFileName = sanitizeFileName(fileName)
         val fileUri = getDownloadedFileUri(safeFileName) ?: return false
-        val intent = Intent(Intent.ACTION_VIEW).apply {
+        val viewIntent = Intent(Intent.ACTION_VIEW).apply {
             setDataAndType(fileUri, getMimeType(safeFileName))
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        val chooser = Intent.createChooser(viewIntent, null).apply {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
         return try {
-            context.startActivity(intent)
+            context.startActivity(chooser)
             true
         } catch (e: Exception) {
             if (e is CancellationException) throw e
@@ -170,13 +172,13 @@ class DownloadRepositoryImpl @Inject constructor(
 
     override fun isFileDownloaded(fileName: String): Boolean {
         val directory = getDownloadsDirectory()
-        val file = File(directory, sanitizeFileName(fileName))
+        val file = containedFile(directory, sanitizeFileName(fileName)) ?: return false
         return file.exists() && file.length() > 0
     }
 
     override fun getDownloadedFileUri(fileName: String): Uri? {
         val directory = getDownloadsDirectory()
-        val file = File(directory, sanitizeFileName(fileName))
+        val file = containedFile(directory, sanitizeFileName(fileName)) ?: return null
         return if (file.exists()) {
             FileProvider.getUriForFile(
                 context,
@@ -223,10 +225,31 @@ class DownloadRepositoryImpl @Inject constructor(
         return sanitized.ifBlank { "file" }.take(MAX_FILE_NAME_LENGTH)
     }
 
+    /**
+     * Defense in depth against path traversal: sanitize() already strips
+     * separators, but verify the resolved file stays inside [directory].
+     */
+    private fun containedFile(directory: File, safeName: String): File? {
+        return try {
+            val dirCanonical = directory.canonicalPath
+            val file = File(directory, safeName)
+            val fileCanonical = file.canonicalPath
+            if (fileCanonical == dirCanonical ||
+                fileCanonical.startsWith("$dirCanonical${File.separator}")
+            ) {
+                file
+            } else {
+                null
+            }
+        } catch (_: Exception) {
+            null
+        }
+    }
+
     private companion object {
         const val DOWNLOADS_DIR = "downloads"
         const val MAX_FILE_NAME_LENGTH = 120
-        const val DEFAULT_BUFFER_SIZE = 8 * 1024
+        const val DOWNLOAD_BUFFER_SIZE = 32 * 1024
         const val MAX_DOWNLOADS_BYTES = 500L * 1024L * 1024L
     }
 }

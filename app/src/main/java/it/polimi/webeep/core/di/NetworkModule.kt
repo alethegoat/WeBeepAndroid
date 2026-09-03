@@ -30,6 +30,7 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
 
+    // Keep host in sync with LoginUseCase.SITE_WWWROOT via MoodleFileUrlBuilder.TRUSTED_HOST.
     private const val BASE_URL = "https://webeep.polimi.it/"
     private const val CONNECT_TIMEOUT_SECONDS = 30L
     private const val READ_TIMEOUT_SECONDS = 30L
@@ -40,10 +41,10 @@ object NetworkModule {
     fun provideLoggingInterceptor(): HttpLoggingInterceptor {
         val logger = HttpLoggingInterceptor.Logger { message ->
             val sanitized = message
-                .replace(Regex("""wstoken=[^&\s]+"""), "wstoken=<REDACTED>")
-                .replace(Regex("""token=[^&\s]+"""), "token=<REDACTED>")
-                .replace(Regex("""Bearer\s+\S+"""), "Bearer <REDACTED>")
-                .replace(Regex("""private_token=[^&\s]+"""), "private_token=<REDACTED>")
+                .replace(Regex("""(?i)wstoken=[^&\s]+"""), "wstoken=<REDACTED>")
+                .replace(Regex("""(?i)private_token=[^&\s]+"""), "private_token=<REDACTED>")
+                .replace(Regex("""(?i)([?&])token=[^&\s]+"""), "$1token=<REDACTED>")
+                .replace(Regex("""(?i)Bearer\s+\S+"""), "Bearer <REDACTED>")
             android.util.Log.d("OkHttp", sanitized)
         }
         return HttpLoggingInterceptor(logger).apply {

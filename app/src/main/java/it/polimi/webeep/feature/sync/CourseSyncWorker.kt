@@ -34,9 +34,6 @@ import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 import java.util.concurrent.atomic.AtomicBoolean
 
-/**
- * Background worker that syncs course files and notifies when new ones appear.
- */
 @HiltWorker
 class CourseSyncWorker @AssistedInject constructor(
     @Assisted private val appContext: Context,
@@ -68,6 +65,7 @@ class CourseSyncWorker @AssistedInject constructor(
             var totalNewFiles = 0
             val newFileRecords = mutableListOf<NewFileRecord>()
             val hasErrors = AtomicBoolean(false)
+            val syncedCourses = java.util.concurrent.atomic.AtomicInteger(0)
             val courseSyncSemaphore = Semaphore(MAX_CONCURRENT_COURSE_SYNCS)
 
             supervisorScope {
@@ -80,6 +78,7 @@ class CourseSyncWorker @AssistedInject constructor(
                                     .toSet()
                                 val syncResult = courseRepository.getCourseContents(course.id)
                                 val newFiles = fileIdentitiesFrom(syncResult.getOrElse { throw it })
+                                syncedCourses.incrementAndGet()
 
                                 if (oldKeys.isNotEmpty()) {
                                     val added = newFiles.filter { it.key !in oldKeys }
@@ -116,7 +115,9 @@ class CourseSyncWorker @AssistedInject constructor(
                 }
             }
 
-            return if (hasErrors.get()) Result.retry() else Result.success()
+            // Avoid retry loops: partial success is enough since the next
+            // periodic run will pick up the rest. Retry only when nothing synced.
+            return if (hasErrors.get() && syncedCourses.get() == 0) Result.retry() else Result.success()
         } catch (e: Exception) {
             if (e is kotlinx.coroutines.CancellationException) throw e
             Log.e("CourseSyncWorker", "Fatal worker error: ${e.message}")
@@ -192,7 +193,7 @@ class CourseSyncWorker @AssistedInject constructor(
 
         val intent = Intent(appContext, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
-            putExtra("EXTRA_COURSE_ID", courseId)
+            putExtra(EXTRA_COURSE_ID, courseId)
         }
 
         val pendingIntentFlags = PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
@@ -220,8 +221,9 @@ class CourseSyncWorker @AssistedInject constructor(
         notificationManager.notify(courseId, builder.build())
     }
 
-    private companion object {
-        const val MAX_CONCURRENT_COURSE_SYNCS = 2
-        const val SUMMARY_NOTIFICATION_ID = 999_999
+    companion object {
+        const val EXTRA_COURSE_ID = "EXTRA_COURSE_ID"
+        private const val MAX_CONCURRENT_COURSE_SYNCS = 2
+        private const val SUMMARY_NOTIFICATION_ID = 999_999
     }
 }

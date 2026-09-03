@@ -59,15 +59,23 @@ class TokenManager @Inject constructor(
             createEncryptedPrefs(application)
         } catch (e: Exception) {
             if (e is CancellationException) throw e
-            android.util.Log.e("TokenManager", "Errore nell'inizializzazione di EncryptedSharedPreferences. Reset in corso...", e)
+            // First retry without StrongBox and WITHOUT wiping: covers devices
+            // without StrongBox or with a transient keystore error. Wipe only
+            // as last resort for actually corrupted prefs.
             try {
-                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
-                    application.deleteSharedPreferences(PREFS_NAME)
-                } else {
-                    java.io.File(application.applicationInfo.dataDir, "shared_prefs/$PREFS_NAME.xml").delete()
-                }
-            } catch (_: Exception) {}
-            createEncryptedPrefs(application, forceFallbackKey = true)
+                return createEncryptedPrefs(application, forceFallbackKey = true)
+            } catch (fallbackError: Exception) {
+                if (fallbackError is CancellationException) throw fallbackError
+                android.util.Log.w("TokenManager", "Encrypted prefs corrupted, resetting secure storage")
+                try {
+                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
+                        application.deleteSharedPreferences(PREFS_NAME)
+                    } else {
+                        java.io.File(application.applicationInfo.dataDir, "shared_prefs/$PREFS_NAME.xml").delete()
+                    }
+                } catch (_: Exception) {}
+                return createEncryptedPrefs(application, forceFallbackKey = true)
+            }
         }
     }
 

@@ -25,10 +25,15 @@ android {
         create("release") {
             val storePath = System.getenv("KEYSTORE_FILE")
             if (!storePath.isNullOrBlank()) {
-                storeFile = file(storePath)
-                storePassword = System.getenv("KEYSTORE_PASSWORD").orEmpty()
-                keyAlias = System.getenv("KEY_ALIAS").orEmpty()
-                keyPassword = System.getenv("KEY_PASSWORD").orEmpty()
+                val keystoreFile = file(storePath)
+                if (!keystoreFile.exists()) {
+                    logger.warn("KEYSTORE_FILE not found: $storePath. Release signing will fail if requested.")
+                } else {
+                    storeFile = keystoreFile
+                    storePassword = System.getenv("KEYSTORE_PASSWORD").orEmpty()
+                    keyAlias = System.getenv("KEY_ALIAS").orEmpty()
+                    keyPassword = System.getenv("KEY_PASSWORD").orEmpty()
+                }
             }
         }
     }
@@ -42,10 +47,26 @@ android {
                 "proguard-rules.pro"
             )
             val releaseSigning = signingConfigs.getByName("release")
+            // Fail fast when a release is actually requested, instead of silently
+            // shipping a debug-signed release. CI smoke opts in explicitly via
+            // ALLOW_DEBUG_RELEASE_SIGNING=true. Non-release tasks keep a debug
+            // placeholder so unit tests/lint still run without a keystore.
+            val allowDebugFallback = System.getenv("ALLOW_DEBUG_RELEASE_SIGNING") == "true"
+            val releaseRequested = gradle.startParameter.taskNames.any {
+                it.contains("Release", ignoreCase = true)
+            }
             signingConfig = if (releaseSigning.storeFile?.exists() == true) {
                 releaseSigning
-            } else {
+            } else if (allowDebugFallback || !releaseRequested) {
+                if (releaseRequested) {
+                    logger.warn("Signing release with debug keystore (ALLOW_DEBUG_RELEASE_SIGNING=true, CI smoke only).")
+                }
                 signingConfigs.getByName("debug")
+            } else {
+                throw GradleException(
+                    "Missing release keystore: set KEYSTORE_FILE/KEYSTORE_PASSWORD/KEY_ALIAS/KEY_PASSWORD " +
+                        "or set ALLOW_DEBUG_RELEASE_SIGNING=true for CI smoke builds."
+                )
             }
         }
     }

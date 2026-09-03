@@ -81,7 +81,8 @@ class LoginUseCase @Inject constructor(
     }
 
     companion object {
-        const val SITE_WWWROOT = "https://webeep.polimi.it"
+        // Single source for host: keep in sync with NetworkModule.BASE_URL.
+        const val SITE_WWWROOT = "https://" + it.polimi.webeep.core.network.MoodleFileUrlBuilder.TRUSTED_HOST
         const val SSO_SERVICE = "moodle_mobile_app"
         const val SSO_URL_SCHEME = "webeepandroid"
 

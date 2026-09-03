@@ -20,12 +20,15 @@ object MoodleBinaryDownload {
 
         if (contentType.contains("text/html")) {
             val bodyPreview = response.peekBody(PEEK_BYTES).string().lowercase()
+            // Specific markers only: a bare "login" substring false-positives
+            // on legitimate HTML containing the word "login".
             val hasLoginMarkers = isLoginRedirect ||
                 bodyPreview.contains("id=\"login\"") ||
                 bodyPreview.contains("loginform") ||
                 bodyPreview.contains("name=\"login\"") ||
-                bodyPreview.contains("login") ||
-                bodyPreview.contains("autenticazione")
+                bodyPreview.contains("name=\"username\"") ||
+                bodyPreview.contains("autenticazione") ||
+                bodyPreview.contains("moodle-login")
 
             val isExplicitHtmlRequest = requestUrl.endsWith(".html") || requestUrl.endsWith(".htm")
             if (hasLoginMarkers || !isExplicitHtmlRequest) {
