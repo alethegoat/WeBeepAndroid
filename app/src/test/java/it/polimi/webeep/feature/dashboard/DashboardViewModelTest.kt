@@ -53,6 +53,7 @@ class DashboardViewModelTest {
     private lateinit var fakeDashboardRepository: FakeDashboardRepository
     private lateinit var fakeAuthRepository: FakeAuthRepository
     private lateinit var fakeNetworkMonitor: NetworkMonitor
+    private lateinit var fakeApplication: android.app.Application
     private lateinit var viewModel: DashboardViewModel
 
     private val sampleCourses = listOf(
@@ -80,6 +81,7 @@ class DashboardViewModelTest {
         
         getCoursesUseCase = GetCoursesUseCase(fakeDashboardRepository, fakeNetworkMonitor)
         syncCoursesUseCase = SyncCoursesUseCase(fakeDashboardRepository)
+        fakeApplication = mockk(relaxed = true)
         
         fakeDashboardRepository.userInfoResult = Result.success("Alessio" to "avatar.png")
         fakeDashboardRepository.cachedCoursesFlow.value = sampleCourses
@@ -92,7 +94,8 @@ class DashboardViewModelTest {
             syncCoursesUseCase,
             fakeDashboardRepository,
             fakeAuthRepository,
-            fakeNetworkMonitor
+            fakeNetworkMonitor,
+            fakeApplication
         )
     }
 

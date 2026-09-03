@@ -69,7 +69,7 @@ class FileViewerViewModel @Inject constructor(
                 }
 
                 val token = tokenManager.getToken()
-                    ?: throw IllegalStateException("Session expired. Please login again.")
+                    ?: throw IllegalStateException(application.getString(it.polimi.webeep.R.string.error_session_expired))
 
                 _uiState.value = when {
                     mimeType.startsWith("image/") -> FileViewerUiState.Image(url)
@@ -109,7 +109,9 @@ class FileViewerViewModel @Inject constructor(
                 }
             } catch (e: Exception) {
                 if (e is CancellationException) throw e
-                _uiState.value = FileViewerUiState.Error(e.localizedMessage ?: "Cannot open file")
+                _uiState.value = FileViewerUiState.Error(
+                    e.localizedMessage ?: application.getString(it.polimi.webeep.R.string.error_cannot_open_file)
+                )
             }
         }
     }

@@ -103,4 +103,7 @@
     <string name="cd_open_course">Open course</string>
     <string name="cd_expand_section">Expand section</string>
     <string name="cd_collapse_section">Collapse section</string>
+    <string name="error_session_expired">Session expired. Please log in again.</string>
+    <string name="error_cannot_open_file">Cannot open file</string>
+    <string name="error_refresh_courses">Couldn\'t refresh courses</string>
 </resources>

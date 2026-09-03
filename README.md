@@ -72,6 +72,15 @@ This project follows Clean Architecture and MVVM (StateFlow + Compose). Version 
 
 ---
 
+### Security model
+
+* **Tokens**: stored in EncryptedSharedPreferences (StrongBox when available), excluded from cloud/device backup. Never persisted in Room or navigation args (`stripAuthFromUrl`). Moodle requires tokens as URL query params: responses carrying them are `no-store`, and logs redact `wstoken`/`token`/`private_token`/Bearer.
+* **WebView**: JavaScript on (course content needs it), but no file/content access, no popups, no autoplay; TLS errors fail closed; third-party cookies off.
+* **Files**: app-private storage only, shared outward via FileProvider; logout wipes Room, downloads, caches, cookies and WebView data.
+* **Builds**: release fails fast without a keystore; R8 minifies and strips verbose logs.
+
+---
+
 ## 🇮🇹 Italiano
 
 WeBeep Android è un'app nativa che semplifica l'accesso ai corsi di WeBeep per gli studenti del Politecnico di Milano. È sviluppata con un approccio **offline-first**, per permetterti di aprire i tuoi materiali di studio anche quando non hai una connessione internet.
@@ -122,6 +131,15 @@ Il progetto segue Clean Architecture e MVVM (StateFlow + Compose). Versione `1.0
 * **Rete**: Ktor & OkHttp
 * **Background**: WorkManager
 * **Media**: Coil, Media3, `PdfRenderer` di Android
+
+---
+
+### Modello di sicurezza
+
+* **Token**: in EncryptedSharedPreferences (StrongBox dove disponibile), esclusi da backup cloud/dispositivo. Mai persistiti in Room o negli args di navigazione (`stripAuthFromUrl`). Moodle li richiede come query param: le risposte che li contengono sono `no-store` e i log oscurano `wstoken`/`token`/`private_token`/Bearer.
+* **WebView**: JavaScript attivo (serve ai contenuti), ma niente accesso file/content, popup o autoplay; errori TLS bloccanti; niente cookie di terze parti.
+* **File**: solo storage privato dell'app, condivisi via FileProvider; il logout cancella Room, download, cache, cookie e dati WebView.
+* **Build**: la release fallisce senza keystore; R8 minifica e rimuove i log verbosi.
 
 ---
 

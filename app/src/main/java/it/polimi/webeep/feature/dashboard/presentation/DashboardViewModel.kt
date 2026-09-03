@@ -3,6 +3,7 @@ package it.polimi.webeep.feature.dashboard.presentation
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import it.polimi.webeep.R
 import it.polimi.webeep.core.ui.components.CourseUiModel
 import it.polimi.webeep.core.util.Resource
 import it.polimi.webeep.feature.auth.domain.AuthRepository
@@ -39,7 +40,8 @@ class DashboardViewModel @Inject constructor(
     private val syncCoursesUseCase: SyncCoursesUseCase,
     private val dashboardRepository: DashboardRepository,
     private val authRepository: AuthRepository,
-    private val networkMonitor: NetworkMonitor
+    private val networkMonitor: NetworkMonitor,
+    private val application: android.app.Application
 ) : ViewModel() {
 
     private var coursesJob: Job? = null
@@ -148,7 +150,9 @@ class DashboardViewModel @Inject constructor(
                 onFailure = { throwable ->
                     _vmState.update {
                         val newError = if (it.courses == null) {
-                            throwable.localizedMessage ?: "Impossibile aggiornare i corsi"
+                            throwable.localizedMessage ?: application.getString(
+                                R.string.error_refresh_courses
+                            )
                         } else {
                             null // keep existing data
                         }
