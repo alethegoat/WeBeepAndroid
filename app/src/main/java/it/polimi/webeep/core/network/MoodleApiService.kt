@@ -89,6 +89,8 @@ class MoodleApiServiceImpl(private val client: HttpClient) : MoodleApiService {
         return json.decodeFromJsonElement(response.moodleJson())
     }
 
+    // Maps transport, parse and Moodle-level failures to distinct exception types.
+    @Suppress("ThrowsCount")
     private suspend fun HttpResponse.moodleJson(): JsonElement {
         val element = try {
             json.parseToJsonElement(bodyAsText())

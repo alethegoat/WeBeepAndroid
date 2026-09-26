@@ -7,6 +7,7 @@ import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Response
 import okio.Buffer
+import java.net.HttpURLConnection
 import java.net.URLEncoder
 import javax.inject.Inject
 
@@ -37,6 +38,7 @@ class TokenInterceptor @Inject constructor(
         )
     }
 
+    @Suppress("ReturnCount")
     override fun intercept(chain: Interceptor.Chain): Response {
         var request = chain.request()
         val isMoodleRest = request.url.host.equals(trustedHost, ignoreCase = true) &&
@@ -55,12 +57,12 @@ class TokenInterceptor @Inject constructor(
         // Fail-safe logout: 401 always means bad token. 403 alone is too
         // broad (e.g. single-file permission), so require an explicit
         // invalidtoken/accessexception marker before clearing the session.
-        if (response.code == 401) {
+        if (response.code == HttpURLConnection.HTTP_UNAUTHORIZED) {
             tokenProvider.clearSessionSync()
             return response
         }
 
-        if (response.code == 403) {
+        if (response.code == HttpURLConnection.HTTP_FORBIDDEN) {
             val bodyPreview = try {
                 response.peekBody(TOKEN_PEEK_BYTES).string()
             } catch (_: Exception) {

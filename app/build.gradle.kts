@@ -15,7 +15,7 @@ android {
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "it.polimi.webeep"
+        applicationId = "io.github.alethegoat.webeep"
         minSdk = 26
         targetSdk = 36
         versionCode = 2
@@ -117,8 +117,8 @@ detekt {
     buildUponDefaultConfig = true
     config.setFrom(rootProject.file("config/detekt/detekt.yml"))
     baseline = rootProject.file("config/detekt/baseline.xml")
-    // Report-only until the existing findings are triaged into the baseline.
-    ignoreFailures = true
+    // Blocking: new findings fail the build; legacy complexity lives in the baseline.
+    ignoreFailures = false
 }
 
 // Keep detekt on the Kotlin version it was compiled against.
@@ -192,6 +192,7 @@ dependencies {
     // DataStore & Security
     implementation(libs.datastore.preferences)
     implementation(libs.security.crypto)
+    implementation(libs.tink.android)
 
     // Coil (image loading)
     implementation(libs.coil.compose)

@@ -1,6 +1,8 @@
 package it.polimi.webeep.core.datastore
 
 import android.app.Application
+import androidx.security.crypto.EncryptedSharedPreferences
+import androidx.security.crypto.MasterKey
 import androidx.test.core.app.ApplicationProvider
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.Dispatchers
@@ -13,6 +15,7 @@ import org.junit.Before
 import org.junit.Test
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.runner.RunWith
+import java.io.File
 
 @RunWith(AndroidJUnit4::class)
 class TokenManagerTest {
@@ -23,7 +26,7 @@ class TokenManagerTest {
     @Before
     fun setup() {
         application = ApplicationProvider.getApplicationContext()
-        // EncryptedSharedPreferences and MasterKey are created lazily on first access.
+        // The Tink keyset and the Keystore master key are created lazily on first access.
         tokenManager = TokenManager(application, Dispatchers.IO)
         runBlocking { tokenManager.clearAll() }
     }
@@ -116,5 +119,68 @@ class TokenManagerTest {
         assertNull("UserId must be null", tokenManager.getUserId())
         assertNull("FullName must be null", tokenManager.getUserFullName())
         assertFalse("State should be logged out", tokenManager.isLoggedIn.first())
+    }
+
+    @Test
+    fun `persisted values are not stored in clear`() = runBlocking {
+        tokenManager.saveAuthData("plaintext-token-marker", null, 3, "Plaintext Name Marker")
+
+        val raw = String(File(application.noBackupFilesDir, "webeep_secure.preferences_pb").readBytes(), Charsets.ISO_8859_1)
+
+        assertFalse(raw.contains("plaintext-token-marker"))
+        assertFalse(raw.contains("Plaintext Name Marker"))
+    }
+
+    // Legacy migration, remove after next release.
+    @Test
+    fun `legacy encrypted prefs are migrated once and deleted`() = runBlocking {
+        val masterKey = MasterKey.Builder(application)
+            .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+            .build()
+        EncryptedSharedPreferences.create(
+            application,
+            LEGACY_PREFS_NAME,
+            masterKey,
+            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+        ).edit()
+            .putString("ws_token", "legacy-token")
+            .putInt("user_id", 5)
+            .putString("full_name", "Legacy User")
+            .putString("private_token", "never-migrated")
+            .commit()
+
+        val migrated = TokenManager(application, Dispatchers.IO)
+        migrated.ensureLoaded()
+
+        assertEquals("legacy-token", migrated.getTokenSync())
+        assertEquals(5, migrated.getUserId())
+        assertEquals("Legacy User", migrated.getUserFullName())
+        assertFalse("Legacy file deleted", legacyPrefsFile().exists())
+
+        val reloaded = TokenManager(application, Dispatchers.IO)
+        reloaded.ensureLoaded()
+        assertEquals("legacy-token", reloaded.getTokenSync())
+    }
+
+    @Test
+    fun `legacy prefs without a session are discarded`() = runBlocking {
+        legacyPrefsFile().apply {
+            parentFile?.mkdirs()
+            writeText("<?xml version='1.0' encoding='utf-8' standalone='yes' ?><map><string name=\"x\">garbage</string></map>")
+        }
+
+        val manager = TokenManager(application, Dispatchers.IO)
+        manager.ensureLoaded()
+
+        assertNull(manager.getTokenSync())
+        assertFalse(manager.isLoggedIn.first())
+        assertFalse("Legacy file deleted", legacyPrefsFile().exists())
+    }
+
+    private fun legacyPrefsFile() = File(application.dataDir, "shared_prefs/$LEGACY_PREFS_NAME.xml")
+
+    private companion object {
+        const val LEGACY_PREFS_NAME = "webeep_secure_prefs"
     }
 }

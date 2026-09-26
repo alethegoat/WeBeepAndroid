@@ -1,5 +1,15 @@
 <?xml version="1.0" ?>
 <SmellBaseline>
   <ManuallySuppressedIssues/>
-  <CurrentIssues/>
+  <CurrentIssues>
+    <ID>CyclomaticComplexMethod:CourseContentMapper.kt$CourseContentMapper$fun map(courseId: Int, sectionDtos: List&lt;CourseSectionDto&gt;): MappedCourseContent</ID>
+    <ID>CyclomaticComplexMethod:CourseSyncWorker.kt$CourseSyncWorker$override suspend fun doWork(): Result</ID>
+    <ID>CyclomaticComplexMethod:DownloadRepositoryImpl.kt$DownloadRepositoryImpl$override fun downloadFile( url: String, token: String?, localFileName: String, displayName: String, mimeType: String? ): Long</ID>
+    <ID>CyclomaticComplexMethod:FileViewerViewModel.kt$FileViewerViewModel$fun load()</ID>
+    <ID>LongMethod:BouncyClickable.kt$fun Modifier.bouncyClickable( debounceMs: Long = 250L, enabled: Boolean = true, haptic: Boolean = false, role: Role? = Role.Button, onClickLabel: String? = null, onClick: () -&gt; Unit ): Modifier</ID>
+    <ID>LongMethod:CourseContentMapper.kt$CourseContentMapper$fun map(courseId: Int, sectionDtos: List&lt;CourseSectionDto&gt;): MappedCourseContent</ID>
+    <ID>LongMethod:CourseSyncWorker.kt$CourseSyncWorker$override suspend fun doWork(): Result</ID>
+    <ID>LongMethod:DownloadRepositoryImpl.kt$DownloadRepositoryImpl$override fun downloadFile( url: String, token: String?, localFileName: String, displayName: String, mimeType: String? ): Long</ID>
+    <ID>NestedBlockDepth:TokenManager.kt$TokenManager$private fun createEncryptedPrefsWithFallback(application: Application): SharedPreferences</ID>
+  </CurrentIssues>
 </SmellBaseline>

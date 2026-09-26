@@ -44,6 +44,8 @@ import androidx.compose.ui.composed
 import androidx.compose.ui.draw.drawWithContent
 import it.polimi.webeep.core.ui.util.LocalReduceMotion
 
+private const val SHIMMER_GRADIENT_SPAN = 500f
+
 /** Draw-phase shimmer: no recomposition per animation frame. */
 fun Modifier.shimmerShader(
     translateValue: Float,
@@ -53,7 +55,7 @@ fun Modifier.shimmerShader(
     drawContent()
     val brush = Brush.linearGradient(
         colors = listOf(baseColor, highlightColor, baseColor),
-        start = Offset(translateValue - 500f, translateValue - 500f),
+        start = Offset(translateValue - SHIMMER_GRADIENT_SPAN, translateValue - SHIMMER_GRADIENT_SPAN),
         end = Offset(translateValue, translateValue),
     )
     drawRect(brush = brush)

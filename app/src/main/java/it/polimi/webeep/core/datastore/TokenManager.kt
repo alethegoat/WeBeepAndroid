@@ -1,9 +1,7 @@
 package it.polimi.webeep.core.datastore
 
 import android.app.Application
-import android.content.SharedPreferences
-import androidx.security.crypto.EncryptedSharedPreferences
-import androidx.security.crypto.MasterKey
+import android.util.Log
 import it.polimi.webeep.core.di.IoDispatcher
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
@@ -17,30 +15,21 @@ import javax.inject.Singleton
 
 /**
  * Authentication token manager for Moodle APIs.
- * Uses EncryptedSharedPreferences for secure storage of sensitive data.
- * The Keystore-backed prefs are created lazily: call [ensureLoaded] off the main thread
- * before reading [isLoggedIn] or [getTokenSync].
+ * Credentials are persisted through [SecureStore] (Tink AEAD + Android Keystore, DataStore file
+ * excluded from backups) and mirrored in memory. The store is opened lazily: call [ensureLoaded]
+ * off the main thread before reading [isLoggedIn] or [getTokenSync].
  */
 @Singleton
 class TokenManager @Inject constructor(
-    application: Application,
+    private val application: Application,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher
 ) : TokenProvider {
 
     companion object {
-        private const val PREFS_NAME = "webeep_secure_prefs"
-        private const val KEY_WS_TOKEN = "ws_token"
-        // Legacy key: the autologin-capable private token is no longer stored.
-        private const val KEY_PRIVATE_TOKEN = "private_token"
-        private const val KEY_USER_ID = "user_id"
-        private const val KEY_FULL_NAME = "full_name"
-        // Legacy key: single passport without timestamp, ignored and purged on load.
-        private const val KEY_PENDING_PASSPORT = "pending_sso_passport"
-        private const val KEY_PENDING_PASSPORTS = "pending_sso_passports"
-        private const val USER_ID_DEFAULT = -1
+        private const val TAG = "TokenManager"
     }
 
-    private val encryptedPrefs: SharedPreferences by lazy { createEncryptedPrefsWithFallback(application) }
+    private val store: SecureStore by lazy { SecureStore(application) }
 
     private val loaded = AtomicBoolean(false)
 
@@ -55,6 +44,9 @@ class TokenManager @Inject constructor(
 
     private val clearLock = Any()
 
+    // In-memory copy of the persisted data, guarded by [clearLock]. Valid once [loaded] is true.
+    private var record = AuthRecord.EMPTY
+
     override suspend fun ensureLoaded() {
         if (loaded.get()) return
         withContext(ioDispatcher) { loadIfNeeded() }
@@ -64,75 +56,24 @@ class TokenManager @Inject constructor(
         if (loaded.get()) return
         synchronized(clearLock) {
             if (loaded.get()) return
-            purgeLegacyKeys()
-            refreshCacheFromPrefs()
+            record = readPersistedRecord()
+            publish()
             loaded.set(true)
         }
     }
 
-    private fun purgeLegacyKeys() {
-        if (encryptedPrefs.contains(KEY_PRIVATE_TOKEN) || encryptedPrefs.contains(KEY_PENDING_PASSPORT)) {
-            encryptedPrefs.edit()
-                .remove(KEY_PRIVATE_TOKEN)
-                .remove(KEY_PENDING_PASSPORT)
-                .commit()
+    private fun readPersistedRecord(): AuthRecord {
+        val current = AuthRecord.fromMap(store.readAll())
+        if (!LegacyEncryptedPrefsMigration.exists(application)) return current
+        // Legacy migration, remove after next release.
+        val legacy = LegacyEncryptedPrefsMigration.read(application)
+        if (legacy == null || legacy.isEmpty() || !current.isEmpty()) {
+            LegacyEncryptedPrefsMigration.delete(application)
+            return current
         }
-    }
-
-    private fun createEncryptedPrefsWithFallback(application: Application): SharedPreferences {
-        return try {
-            createEncryptedPrefs(application)
-        } catch (e: Exception) {
-            if (e is CancellationException) throw e
-            // First retry without StrongBox and WITHOUT wiping: covers devices
-            // without StrongBox or with a transient keystore error. Wipe only
-            // as last resort for actually corrupted prefs.
-            try {
-                return createEncryptedPrefs(application, forceFallbackKey = true)
-            } catch (fallbackError: Exception) {
-                if (fallbackError is CancellationException) throw fallbackError
-                android.util.Log.w("TokenManager", "Encrypted prefs corrupted, resetting secure storage")
-                try {
-                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
-                        application.deleteSharedPreferences(PREFS_NAME)
-                    } else {
-                        java.io.File(application.applicationInfo.dataDir, "shared_prefs/$PREFS_NAME.xml").delete()
-                    }
-                } catch (_: Exception) {}
-                return createEncryptedPrefs(application, forceFallbackKey = true)
-            }
-        }
-    }
-
-    private fun createEncryptedPrefs(application: Application, forceFallbackKey: Boolean = false): SharedPreferences {
-        val masterKey = createMasterKey(application, forceFallback = forceFallbackKey)
-        return EncryptedSharedPreferences.create(
-            application,
-            PREFS_NAME,
-            masterKey,
-            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
-        )
-    }
-
-    private fun createMasterKey(application: Application, forceFallback: Boolean = false): MasterKey {
-        return if (!forceFallback) {
-            try {
-                MasterKey.Builder(application)
-                    .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
-                    .setRequestStrongBoxBacked(true)
-                    .build()
-            } catch (e: Exception) {
-                if (e is CancellationException) throw e
-                MasterKey.Builder(application)
-                    .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
-                    .build()
-            }
-        } else {
-            MasterKey.Builder(application)
-                .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
-                .build()
-        }
+        // Keep the legacy file when the new store cannot persist, so the next launch retries.
+        if (persist(legacy)) LegacyEncryptedPrefsMigration.delete(application)
+        return legacy
     }
 
     override fun getTokenSync(): String? = cachedWsToken
@@ -146,18 +87,12 @@ class TokenManager @Inject constructor(
     ) {
         withContext(ioDispatcher) {
             synchronized(clearLock) {
-                val success = encryptedPrefs.edit()
-                    .putString(KEY_WS_TOKEN, token)
-                    .putInt(KEY_USER_ID, userId)
-                    .putString(KEY_FULL_NAME, fullName)
-                    .remove(KEY_PRIVATE_TOKEN)
-                    .remove(KEY_PENDING_PASSPORT)
-                    .remove(KEY_PENDING_PASSPORTS)
-                    .commit()
-                if (!success) {
+                val updated = AuthRecord(token = token, userId = userId, fullName = fullName)
+                if (!persist(updated)) {
                     throw SecurityException("Impossibile persistere i dati di autenticazione in modo sicuro")
                 }
-                refreshCacheFromPrefs()
+                record = updated
+                publish()
                 loaded.set(true)
             }
         }
@@ -166,13 +101,12 @@ class TokenManager @Inject constructor(
     override suspend fun updateUserProfile(userId: Int, fullName: String) {
         withContext(ioDispatcher) {
             synchronized(clearLock) {
-                val success = encryptedPrefs.edit()
-                    .putInt(KEY_USER_ID, userId)
-                    .putString(KEY_FULL_NAME, fullName)
-                    .commit()
-                if (!success) {
+                loadIfNeeded()
+                val updated = record.copy(userId = userId, fullName = fullName)
+                if (!persist(updated)) {
                     throw SecurityException("Impossibile aggiornare il profilo utente")
                 }
+                record = updated
             }
         }
     }
@@ -181,52 +115,42 @@ class TokenManager @Inject constructor(
         return withContext(ioDispatcher) {
             loadIfNeeded()
             synchronized(clearLock) {
-                encryptedPrefs.getString(KEY_WS_TOKEN, null).also { cachedWsToken = it }
+                record.token.also { cachedWsToken = it }
             }
         }
     }
 
     override suspend fun getUserId(): Int? {
         return withContext(ioDispatcher) {
-            synchronized(clearLock) {
-                val userId = encryptedPrefs.getInt(KEY_USER_ID, USER_ID_DEFAULT)
-                if (userId == USER_ID_DEFAULT) null else userId
-            }
+            loadIfNeeded()
+            synchronized(clearLock) { record.userId }
         }
     }
 
     override suspend fun getUserFullName(): String? {
         return withContext(ioDispatcher) {
-            synchronized(clearLock) {
-                encryptedPrefs.getString(KEY_FULL_NAME, null)
-            }
+            loadIfNeeded()
+            synchronized(clearLock) { record.fullName }
         }
     }
 
     override suspend fun clearAll() {
         withContext(ioDispatcher) {
-            clearAllInternal()
+            clearInternal()
         }
     }
 
     override fun clearSessionSync() {
-        synchronized(clearLock) {
-            encryptedPrefs.edit().clear().commit()
-            cachedWsToken = null
-            _wsToken.value = null
-            _isLoggedIn.value = false
-            loaded.set(true)
-        }
+        clearInternal()
     }
 
     override fun savePendingPassportSync(passport: String) {
         synchronized(clearLock) {
+            loadIfNeeded()
             val now = System.currentTimeMillis()
-            val entries = PendingPassports.add(readPassportEntries(now), passport, now)
-            encryptedPrefs.edit()
-                .remove(KEY_PENDING_PASSPORT)
-                .putString(KEY_PENDING_PASSPORTS, PendingPassports.serialize(entries))
-                .commit()
+            val entries = PendingPassports.add(PendingPassports.parse(record.passports, now), passport, now)
+            record = record.copy(passports = PendingPassports.serialize(entries))
+            persist(record)
         }
     }
 
@@ -244,32 +168,81 @@ class TokenManager @Inject constructor(
 
     override fun clearPendingPassportSync() {
         synchronized(clearLock) {
-            encryptedPrefs.edit()
-                .remove(KEY_PENDING_PASSPORT)
-                .remove(KEY_PENDING_PASSPORTS)
-                .commit()
+            loadIfNeeded()
+            record = record.copy(passports = null)
+            persist(record)
         }
     }
 
-    private fun readPassportList(): List<String> =
-        readPassportEntries(System.currentTimeMillis()).map { it.passport }
+    private fun readPassportList(): List<String> {
+        loadIfNeeded()
+        return PendingPassports.parse(record.passports, System.currentTimeMillis()).map { it.passport }
+    }
 
-    private fun readPassportEntries(nowMs: Long): List<PendingPassports.Entry> =
-        PendingPassports.parse(encryptedPrefs.getString(KEY_PENDING_PASSPORTS, null), nowMs)
-
-    private fun clearAllInternal() {
+    private fun clearInternal() {
         synchronized(clearLock) {
-            encryptedPrefs.edit().clear().commit()
-            refreshCacheFromPrefs()
+            record = AuthRecord.EMPTY
+            persist(record)
+            LegacyEncryptedPrefsMigration.delete(application)
+            publish()
             loaded.set(true)
         }
     }
 
-    private fun refreshCacheFromPrefs() {
-        val token = encryptedPrefs.getString(KEY_WS_TOKEN, null)
+    /** Writes [updated] to the secure store; never falls back to cleartext. */
+    private fun persist(updated: AuthRecord): Boolean = try {
+        store.replaceAll(updated.toMap())
+        true
+    } catch (e: Exception) {
+        if (e is CancellationException) throw e
+        Log.w(TAG, "Unable to persist secure session data")
+        false
+    }
+
+    private fun publish() {
+        val token = record.token
         cachedWsToken = token
         _wsToken.value = token
         _isLoggedIn.value = token != null
+    }
+}
+
+/** Persisted session fields; stored as individual encrypted string values. */
+internal data class AuthRecord(
+    val token: String? = null,
+    val userId: Int? = null,
+    val fullName: String? = null,
+    val passports: String? = null
+) {
+    fun isEmpty(): Boolean = toMap().isEmpty()
+
+    fun toMap(): Map<String, String> = buildMap {
+        token?.let { put(KEY_WS_TOKEN, it) }
+        userId?.let { put(KEY_USER_ID, it.toString()) }
+        fullName?.let { put(KEY_FULL_NAME, it) }
+        passports?.takeIf { it.isNotEmpty() }?.let { put(KEY_PENDING_PASSPORTS, it) }
+    }
+
+    // Never leak credentials through logs or crash reports.
+    override fun toString(): String =
+        "AuthRecord(token=${if (token != null) "***" else null}, userId=$userId, " +
+            "fullName=${if (fullName != null) "***" else null}, passports=${if (passports != null) "***" else null})"
+
+    companion object {
+        const val KEY_WS_TOKEN = "ws_token"
+        const val KEY_USER_ID = "user_id"
+        const val KEY_FULL_NAME = "full_name"
+        const val KEY_PENDING_PASSPORTS = "pending_sso_passports"
+        private const val USER_ID_DEFAULT = -1
+
+        val EMPTY = AuthRecord()
+
+        fun fromMap(values: Map<String, String>): AuthRecord = AuthRecord(
+            token = values[KEY_WS_TOKEN],
+            userId = values[KEY_USER_ID]?.toIntOrNull()?.takeIf { it != USER_ID_DEFAULT },
+            fullName = values[KEY_FULL_NAME],
+            passports = values[KEY_PENDING_PASSPORTS]
+        )
     }
 }
 

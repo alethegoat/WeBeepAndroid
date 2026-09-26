@@ -25,6 +25,10 @@
 -dontwarn dagger.**
 -keep class * extends dagger.hilt.android.internal.managers.ViewComponentManager$FragmentContextWrapper { *; }
 
+# ---- Tink (compile-only annotations referenced by the library) ----
+-dontwarn com.google.errorprone.annotations.**
+-dontwarn javax.annotation.**
+
 # ---- Coroutines ----
 -dontwarn kotlinx.coroutines.**
 

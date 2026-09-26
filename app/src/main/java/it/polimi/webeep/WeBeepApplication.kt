@@ -49,16 +49,21 @@ class WeBeepApplication : Application(), Configuration.Provider, ImageLoaderFact
             .memoryCache {
                 MemoryCache.Builder(this)
                     // Leave headroom for PdfRenderer and WebView sharing the app heap.
-                    .maxSizePercent(0.15)
+                    .maxSizePercent(MEMORY_CACHE_PERCENT)
                     .build()
             }
             .diskCache {
                 DiskCache.Builder()
                     .directory(cacheDir.resolve("image_cache"))
-                    .maxSizePercent(0.05)
+                    .maxSizePercent(DISK_CACHE_PERCENT)
                     .build()
             }
             .respectCacheHeaders(false)
             .build()
+    }
+
+    private companion object {
+        const val MEMORY_CACHE_PERCENT = 0.15
+        const val DISK_CACHE_PERCENT = 0.05
     }
 }

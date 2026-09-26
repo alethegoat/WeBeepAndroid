@@ -29,9 +29,12 @@ jobs:
       - name: Lint debug
         run: ./gradlew :app:lintDebug --no-daemon
 
-      - name: Static analysis (detekt, ktlint; report-only)
+      - name: Static analysis (detekt)
+        run: ./gradlew :app:detekt --no-daemon
+
+      - name: Code style (ktlint; report-only)
         continue-on-error: true
-        run: ./gradlew :app:detekt :app:ktlintCheck --no-daemon
+        run: ./gradlew :app:ktlintCheck --no-daemon
 
       - name: Build debug APK
         run: ./gradlew assembleDebug --no-daemon

@@ -99,7 +99,11 @@ fun FileViewerScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val pageSubtitle = when (val state = uiState) {
-        is FileViewerUiState.Pdf -> androidx.compose.ui.res.pluralStringResource(R.plurals.file_viewer_pdf_pages, state.pageCount, state.pageCount)
+        is FileViewerUiState.Pdf -> androidx.compose.ui.res.pluralStringResource(
+            R.plurals.file_viewer_pdf_pages,
+            state.pageCount,
+            state.pageCount
+        )
         is FileViewerUiState.Image -> stringResource(R.string.file_viewer_image)
         else -> null
     }

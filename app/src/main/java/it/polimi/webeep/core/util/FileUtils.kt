@@ -2,6 +2,8 @@ package it.polimi.webeep.core.util
 
 object FileUtils {
     private const val MAX_LOCAL_FILE_BASENAME_LENGTH = 80
+    private const val URL_HASH_BYTES = 6
+    private const val BYTES_PER_UNIT = 1024.0
 
     /**
      * Sanitizes a filename to make it safe for the local file system.
@@ -30,7 +32,7 @@ object FileUtils {
         return try {
             val digest = java.security.MessageDigest.getInstance("SHA-256")
             val bytes = digest.digest(fileUrl.toByteArray(Charsets.UTF_8))
-            bytes.take(6).joinToString("") { "%02x".format(it) }
+            bytes.take(URL_HASH_BYTES).joinToString("") { "%02x".format(it) }
         } catch (_: Exception) {
             Integer.toHexString(fileUrl.hashCode())
         }
@@ -41,7 +43,8 @@ object FileUtils {
     fun formatFileSize(size: Long): String {
         if (size <= 0) return "0 B"
         val units = arrayOf("B", "KB", "MB", "GB", "TB")
-        val digitGroups = (Math.log10(size.toDouble()) / Math.log10(1024.0)).toInt()
-        return String.format(java.util.Locale.ROOT, "%.1f %s", size / Math.pow(1024.0, digitGroups.toDouble()), units[digitGroups])
+        val digitGroups = (Math.log10(size.toDouble()) / Math.log10(BYTES_PER_UNIT)).toInt()
+        val scaled = size / Math.pow(BYTES_PER_UNIT, digitGroups.toDouble())
+        return String.format(java.util.Locale.ROOT, "%.1f %s", scaled, units[digitGroups])
     }
 }

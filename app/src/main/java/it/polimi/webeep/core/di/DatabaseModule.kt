@@ -25,6 +25,7 @@ object DatabaseModule {
      */
     @Provides
     @Singleton
+    @Suppress("SpreadOperator") // One-time copy at startup.
     fun provideDatabase(application: Application): WeBeepDatabase {
         val builder = Room.databaseBuilder(
             application,

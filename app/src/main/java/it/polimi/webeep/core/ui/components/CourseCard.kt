@@ -154,7 +154,11 @@ fun CourseCard(
                         ) {
                             Icon(
                                 imageVector = if (course.isFavourite) Icons.Filled.Star else Icons.Outlined.StarOutline,
-                                contentDescription = if (course.isFavourite) stringResource(R.string.cd_remove_fav) else stringResource(R.string.cd_add_fav),
+                                contentDescription = if (course.isFavourite) {
+                                    stringResource(R.string.cd_remove_fav)
+                                } else {
+                                    stringResource(R.string.cd_add_fav)
+                                },
                                 tint = if (course.isFavourite) Color(0xFFFFD700) else Color.White,
                                 modifier = Modifier.size(20.dp)
                             )

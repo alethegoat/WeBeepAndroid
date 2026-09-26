@@ -102,7 +102,7 @@ class DownloadRepositoryImpl @Inject constructor(
                                 output.write(buffer, 0, n)
                                 read += n
                                 if (total > 0) {
-                                    state.value = ((read * 100) / total).toInt().coerceIn(0, 99)
+                                    state.value = ((read * 100) / total).toInt().coerceIn(0, MAX_IN_FLIGHT_PROGRESS)
                                 }
                             }
                         }
@@ -286,6 +286,7 @@ class DownloadRepositoryImpl @Inject constructor(
         const val DOWNLOAD_BUFFER_SIZE = 32 * 1024
         const val MAX_DOWNLOADS_BYTES = 500L * 1024L * 1024L
         const val PROGRESS_RETENTION_MS = 60_000L
+        const val MAX_IN_FLIGHT_PROGRESS = 99
         const val MIGRATION_MARKER = "downloads_internal_migrated"
     }
 }

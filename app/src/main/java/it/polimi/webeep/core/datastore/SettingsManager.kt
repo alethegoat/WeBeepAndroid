@@ -27,50 +27,50 @@ enum class SyncFrequency {
 class SettingsManager @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
-    private val THEME_KEY = stringPreferencesKey("theme_preference")
-    private val DYNAMIC_COLOR_KEY = booleanPreferencesKey("dynamic_color_preference")
-    private val WIFI_ONLY_SYNC_KEY = booleanPreferencesKey("wifi_only_sync")
-    private val SYNC_FREQUENCY_KEY = stringPreferencesKey("sync_frequency")
+    private val themeKey = stringPreferencesKey("theme_preference")
+    private val dynamicColorKey = booleanPreferencesKey("dynamic_color_preference")
+    private val wifiOnlySyncKey = booleanPreferencesKey("wifi_only_sync")
+    private val syncFrequencyKey = stringPreferencesKey("sync_frequency")
 
     val themePreference: Flow<ThemePreference> = context.dataStore.data.map { preferences ->
-        val raw = preferences[THEME_KEY]
+        val raw = preferences[themeKey]
         ThemePreference.entries.firstOrNull { it.name == raw } ?: ThemePreference.SYSTEM_DEFAULT
     }
 
     val dynamicColorPreference: Flow<Boolean> = context.dataStore.data.map { preferences ->
-        preferences[DYNAMIC_COLOR_KEY] ?: false
+        preferences[dynamicColorKey] ?: false
     }
 
     val wifiOnlySync: Flow<Boolean> = context.dataStore.data.map { preferences ->
-        preferences[WIFI_ONLY_SYNC_KEY] ?: false
+        preferences[wifiOnlySyncKey] ?: false
     }
 
     val syncFrequency: Flow<SyncFrequency> = context.dataStore.data.map { preferences ->
-        val raw = preferences[SYNC_FREQUENCY_KEY]
+        val raw = preferences[syncFrequencyKey]
         SyncFrequency.entries.firstOrNull { it.name == raw } ?: DEFAULT_SYNC_FREQUENCY
     }
 
     suspend fun setThemePreference(theme: ThemePreference) {
         context.dataStore.edit { preferences ->
-            preferences[THEME_KEY] = theme.name
+            preferences[themeKey] = theme.name
         }
     }
 
     suspend fun setDynamicColorPreference(enabled: Boolean) {
         context.dataStore.edit { preferences ->
-            preferences[DYNAMIC_COLOR_KEY] = enabled
+            preferences[dynamicColorKey] = enabled
         }
     }
 
     suspend fun setWifiOnlySync(enabled: Boolean) {
         context.dataStore.edit { preferences ->
-            preferences[WIFI_ONLY_SYNC_KEY] = enabled
+            preferences[wifiOnlySyncKey] = enabled
         }
     }
 
     suspend fun setSyncFrequency(frequency: SyncFrequency) {
         context.dataStore.edit { preferences ->
-            preferences[SYNC_FREQUENCY_KEY] = frequency.name
+            preferences[syncFrequencyKey] = frequency.name
         }
     }
 
