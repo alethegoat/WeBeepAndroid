@@ -1,6 +1,7 @@
 package it.polimi.webeep.core.util
 
 import it.polimi.webeep.R
+import it.polimi.webeep.core.datastore.MissingTokenException
 import it.polimi.webeep.core.network.MoodleException
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -32,15 +33,8 @@ class DataErrorMapperTest {
     }
 
     @Test
-    fun `missing token IllegalStateException maps to Unauthorized`() {
-        assertEquals(
-            DataError.Unauthorized,
-            IllegalStateException("Token non disponibile. Effettua il login.").toDataError()
-        )
-        assertEquals(
-            DataError.Unauthorized,
-            IllegalStateException("token not available. please log in.").toDataError()
-        )
+    fun `missing token maps to Unauthorized`() {
+        assertEquals(DataError.Unauthorized, MissingTokenException().toDataError())
     }
 
     @Test

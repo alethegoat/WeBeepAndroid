@@ -2,6 +2,7 @@ package it.polimi.webeep.core.util
 
 import androidx.annotation.StringRes
 import it.polimi.webeep.R
+import it.polimi.webeep.core.datastore.MissingTokenException
 import it.polimi.webeep.core.network.MoodleException
 import java.io.IOException
 
@@ -12,9 +13,7 @@ fun Throwable.toDataError(): DataError = when (this) {
     is MoodleException ->
         if (errorCode in UNAUTHORIZED_MOODLE_CODES) DataError.Unauthorized else DataError.Server(errorCode)
     is IOException -> DataError.Network
-    // Repositories throw IllegalStateException when no token is stored.
-    is IllegalStateException ->
-        if (message?.contains("token", ignoreCase = true) == true) DataError.Unauthorized else DataError.Unknown
+    is MissingTokenException -> DataError.Unauthorized
     else -> DataError.Unknown
 }
 

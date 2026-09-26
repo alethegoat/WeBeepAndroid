@@ -1,5 +1,6 @@
 package it.polimi.webeep.feature.course.data
 
+import it.polimi.webeep.core.datastore.MissingTokenException
 import it.polimi.webeep.core.database.dao.CourseContentDao
 import it.polimi.webeep.core.database.dao.CourseDao
 import it.polimi.webeep.core.datastore.TokenProvider
@@ -31,7 +32,7 @@ class CourseRepositoryImpl @Inject constructor(
 
     override suspend fun getCourseContents(courseId: Int): Result<List<Section>> {
         return runCatching {
-            tokenProvider.getToken() ?: throw IllegalStateException("token not available. please log in.")
+            tokenProvider.getToken() ?: throw MissingTokenException()
 
             val sectionDtos = apiService.getCourseContents(courseId = courseId)
             val mapped = withContext(defaultDispatcher) {

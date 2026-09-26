@@ -2,6 +2,7 @@ package it.polimi.webeep.feature.dashboard
 
 import app.cash.turbine.test
 import it.polimi.webeep.R
+import it.polimi.webeep.core.datastore.MissingTokenException
 import it.polimi.webeep.core.util.ConnectivityObserver
 import it.polimi.webeep.feature.auth.domain.AuthRepository
 import it.polimi.webeep.feature.dashboard.domain.DashboardRepository
@@ -220,7 +221,7 @@ class DashboardViewModelTest {
     fun `missing token error maps to session expired message`() = runTest {
         fakeDashboardRepository.cachedCoursesFlow.value = emptyList()
         fakeDashboardRepository.syncResult =
-            Result.failure(IllegalStateException("Token non disponibile. Effettua il login."))
+            Result.failure(MissingTokenException())
 
         initViewModel()
 

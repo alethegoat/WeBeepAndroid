@@ -1,5 +1,6 @@
 package it.polimi.webeep.feature.dashboard.data
 
+import it.polimi.webeep.core.datastore.MissingTokenException
 import it.polimi.webeep.core.database.dao.CourseDao
 import it.polimi.webeep.core.database.entity.CourseEntity
 import it.polimi.webeep.core.datastore.TokenProvider
@@ -38,7 +39,7 @@ class DashboardRepositoryImpl @Inject constructor(
 
     override suspend fun syncCourses(): Result<List<Course>> {
         return runCatching {
-            tokenProvider.getToken() ?: throw IllegalStateException("Token non disponibile. Effettua il login.")
+            tokenProvider.getToken() ?: throw MissingTokenException()
 
             var userId = tokenProvider.getUserId()?.takeIf { it > 0 }
             if (userId == null) {
@@ -62,7 +63,7 @@ class DashboardRepositoryImpl @Inject constructor(
 
     override suspend fun getUserInfo(): Result<Pair<String, String>> {
         return runCatching {
-            tokenProvider.getToken() ?: throw IllegalStateException("Token non disponibile")
+            tokenProvider.getToken() ?: throw MissingTokenException()
             val siteInfo = apiService.getSiteInfo()
 
             tokenProvider.updateUserProfile(siteInfo.userid, siteInfo.fullname)

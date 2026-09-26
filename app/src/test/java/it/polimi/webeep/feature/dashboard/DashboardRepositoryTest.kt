@@ -1,5 +1,6 @@
 package it.polimi.webeep.feature.dashboard
 
+import it.polimi.webeep.core.datastore.MissingTokenException
 import io.mockk.MockKAnnotations
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -118,7 +119,7 @@ class DashboardRepositoryTest {
         val result = repository.syncCourses()
 
         assertTrue(result.isFailure)
-        assertEquals("Token non disponibile. Effettua il login.", result.exceptionOrNull()?.message)
+        assertTrue(result.exceptionOrNull() is MissingTokenException)
     }
 
     @Test
