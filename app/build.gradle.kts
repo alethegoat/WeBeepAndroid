@@ -25,6 +25,13 @@ android {
     }
 
     signingConfigs {
+        // Shared debug key (not a secret) so every CI debug build installs over the previous one.
+        getByName("debug") {
+            storeFile = file("debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
         create("release") {
             val storePath = System.getenv("KEYSTORE_FILE")
             if (!storePath.isNullOrBlank()) {
