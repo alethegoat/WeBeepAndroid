@@ -1,9 +1,9 @@
 package it.polimi.webeep.feature.dashboard
 
 import app.cash.turbine.test
-import io.mockk.every
-import io.mockk.mockk
-import it.polimi.webeep.core.util.Resource
+import it.polimi.webeep.R
+import it.polimi.webeep.core.datastore.MissingTokenException
+import it.polimi.webeep.core.util.ConnectivityObserver
 import it.polimi.webeep.feature.auth.domain.AuthRepository
 import it.polimi.webeep.feature.dashboard.domain.DashboardRepository
 import it.polimi.webeep.feature.dashboard.domain.GetCoursesUseCase
@@ -11,12 +11,10 @@ import it.polimi.webeep.feature.dashboard.domain.SyncCoursesUseCase
 import it.polimi.webeep.feature.dashboard.domain.model.Course
 import it.polimi.webeep.feature.dashboard.presentation.DashboardUiState
 import it.polimi.webeep.feature.dashboard.presentation.DashboardViewModel
-import it.polimi.webeep.core.util.NetworkMonitor
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -29,6 +27,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TestWatcher
 import org.junit.runner.Description
+import java.io.IOException
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class MainDispatcherRule(
@@ -52,8 +51,7 @@ class DashboardViewModelTest {
     private lateinit var syncCoursesUseCase: SyncCoursesUseCase
     private lateinit var fakeDashboardRepository: FakeDashboardRepository
     private lateinit var fakeAuthRepository: FakeAuthRepository
-    private lateinit var fakeNetworkMonitor: NetworkMonitor
-    private lateinit var fakeApplication: android.app.Application
+    private lateinit var fakeConnectivity: FakeConnectivityObserver
     private lateinit var viewModel: DashboardViewModel
 
     private val sampleCourses = listOf(
@@ -75,13 +73,10 @@ class DashboardViewModelTest {
     fun setup() {
         fakeDashboardRepository = FakeDashboardRepository()
         fakeAuthRepository = FakeAuthRepository()
-        fakeNetworkMonitor = mockk {
-            every { isOnline } returns flowOf(true)
-        }
-        
-        getCoursesUseCase = GetCoursesUseCase(fakeDashboardRepository, fakeNetworkMonitor)
-        syncCoursesUseCase = SyncCoursesUseCase(fakeDashboardRepository)
-        fakeApplication = mockk(relaxed = true)
+        fakeConnectivity = FakeConnectivityObserver()
+
+        getCoursesUseCase = GetCoursesUseCase(fakeDashboardRepository, fakeConnectivity)
+        syncCoursesUseCase = SyncCoursesUseCase(fakeDashboardRepository, fakeConnectivity)
         
         fakeDashboardRepository.userInfoResult = Result.success("Alessio" to "avatar.png")
         fakeDashboardRepository.cachedCoursesFlow.value = sampleCourses
@@ -94,8 +89,7 @@ class DashboardViewModelTest {
             syncCoursesUseCase,
             fakeDashboardRepository,
             fakeAuthRepository,
-            fakeNetworkMonitor,
-            fakeApplication
+            fakeConnectivity
         )
     }
 
@@ -117,8 +111,8 @@ class DashboardViewModelTest {
     fun `init emits Loading then Error on network failure`() = runTest {
         // Se la cache è vuota e il sync fallisce, emette Error
         fakeDashboardRepository.cachedCoursesFlow.value = emptyList()
-        fakeDashboardRepository.syncResult = Result.failure(Exception("Errore di rete"))
-        
+        fakeDashboardRepository.syncResult = Result.failure(IOException("timeout"))
+
         initViewModel()
 
         viewModel.uiState.test {
@@ -128,7 +122,7 @@ class DashboardViewModelTest {
             
             // Should be Error now
             assertTrue(state is DashboardUiState.Error)
-            assertTrue((state as DashboardUiState.Error).message.contains("Errore di rete"))
+            assertEquals(R.string.error_data_network, (state as DashboardUiState.Error).messageRes)
         }
     }
 
@@ -223,13 +217,69 @@ class DashboardViewModelTest {
         }
     }
 
+    @Test
+    fun `missing token error maps to session expired message`() = runTest {
+        fakeDashboardRepository.cachedCoursesFlow.value = emptyList()
+        fakeDashboardRepository.syncResult =
+            Result.failure(MissingTokenException())
+
+        initViewModel()
+
+        viewModel.uiState.test {
+            val state = expectMostRecentItem()
+            assertTrue(state is DashboardUiState.Error)
+            assertEquals(R.string.error_session_expired, (state as DashboardUiState.Error).messageRes)
+        }
+    }
+
+    @Test
+    fun `userName stays blank when profile cannot be loaded`() = runTest {
+        fakeDashboardRepository.userInfoResult = Result.failure(IOException("offline"))
+
+        initViewModel()
+
+        viewModel.uiState.test {
+            val state = expectMostRecentItem()
+            assertTrue(state is DashboardUiState.Success)
+            assertEquals("", (state as DashboardUiState.Success).userName)
+        }
+    }
+
+    @Test
+    fun `refresh while offline with empty cache shows network error without syncing`() = runTest {
+        fakeDashboardRepository.cachedCoursesFlow.value = emptyList()
+        fakeDashboardRepository.syncResult = Result.failure(IOException("offline"))
+        initViewModel()
+
+        fakeConnectivity.online.value = false
+        fakeDashboardRepository.syncCount = 0
+        viewModel.refresh()
+
+        viewModel.uiState.test {
+            val state = expectMostRecentItem()
+            assertTrue(state is DashboardUiState.Error)
+            assertEquals(R.string.error_data_network, (state as DashboardUiState.Error).messageRes)
+        }
+        assertEquals(0, fakeDashboardRepository.syncCount)
+    }
+
+    private class FakeConnectivityObserver : ConnectivityObserver {
+        val online = MutableStateFlow(true)
+        override val isOnline: Flow<Boolean> = online
+    }
+
     private class FakeDashboardRepository : DashboardRepository {
         val cachedCoursesFlow = MutableStateFlow<List<Course>>(emptyList())
         var syncResult: Result<List<Course>> = Result.success(emptyList())
         var userInfoResult: Result<Pair<String, String>> = Result.success("" to "")
 
         override fun getCoursesFromCache(): Flow<List<Course>> = cachedCoursesFlow
-        override suspend fun syncCourses(): Result<List<Course>> = syncResult
+        var syncCount = 0
+
+        override suspend fun syncCourses(): Result<List<Course>> {
+            syncCount++
+            return syncResult
+        }
         override suspend fun getUserInfo(): Result<Pair<String, String>> = userInfoResult
     }
 

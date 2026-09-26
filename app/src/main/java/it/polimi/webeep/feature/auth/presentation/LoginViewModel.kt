@@ -8,6 +8,7 @@ import it.polimi.webeep.feature.auth.domain.AuthRepository
 import it.polimi.webeep.feature.auth.domain.LoginError
 import it.polimi.webeep.feature.auth.domain.LoginResult
 import it.polimi.webeep.feature.auth.domain.LoginUseCase
+import it.polimi.webeep.feature.auth.domain.SsoCallbackRelay
 import it.polimi.webeep.feature.sync.SyncScheduler
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -32,6 +33,7 @@ class LoginViewModel @Inject constructor(
     private val loginUseCase: LoginUseCase,
     private val authRepository: AuthRepository,
     private val syncScheduler: SyncScheduler,
+    private val ssoCallbackRelay: SsoCallbackRelay,
     private val application: android.app.Application
 ) : ViewModel() {
 
@@ -39,6 +41,9 @@ class LoginViewModel @Inject constructor(
     val uiState: StateFlow<LoginUiState> = _uiState.asStateFlow()
 
     init {
+        viewModelScope.launch {
+            ssoCallbackRelay.tokens.collect { token -> handleSsoCallback(token) }
+        }
         viewModelScope.launch {
             if (authRepository.isLoggedIn()) {
                 _uiState.update { LoginUiState.Success }

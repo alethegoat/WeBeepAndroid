@@ -25,4 +25,6 @@ object DatabaseMigrations {
             db.execSQL("ALTER TABLE module_contents ADD COLUMN filepath TEXT")
         }
     }
+
+    val ALL: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
 }

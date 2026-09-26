@@ -7,6 +7,8 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.impl.annotations.MockK
+import it.polimi.webeep.R
+import it.polimi.webeep.core.util.DataError
 import it.polimi.webeep.feature.course.domain.CourseRepository
 import it.polimi.webeep.core.util.Resource
 import it.polimi.webeep.feature.course.domain.GetCourseContentsUseCase
@@ -20,7 +22,11 @@ import it.polimi.webeep.feature.dashboard.MainDispatcherRule
 import it.polimi.webeep.feature.download.domain.DownloadFileUseCase
 import it.polimi.webeep.feature.download.domain.DownloadRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -125,7 +131,7 @@ class CourseDetailViewModelTest {
 
     @Test
     fun `loadContents emits Error on failure`() = runTest {
-        coEvery { getCourseContentsUseCase(5) } returns flowOf(Resource.Error("Errore API"))
+        coEvery { getCourseContentsUseCase(5) } returns flowOf(Resource.Error(DataError.Network))
 
         initViewModel()
 
@@ -135,7 +141,7 @@ class CourseDetailViewModelTest {
                 state = awaitItem()
             }
             assertTrue(state is CourseDetailUiState.Error)
-            assertEquals("Errore API", (state as CourseDetailUiState.Error).message)
+            assertEquals(R.string.error_data_network, (state as CourseDetailUiState.Error).messageRes)
         }
     }
 
@@ -258,4 +264,53 @@ class CourseDetailViewModelTest {
             }
         }
     }
+
+    @Test
+    fun `cache re-emit keeps an in-flight download in DOWNLOADING`() = runTest {
+        val fileUrl = "https://webeep.polimi.it/webservice/pluginfile.php/123/syllabus.pdf"
+        val cache = MutableStateFlow(sampleSections)
+        coEvery { getCourseContentsUseCase(5) } returns cache.map { Resource.Success(it) }
+        coEvery { downloadFileUseCase.execute(fileUrl, any(), any(), any()) } returns 7L
+        every { downloadRepository.getDownloadProgress(7L) } returns MutableSharedFlow<Int>()
+
+        initViewModel()
+        advanceUntilIdle()
+        viewModel.downloadFile(firstFile())
+        advanceUntilIdle()
+        assertEquals(DownloadState.DOWNLOADING, firstFile().downloadState)
+
+        // Background sync rewrites the cache with a fresh copy of the same tree.
+        cache.value = sampleSections.map { it.copy(name = "General (synced)") }
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value as CourseDetailUiState.Success
+        assertEquals("General (synced)", state.sections.first().name)
+        assertEquals(DownloadState.DOWNLOADING, firstFile().downloadState)
+    }
+
+    @Test
+    fun `cache re-emit keeps FAILED unless the file is now on disk`() = runTest {
+        val fileUrl = "https://webeep.polimi.it/webservice/pluginfile.php/123/syllabus.pdf"
+        val cache = MutableStateFlow(sampleSections)
+        coEvery { getCourseContentsUseCase(5) } returns cache.map { Resource.Success(it) }
+        coEvery { downloadFileUseCase.execute(fileUrl, any(), any(), any()) } throws Exception("boom")
+
+        initViewModel()
+        advanceUntilIdle()
+        viewModel.downloadFile(firstFile())
+        advanceUntilIdle()
+        assertEquals(DownloadState.FAILED, firstFile().downloadState)
+
+        cache.value = sampleSections.map { it.copy(summary = "v2") }
+        advanceUntilIdle()
+        assertEquals(DownloadState.FAILED, firstFile().downloadState)
+
+        every { downloadRepository.isFileDownloaded(any()) } returns true
+        cache.value = sampleSections.map { it.copy(summary = "v3") }
+        advanceUntilIdle()
+        assertEquals(DownloadState.COMPLETED, firstFile().downloadState)
+    }
+
+    private fun firstFile() =
+        (viewModel.uiState.value as CourseDetailUiState.Success).sections.first().modules.first().files.first()
 }

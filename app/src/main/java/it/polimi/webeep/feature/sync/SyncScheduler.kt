@@ -18,13 +18,20 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class SyncScheduler @Inject constructor(
-    @ApplicationContext private val context: Context,
+class SyncScheduler internal constructor(
     private val settingsManager: SettingsManager,
-    private val tokenProvider: TokenProvider
+    private val tokenProvider: TokenProvider,
+    private val workManagerProvider: () -> WorkManager
 ) {
+    @Inject
+    constructor(
+        @ApplicationContext context: Context,
+        settingsManager: SettingsManager,
+        tokenProvider: TokenProvider
+    ) : this(settingsManager, tokenProvider, { WorkManager.getInstance(context) })
+
     private val workManager: WorkManager
-        get() = WorkManager.getInstance(context)
+        get() = workManagerProvider()
 
     suspend fun applyCurrentSettings(replaceExisting: Boolean = true) {
         if (tokenProvider.getTokenSync().isNullOrBlank()) {
@@ -75,9 +82,10 @@ class SyncScheduler @Inject constructor(
                 TimeUnit.MINUTES
             )
             .build()
+        // KEEP: repeated calls (activity recreation, re-login) never restart a running sync.
         workManager.enqueueUniqueWork(
             UNIQUE_ONE_SHOT_WORK,
-            ExistingWorkPolicy.REPLACE,
+            ExistingWorkPolicy.KEEP,
             request
         )
     }
@@ -92,6 +100,7 @@ class SyncScheduler @Inject constructor(
         val networkType = if (wifiOnly) NetworkType.UNMETERED else NetworkType.CONNECTED
         return Constraints.Builder()
             .setRequiredNetworkType(networkType)
+            .setRequiresBatteryNotLow(true)
             .build()
     }
 

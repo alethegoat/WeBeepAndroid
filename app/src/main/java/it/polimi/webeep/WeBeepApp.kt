@@ -15,22 +15,26 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
 import it.polimi.webeep.core.datastore.SettingsManager
 import it.polimi.webeep.core.datastore.ThemePreference
-import it.polimi.webeep.core.datastore.TokenManager
+import it.polimi.webeep.core.datastore.TokenProvider
+import it.polimi.webeep.core.session.SessionExpiryHandler
 import it.polimi.webeep.core.ui.components.AuroraBackground
 import it.polimi.webeep.core.ui.theme.WeBeepTheme
 import it.polimi.webeep.navigation.NavGraph
 import it.polimi.webeep.navigation.Screen
+import it.polimi.webeep.navigation.navigateToLogin
 import kotlinx.coroutines.flow.first
 
 @Composable
 fun WeBeepApp(
-    tokenManager: TokenManager,
+    tokenProvider: TokenProvider,
     settingsManager: SettingsManager,
-    initialDeepLinkToken: String?,
-    onNavControllerReady: (androidx.navigation.NavHostController) -> Unit = {}
+    sessionExpiryHandler: SessionExpiryHandler,
+    startAtLogin: Boolean,
+    onNavControllerReady: (NavHostController) -> Unit = {}
 ) {
     val themePreference by settingsManager.themePreference.collectAsStateWithLifecycle(
         initialValue = ThemePreference.SYSTEM_DEFAULT
@@ -41,12 +45,15 @@ fun WeBeepApp(
 
     var startDestination by remember { mutableStateOf<String?>(null) }
 
-    LaunchedEffect(initialDeepLinkToken) {
+    LaunchedEffect(Unit) {
+        // Keystore-backed prefs are opened on IO here, not on the main thread.
+        tokenProvider.ensureLoaded()
         startDestination = when {
-            initialDeepLinkToken != null -> Screen.Login.createRoute(initialDeepLinkToken)
-            tokenManager.isLoggedIn.first() -> Screen.Dashboard.route
+            startAtLogin -> Screen.Login.route
+            tokenProvider.isLoggedIn.first() -> Screen.Dashboard.route
             else -> Screen.Login.route
         }
+        sessionExpiryHandler.wipeStaleDataIfLoggedOut()
     }
 
     val isDarkTheme = when (themePreference) {
@@ -76,6 +83,11 @@ fun WeBeepApp(
                     val navController = rememberNavController()
                     LaunchedEffect(navController) {
                         onNavControllerReady(navController)
+                    }
+                    LaunchedEffect(navController, sessionExpiryHandler) {
+                        sessionExpiryHandler.sessionLost.collect {
+                            navController.navigateToLogin()
+                        }
                     }
                     NavGraph(
                         startDestination = destination,

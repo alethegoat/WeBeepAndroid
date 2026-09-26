@@ -32,49 +32,59 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.datasource.DefaultDataSource
+import androidx.media3.datasource.okhttp.OkHttpDataSource
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.ui.PlayerView
 import it.polimi.webeep.R
 import it.polimi.webeep.core.network.MoodleFileUrlBuilder
+import okhttp3.Call
 
 @OptIn(UnstableApi::class)
 @Composable
 fun MediaViewer(
     url: String,
+    callFactory: Call.Factory,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
 
-    var errorMessage by remember { mutableStateOf<String?>(null) }
+    var hasError by remember { mutableStateOf(false) }
     var isBuffering by remember { mutableStateOf(true) }
     val userPaused = remember { java.util.concurrent.atomic.AtomicBoolean(false) }
-    val playbackErrorFallback = stringResource(R.string.media_playback_error)
 
     val exoPlayer = remember {
-        ExoPlayer.Builder(context).build().apply {
-            setMediaItem(MediaItem.fromUri(Uri.parse(url)))
-            addListener(object : Player.Listener {
-                override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
-                    errorMessage = error.localizedMessage ?: playbackErrorFallback
-                    isBuffering = false
-                }
-
-                override fun onPlaybackStateChanged(playbackState: Int) {
-                    isBuffering = playbackState == Player.STATE_BUFFERING
-                }
-
-                override fun onIsPlayingChanged(isPlaying: Boolean) {
-                    if (isPlaying) {
-                        userPaused.set(false)
-                    } else if (playbackState == Player.STATE_READY) {
-                        userPaused.set(true)
+        // Goes through the shared OkHttp client: the pluginfile token is added
+        // by its interceptor, never embedded in the media URL.
+        val dataSourceFactory = DefaultDataSource.Factory(context, OkHttpDataSource.Factory(callFactory))
+        ExoPlayer.Builder(context)
+            .setMediaSourceFactory(DefaultMediaSourceFactory(dataSourceFactory))
+            .build()
+            .apply {
+                setMediaItem(MediaItem.fromUri(Uri.parse(MoodleFileUrlBuilder.stripAuthFromUrl(url))))
+                addListener(object : Player.Listener {
+                    override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
+                        hasError = true
+                        isBuffering = false
                     }
-                }
-            })
-            prepare()
-            playWhenReady = true
-        }
+
+                    override fun onPlaybackStateChanged(playbackState: Int) {
+                        isBuffering = playbackState == Player.STATE_BUFFERING
+                    }
+
+                    override fun onIsPlayingChanged(isPlaying: Boolean) {
+                        if (isPlaying) {
+                            userPaused.set(false)
+                        } else if (playbackState == Player.STATE_READY) {
+                            userPaused.set(true)
+                        }
+                    }
+                })
+                prepare()
+                playWhenReady = true
+            }
     }
 
     DisposableEffect(lifecycleOwner, exoPlayer) {
@@ -113,15 +123,14 @@ fun MediaViewer(
             modifier = Modifier.fillMaxSize()
         )
 
-        if (isBuffering && errorMessage == null) {
+        if (isBuffering && !hasError) {
             CircularProgressIndicator(
                 modifier = Modifier.align(Alignment.Center),
                 color = MaterialTheme.colorScheme.primary
             )
         }
 
-        val currentError = errorMessage
-        if (currentError != null) {
+        if (hasError) {
             Column(
                 modifier = Modifier
                     .align(Alignment.Center)
@@ -130,7 +139,7 @@ fun MediaViewer(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    text = currentError,
+                    text = stringResource(R.string.media_playback_error),
                     color = MaterialTheme.colorScheme.onErrorContainer,
                     modifier = Modifier.padding(top = 8.dp),
                     textAlign = TextAlign.Center

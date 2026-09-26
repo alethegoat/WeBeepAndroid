@@ -14,9 +14,12 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.transformWhile
 import kotlinx.coroutines.launch
 import okhttp3.Call
 import okhttp3.OkHttpClient
@@ -28,8 +31,8 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Downloads files with OkHttp into app-private storage. Writes to a temp file
- * and only replaces the previous copy on success.
+ * Downloads files with OkHttp into internal app storage (filesDir/downloads).
+ * Writes to a temp file and only replaces the previous copy on success.
  */
 @Singleton
 class DownloadRepositoryImpl @Inject constructor(
@@ -43,6 +46,8 @@ class DownloadRepositoryImpl @Inject constructor(
     private val progress = ConcurrentHashMap<Long, MutableStateFlow<Int>>()
     private val jobs = ConcurrentHashMap<Long, Job>()
     private val calls = ConcurrentHashMap<Long, Call>()
+    private val downloadsDir: File by lazy { File(context.filesDir, DOWNLOADS_DIR) }
+    private val migrationJob: Job = scope.launch { migrateLegacyDownloads() }
 
     override fun downloadFile(
         url: String,
@@ -52,15 +57,9 @@ class DownloadRepositoryImpl @Inject constructor(
         mimeType: String?
     ): Long {
         val directory = getDownloadsDirectory()
-        if (!directory.exists()) {
-            directory.mkdirs()
-        }
         val safeLocalFileName = sanitizeFileName(localFileName)
         val destination = containedFile(directory, safeLocalFileName) ?: return -1L
         val part = containedFile(directory, "$safeLocalFileName.part") ?: return -1L
-        if (part.exists()) {
-            part.delete()
-        }
 
         val requestUrl = if (token != null) {
             MoodleFileUrlBuilder.buildAuthenticatedUrl(
@@ -70,16 +69,27 @@ class DownloadRepositoryImpl @Inject constructor(
         } else {
             MoodleFileUrlBuilder.stripAuthFromUrl(url)
         }
+        val call = try {
+            okHttpClient.newCall(Request.Builder().url(requestUrl).build())
+        } catch (_: IllegalArgumentException) {
+            return -1L
+        }
 
         val id = nextId.getAndIncrement()
         val state = MutableStateFlow(0)
         progress[id] = state
+        // Registered before launching so an immediate cancelDownload() reaches the network call.
+        calls[id] = call
         jobs[id] = scope.launch {
             try {
-                val request = Request.Builder().url(requestUrl).build()
-                val call = okHttpClient.newCall(request)
-                calls[id] = call
-                call.execute().use { response ->
+                migrationJob.join()
+                if (!directory.exists()) {
+                    directory.mkdirs()
+                }
+                if (part.exists()) {
+                    part.delete()
+                }
+                call.executeCancellable { response ->
                     val body = MoodleBinaryDownload.requireBinaryBody(response)
                     val total = body.contentLength()
                     part.outputStream().use { output ->
@@ -98,6 +108,7 @@ class DownloadRepositoryImpl @Inject constructor(
                         }
                     }
                 }
+                ensureActive()
                 if (destination.exists()) {
                     destination.delete()
                 }
@@ -116,6 +127,9 @@ class DownloadRepositoryImpl @Inject constructor(
             } finally {
                 jobs.remove(id)
                 calls.remove(id)
+                if (state.value == 100 || state.value == -1) {
+                    scheduleProgressCleanup(id, state)
+                }
             }
         }
         return id
@@ -127,15 +141,15 @@ class DownloadRepositoryImpl @Inject constructor(
         progress.remove(downloadId)
     }
 
+    /**
+     * Completes after the terminal value (100 or -1). Terminal states are kept
+     * for [PROGRESS_RETENTION_MS] so late or repeated collectors see the result.
+     */
     override fun getDownloadProgress(downloadId: Long): Flow<Int> {
-        val state = progress[downloadId] ?: return flow { emit(-1) }
-        return flow {
-            state.collect { value ->
-                emit(value)
-                if (value == 100 || value == -1) {
-                    progress.remove(downloadId)
-                }
-            }
+        val state = progress[downloadId] ?: return flowOf(-1)
+        return state.transformWhile { value ->
+            emit(value)
+            value in 0..99
         }
     }
 
@@ -212,8 +226,28 @@ class DownloadRepositoryImpl @Inject constructor(
         return MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension) ?: "*/*"
     }
 
-    private fun getDownloadsDirectory(): File {
-        return context.getExternalFilesDir(DOWNLOADS_DIR) ?: File(context.filesDir, DOWNLOADS_DIR)
+    private fun getDownloadsDirectory(): File = downloadsDir
+
+    private fun scheduleProgressCleanup(id: Long, state: MutableStateFlow<Int>) {
+        scope.launch {
+            delay(PROGRESS_RETENTION_MS)
+            progress.remove(id, state)
+        }
+    }
+
+    /**
+     * One-shot move of files saved by older versions in external app storage.
+     */
+    private fun migrateLegacyDownloads() {
+        val marker = File(context.filesDir, MIGRATION_MARKER)
+        if (marker.exists()) return
+        try {
+            val externalRoot = context.getExternalFilesDir(null) ?: return
+            LegacyDownloadsMigration.migrate(File(externalRoot, DOWNLOADS_DIR), getDownloadsDirectory())
+            marker.createNewFile()
+        } catch (e: Exception) {
+            if (e is CancellationException) throw e
+        }
     }
 
     private fun sanitizeFileName(fileName: String): String {
@@ -251,5 +285,7 @@ class DownloadRepositoryImpl @Inject constructor(
         const val MAX_FILE_NAME_LENGTH = 120
         const val DOWNLOAD_BUFFER_SIZE = 32 * 1024
         const val MAX_DOWNLOADS_BYTES = 500L * 1024L * 1024L
+        const val PROGRESS_RETENTION_MS = 60_000L
+        const val MIGRATION_MARKER = "downloads_internal_migrated"
     }
 }

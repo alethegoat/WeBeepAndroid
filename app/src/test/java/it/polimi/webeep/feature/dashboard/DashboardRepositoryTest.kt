@@ -1,5 +1,6 @@
 package it.polimi.webeep.feature.dashboard
 
+import it.polimi.webeep.core.datastore.MissingTokenException
 import io.mockk.MockKAnnotations
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -7,7 +8,7 @@ import io.mockk.every
 import io.mockk.impl.annotations.MockK
 import it.polimi.webeep.core.database.dao.CourseDao
 import it.polimi.webeep.core.database.entity.CourseEntity
-import it.polimi.webeep.core.datastore.TokenManager
+import it.polimi.webeep.core.datastore.TokenProvider
 import it.polimi.webeep.core.network.MoodleApiService
 import it.polimi.webeep.core.network.dto.CourseDto
 import it.polimi.webeep.core.network.dto.SiteInfoDto
@@ -31,7 +32,7 @@ class DashboardRepositoryTest {
     lateinit var courseDao: CourseDao
 
     @MockK
-    lateinit var tokenManager: TokenManager
+    lateinit var tokenProvider: TokenProvider
 
     private lateinit var repository: DashboardRepositoryImpl
 
@@ -93,7 +94,7 @@ class DashboardRepositoryTest {
     @Before
     fun setup() {
         MockKAnnotations.init(this, relaxUnitFun = true)
-        repository = DashboardRepositoryImpl(apiService, courseDao, tokenManager, Dispatchers.Unconfined)
+        repository = DashboardRepositoryImpl(apiService, courseDao, tokenProvider, Dispatchers.Unconfined)
     }
 
     @Test
@@ -113,18 +114,18 @@ class DashboardRepositoryTest {
 
     @Test
     fun `syncCourses fails when token is missing`() = runTest {
-        coEvery { tokenManager.getToken() } returns null
+        coEvery { tokenProvider.getToken() } returns null
 
         val result = repository.syncCourses()
 
         assertTrue(result.isFailure)
-        assertEquals("Token non disponibile. Effettua il login.", result.exceptionOrNull()?.message)
+        assertTrue(result.exceptionOrNull() is MissingTokenException)
     }
 
     @Test
     fun `syncCourses fetches, caches and returns courses successfully`() = runTest {
-        coEvery { tokenManager.getToken() } returns "mock_token"
-        coEvery { tokenManager.getUserId() } returns 12345
+        coEvery { tokenProvider.getToken() } returns "mock_token"
+        coEvery { tokenProvider.getUserId() } returns 12345
         coEvery { apiService.getEnrolledCourses(userId = 12345) } returns sampleCourseDtos
         coEvery { courseDao.replaceAllCourses(any()) } returns Unit
 
@@ -140,25 +141,40 @@ class DashboardRepositoryTest {
 
     @Test
     fun `syncCourses updates userId if missing locally`() = runTest {
-        coEvery { tokenManager.getToken() } returns "mock_token"
-        coEvery { tokenManager.getUserId() } returns null
+        coEvery { tokenProvider.getToken() } returns "mock_token"
+        coEvery { tokenProvider.getUserId() } returns null
         coEvery { apiService.getSiteInfo(wsToken = null) } returns sampleSiteInfo
-        coEvery { tokenManager.updateUserProfile(12345, "Mario Rossi") } returns Unit
+        coEvery { tokenProvider.updateUserProfile(12345, "Mario Rossi") } returns Unit
         coEvery { apiService.getEnrolledCourses(userId = 12345) } returns sampleCourseDtos
         coEvery { courseDao.replaceAllCourses(any()) } returns Unit
 
         val result = repository.syncCourses()
 
         assertTrue(result.isSuccess)
-        coVerify(exactly = 1) { tokenManager.updateUserProfile(12345, "Mario Rossi") }
-        coVerify(exactly = 0) { tokenManager.saveAuthData(any(), any(), any(), any()) }
+        coVerify(exactly = 1) { tokenProvider.updateUserProfile(12345, "Mario Rossi") }
+        coVerify(exactly = 0) { tokenProvider.saveAuthData(any(), any(), any(), any()) }
+    }
+
+    @Test
+    fun `syncCourses refetches site info when stored userId is zero`() = runTest {
+        coEvery { tokenProvider.getToken() } returns "mock_token"
+        coEvery { tokenProvider.getUserId() } returns 0
+        coEvery { apiService.getSiteInfo(wsToken = null) } returns sampleSiteInfo
+        coEvery { tokenProvider.updateUserProfile(12345, "Mario Rossi") } returns Unit
+        coEvery { apiService.getEnrolledCourses(userId = 12345) } returns sampleCourseDtos
+        coEvery { courseDao.replaceAllCourses(any()) } returns Unit
+
+        val result = repository.syncCourses()
+
+        assertTrue(result.isSuccess)
+        coVerify(exactly = 1) { apiService.getEnrolledCourses(userId = 12345) }
     }
 
     @Test
     fun `getUserInfo fetches site info without putting token in avatar url`() = runTest {
-        coEvery { tokenManager.getToken() } returns "mock_token"
+        coEvery { tokenProvider.getToken() } returns "mock_token"
         coEvery { apiService.getSiteInfo(wsToken = null) } returns sampleSiteInfo
-        coEvery { tokenManager.updateUserProfile(12345, "Mario Rossi") } returns Unit
+        coEvery { tokenProvider.updateUserProfile(12345, "Mario Rossi") } returns Unit
 
         val result = repository.getUserInfo()
 

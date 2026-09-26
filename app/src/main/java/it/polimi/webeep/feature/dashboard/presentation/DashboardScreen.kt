@@ -165,7 +165,8 @@ fun DashboardScreen(
         ) { innerPadding ->
             val isCacheAvailable = (uiState as? DashboardUiState.Success)?.courses?.isNotEmpty() == true
             val avatarUrl = (uiState as? DashboardUiState.Success)?.userAvatar ?: ""
-            val userName = (uiState as? DashboardUiState.Success)?.userName ?: stringResource(R.string.student_placeholder)
+            val userName = (uiState as? DashboardUiState.Success)?.userName?.takeIf { it.isNotBlank() }
+                ?: stringResource(R.string.student_placeholder)
 
             Box(modifier = Modifier.fillMaxSize()) {
                 when (val state = uiState) {
@@ -415,7 +416,7 @@ fun DashboardScreen(
                         EmptyStateView(
                             icon = Icons.Default.Warning,
                             title = stringResource(R.string.dashboard_error_title),
-                            subtitle = state.message,
+                            subtitle = stringResource(state.messageRes),
                             actionLabel = stringResource(R.string.retry),
                             onAction = { viewModel.loadCourses() },
                             modifier = Modifier.padding(innerPadding)

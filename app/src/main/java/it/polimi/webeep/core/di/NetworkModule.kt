@@ -11,6 +11,7 @@ import io.ktor.client.plugins.defaultRequest
 import io.ktor.serialization.kotlinx.json.json
 import it.polimi.webeep.BuildConfig
 import it.polimi.webeep.core.datastore.TokenProvider
+import it.polimi.webeep.core.network.LogRedactor
 import it.polimi.webeep.core.network.MoodleApiService
 import it.polimi.webeep.core.network.MoodleApiServiceImpl
 import it.polimi.webeep.core.network.NoStoreAuthCacheInterceptor
@@ -40,12 +41,7 @@ object NetworkModule {
     @Singleton
     fun provideLoggingInterceptor(): HttpLoggingInterceptor {
         val logger = HttpLoggingInterceptor.Logger { message ->
-            val sanitized = message
-                .replace(Regex("""(?i)wstoken=[^&\s]+"""), "wstoken=<REDACTED>")
-                .replace(Regex("""(?i)private_token=[^&\s]+"""), "private_token=<REDACTED>")
-                .replace(Regex("""(?i)([?&])token=[^&\s]+"""), "$1token=<REDACTED>")
-                .replace(Regex("""(?i)Bearer\s+\S+"""), "Bearer <REDACTED>")
-            android.util.Log.d("OkHttp", sanitized)
+            android.util.Log.d("OkHttp", LogRedactor.redact(message))
         }
         return HttpLoggingInterceptor(logger).apply {
             level = if (BuildConfig.DEBUG) {

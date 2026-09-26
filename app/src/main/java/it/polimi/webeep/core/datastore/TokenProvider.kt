@@ -21,4 +21,7 @@ interface TokenProvider {
     fun getPendingPassportSync(): String?
     fun getPendingPassportsSync(): List<String>
     fun clearPendingPassportSync()
+
+    /** Loads the persisted session off the main thread. No-op for in-memory fakes. */
+    suspend fun ensureLoaded() {}
 }

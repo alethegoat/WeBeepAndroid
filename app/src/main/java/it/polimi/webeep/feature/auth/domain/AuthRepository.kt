@@ -8,4 +8,7 @@ interface AuthRepository {
     suspend fun isLoggedIn(): Boolean
 
     suspend fun logout()
+
+    /** Wipes cached course data, downloads and caches but keeps credentials and pending SSO state. */
+    suspend fun clearLocalData() {}
 }

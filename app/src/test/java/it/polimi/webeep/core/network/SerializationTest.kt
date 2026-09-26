@@ -87,4 +87,17 @@ class SerializationTest {
         assertTrue(siteInfo.functions?.isNotEmpty() == true)
         assertEquals("core_course_get_contents", siteInfo.functions?.get(0)?.name)
     }
+
+    @Test
+    fun `MoodleErrorDto parses error envelope`() {
+        val payload = """
+            {"exception":"webservice_access_exception","errorcode":"accessexception","message":"Access control exception","debuginfo":"x"}
+        """.trimIndent()
+
+        val error = jsonParser.decodeFromString<MoodleErrorDto>(payload)
+
+        assertEquals("webservice_access_exception", error.exception)
+        assertEquals("accessexception", error.errorcode)
+        assertEquals("Access control exception", error.message)
+    }
 }

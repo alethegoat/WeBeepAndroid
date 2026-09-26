@@ -23,9 +23,45 @@ class TokenManagerTest {
     @Before
     fun setup() {
         application = ApplicationProvider.getApplicationContext()
-        // Istanziazione del TokenManager con contesto Android simulato
-        // Questo innescherà la creazione di EncryptedSharedPreferences e MasterKey (StrongBox o fallback TEE)
+        // EncryptedSharedPreferences and MasterKey are created lazily on first access.
         tokenManager = TokenManager(application, Dispatchers.IO)
+        runBlocking { tokenManager.clearAll() }
+    }
+
+    @Test
+    fun `ensureLoaded restores a persisted session in a new instance`() = runBlocking {
+        tokenManager.saveAuthData("persisted", "private", 7, "Name")
+
+        val restored = TokenManager(application, Dispatchers.IO)
+        assertFalse("Not loaded before ensureLoaded", restored.isLoggedIn.first())
+
+        restored.ensureLoaded()
+
+        assertTrue(restored.isLoggedIn.first())
+        assertEquals("persisted", restored.getTokenSync())
+    }
+
+    @Test
+    fun `getToken works without ensureLoaded`() = runBlocking {
+        tokenManager.saveAuthData("token", null, 1, "Name")
+
+        val fresh = TokenManager(application, Dispatchers.IO)
+
+        assertEquals("token", fresh.getToken())
+        assertTrue(fresh.isLoggedIn.first())
+    }
+
+    @Test
+    fun `pending passports are stored, listed and cleared`() {
+        tokenManager.savePendingPassportSync("111")
+        tokenManager.savePendingPassportSync("222")
+
+        assertEquals(listOf("111", "222"), tokenManager.getPendingPassportsSync())
+        assertEquals("222", tokenManager.getPendingPassportSync())
+
+        tokenManager.clearPendingPassportSync()
+
+        assertTrue(tokenManager.getPendingPassportsSync().isEmpty())
     }
 
     @Test

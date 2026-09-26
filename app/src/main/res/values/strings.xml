@@ -35,7 +35,6 @@
     <string name="cd_add_fav">Aggiungi ai preferiti</string>
     <string name="politecnico_milano">Politecnico di Milano</string>
     <string name="login_subtitle">Accedi per visualizzare i tuoi corsi</string>
-    <string name="cd_login">Login icon</string>
     <string name="login_sso_button">Accedi con SSO</string>
     <string name="course_content_title">Contenuto del corso</string>
     <string name="cd_back">Torna indietro</string>
@@ -46,7 +45,6 @@
     <string name="cd_preview">Anteprima file</string>
     
     <string name="file_viewer_image">Immagine</string>
-    <string name="file_viewer_web">Pagina Web</string>
     <string name="file_viewer_error_title">Errore apertura file</string>
     <string name="file_viewer_loading">Caricamento...</string>
     <string name="file_viewer_image_error">Errore nel caricamento dell\'immagine.</string>
@@ -105,11 +103,19 @@
     <string name="cd_collapse_section">Comprimi sezione</string>
     <string name="error_session_expired">Sessione scaduta. Effettua di nuovo il login.</string>
     <string name="error_cannot_open_file">Impossibile aprire il file</string>
-    <string name="error_refresh_courses">Impossibile aggiornare i corsi</string>
     <string name="error_login_invalid_format">Formato del token non valido.</string>
     <string name="error_login_session_expired">Sessione di login scaduta. Riprova con SSO.</string>
     <string name="error_login_invalid_passport">Passport SSO non valido. Riprova il login.</string>
     <string name="error_login_invalid_token">Token di accesso non valido. Riprova con SSO.</string>
     <string name="error_login_process_failed">Impossibile elaborare il token. Riprova.</string>
     <string name="error_login_validation_failed">Impossibile convalidare il token con il server.</string>
+    <string name="file_viewer_error_network">Impossibile scaricare il file. Controlla la connessione e riprova.</string>
+    <string name="file_viewer_error_pdf">Il PDF è danneggiato o non può essere aperto.</string>
+    <string name="settings_logout_dialog_title">Disconnettersi?</string>
+    <string name="settings_logout_dialog_message">I file scaricati e i dati salvati sul dispositivo verranno eliminati.</string>
+    <string name="settings_logout_dialog_confirm">Disconnetti</string>
+    <string name="settings_logout_dialog_cancel">Annulla</string>
+    <string name="error_data_network">Nessuna connessione. Controlla la rete e riprova.</string>
+    <string name="error_data_server">Il server di WeBeep ha restituito un errore. Riprova più tardi.</string>
+    <string name="error_data_unknown">Si è verificato un errore imprevisto. Riprova.</string>
 </resources>

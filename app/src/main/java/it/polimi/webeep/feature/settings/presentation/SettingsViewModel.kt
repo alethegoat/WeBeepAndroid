@@ -19,7 +19,7 @@ data class SettingsUiState(
     val themePreference: ThemePreference = ThemePreference.SYSTEM_DEFAULT,
     val dynamicColorPreference: Boolean = false,
     val wifiOnlySync: Boolean = false,
-    val syncFrequency: SyncFrequency = SyncFrequency.FIFTEEN_MINUTES
+    val syncFrequency: SyncFrequency = SettingsManager.DEFAULT_SYNC_FREQUENCY
 )
 
 @HiltViewModel

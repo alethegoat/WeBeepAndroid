@@ -227,7 +227,7 @@ fun LoginScreen(
                                     ) {
                                         Icon(
                                             imageVector = Icons.AutoMirrored.Filled.Login,
-                                            contentDescription = stringResource(R.string.cd_login),
+                                            contentDescription = null,
                                             modifier = Modifier.padding(end = 8.dp),
                                             tint = MaterialTheme.colorScheme.onPrimary
                                         )

@@ -11,12 +11,15 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.withContext
+import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
  * Authentication token manager for Moodle APIs.
  * Uses EncryptedSharedPreferences for secure storage of sensitive data.
+ * The Keystore-backed prefs are created lazily: call [ensureLoaded] off the main thread
+ * before reading [isLoggedIn] or [getTokenSync].
  */
 @Singleton
 class TokenManager @Inject constructor(
@@ -27,16 +30,19 @@ class TokenManager @Inject constructor(
     companion object {
         private const val PREFS_NAME = "webeep_secure_prefs"
         private const val KEY_WS_TOKEN = "ws_token"
+        // Legacy key: the autologin-capable private token is no longer stored.
         private const val KEY_PRIVATE_TOKEN = "private_token"
         private const val KEY_USER_ID = "user_id"
         private const val KEY_FULL_NAME = "full_name"
+        // Legacy key: single passport without timestamp, ignored and purged on load.
         private const val KEY_PENDING_PASSPORT = "pending_sso_passport"
         private const val KEY_PENDING_PASSPORTS = "pending_sso_passports"
-        private const val MAX_PENDING_PASSPORTS = 8
         private const val USER_ID_DEFAULT = -1
     }
 
-    private val encryptedPrefs: SharedPreferences
+    private val encryptedPrefs: SharedPreferences by lazy { createEncryptedPrefsWithFallback(application) }
+
+    private val loaded = AtomicBoolean(false)
 
     private val _isLoggedIn = MutableStateFlow(false)
     private val _wsToken = MutableStateFlow<String?>(null)
@@ -49,9 +55,28 @@ class TokenManager @Inject constructor(
 
     private val clearLock = Any()
 
-    init {
-        encryptedPrefs = createEncryptedPrefsWithFallback(application)
-        refreshCacheFromPrefs()
+    override suspend fun ensureLoaded() {
+        if (loaded.get()) return
+        withContext(ioDispatcher) { loadIfNeeded() }
+    }
+
+    private fun loadIfNeeded() {
+        if (loaded.get()) return
+        synchronized(clearLock) {
+            if (loaded.get()) return
+            purgeLegacyKeys()
+            refreshCacheFromPrefs()
+            loaded.set(true)
+        }
+    }
+
+    private fun purgeLegacyKeys() {
+        if (encryptedPrefs.contains(KEY_PRIVATE_TOKEN) || encryptedPrefs.contains(KEY_PENDING_PASSPORT)) {
+            encryptedPrefs.edit()
+                .remove(KEY_PRIVATE_TOKEN)
+                .remove(KEY_PENDING_PASSPORT)
+                .commit()
+        }
     }
 
     private fun createEncryptedPrefsWithFallback(application: Application): SharedPreferences {
@@ -112,6 +137,7 @@ class TokenManager @Inject constructor(
 
     override fun getTokenSync(): String? = cachedWsToken
 
+    /** [privateToken] is intentionally ignored: it grants a full web session and is never used. */
     override suspend fun saveAuthData(
         token: String,
         privateToken: String?,
@@ -120,20 +146,19 @@ class TokenManager @Inject constructor(
     ) {
         withContext(ioDispatcher) {
             synchronized(clearLock) {
-                val editor = encryptedPrefs.edit()
+                val success = encryptedPrefs.edit()
                     .putString(KEY_WS_TOKEN, token)
                     .putInt(KEY_USER_ID, userId)
                     .putString(KEY_FULL_NAME, fullName)
+                    .remove(KEY_PRIVATE_TOKEN)
                     .remove(KEY_PENDING_PASSPORT)
                     .remove(KEY_PENDING_PASSPORTS)
-                if (privateToken != null) {
-                    editor.putString(KEY_PRIVATE_TOKEN, privateToken)
-                }
-                val success = editor.commit()
+                    .commit()
                 if (!success) {
                     throw SecurityException("Impossibile persistere i dati di autenticazione in modo sicuro")
                 }
                 refreshCacheFromPrefs()
+                loaded.set(true)
             }
         }
     }
@@ -154,6 +179,7 @@ class TokenManager @Inject constructor(
 
     override suspend fun getToken(): String? {
         return withContext(ioDispatcher) {
+            loadIfNeeded()
             synchronized(clearLock) {
                 encryptedPrefs.getString(KEY_WS_TOKEN, null).also { cachedWsToken = it }
             }
@@ -189,20 +215,17 @@ class TokenManager @Inject constructor(
             cachedWsToken = null
             _wsToken.value = null
             _isLoggedIn.value = false
+            loaded.set(true)
         }
     }
 
     override fun savePendingPassportSync(passport: String) {
         synchronized(clearLock) {
-            val passports = readPassportList().toMutableList()
-            passports.remove(passport)
-            passports.add(passport)
-            while (passports.size > MAX_PENDING_PASSPORTS) {
-                passports.removeAt(0)
-            }
+            val now = System.currentTimeMillis()
+            val entries = PendingPassports.add(readPassportEntries(now), passport, now)
             encryptedPrefs.edit()
-                .putString(KEY_PENDING_PASSPORT, passport)
-                .putString(KEY_PENDING_PASSPORTS, passports.joinToString("\n"))
+                .remove(KEY_PENDING_PASSPORT)
+                .putString(KEY_PENDING_PASSPORTS, PendingPassports.serialize(entries))
                 .commit()
         }
     }
@@ -210,15 +233,12 @@ class TokenManager @Inject constructor(
     override fun getPendingPassportSync(): String? {
         synchronized(clearLock) {
             return readPassportList().lastOrNull()
-                ?: encryptedPrefs.getString(KEY_PENDING_PASSPORT, null)
         }
     }
 
     override fun getPendingPassportsSync(): List<String> {
         synchronized(clearLock) {
-            val list = readPassportList()
-            if (list.isNotEmpty()) return list
-            return listOfNotNull(encryptedPrefs.getString(KEY_PENDING_PASSPORT, null))
+            return readPassportList()
         }
     }
 
@@ -231,18 +251,17 @@ class TokenManager @Inject constructor(
         }
     }
 
-    private fun readPassportList(): List<String> {
-        return encryptedPrefs.getString(KEY_PENDING_PASSPORTS, null)
-            ?.split('\n')
-            ?.map { it.trim() }
-            ?.filter { it.isNotEmpty() }
-            .orEmpty()
-    }
+    private fun readPassportList(): List<String> =
+        readPassportEntries(System.currentTimeMillis()).map { it.passport }
+
+    private fun readPassportEntries(nowMs: Long): List<PendingPassports.Entry> =
+        PendingPassports.parse(encryptedPrefs.getString(KEY_PENDING_PASSPORTS, null), nowMs)
 
     private fun clearAllInternal() {
         synchronized(clearLock) {
             encryptedPrefs.edit().clear().commit()
             refreshCacheFromPrefs()
+            loaded.set(true)
         }
     }
 
@@ -252,4 +271,32 @@ class TokenManager @Inject constructor(
         _wsToken.value = token
         _isLoggedIn.value = token != null
     }
+}
+
+/**
+ * Pending SSO passports stored as `passport|createdAtMillis` lines.
+ * Entries older than [TTL_MS] (or with an invalid or future timestamp) are discarded on read.
+ */
+internal object PendingPassports {
+    const val TTL_MS = 10 * 60_000L
+    const val MAX_ENTRIES = 8
+
+    data class Entry(val passport: String, val createdAtMs: Long)
+
+    fun parse(raw: String?, nowMs: Long): List<Entry> {
+        if (raw.isNullOrBlank()) return emptyList()
+        return raw.split('\n').mapNotNull { line ->
+            val passport = line.substringBefore('|').trim()
+            val createdAt = line.substringAfter('|', "").trim().toLongOrNull()
+            if (passport.isEmpty() || createdAt == null) return@mapNotNull null
+            val age = nowMs - createdAt
+            if (age < 0 || age >= TTL_MS) null else Entry(passport, createdAt)
+        }
+    }
+
+    fun add(entries: List<Entry>, passport: String, nowMs: Long): List<Entry> =
+        (entries.filterNot { it.passport == passport } + Entry(passport, nowMs)).takeLast(MAX_ENTRIES)
+
+    fun serialize(entries: List<Entry>): String =
+        entries.joinToString("\n") { "${it.passport}|${it.createdAtMs}" }
 }

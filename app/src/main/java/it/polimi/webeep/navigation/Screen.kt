@@ -3,12 +3,8 @@ package it.polimi.webeep.navigation
 import android.net.Uri
 
 sealed class Screen(val route: String) {
-    data object Login : Screen("login") {
-        const val TOKEN_ARG = "token"
-        const val routeWithToken = "login?token={token}"
-
-        fun createRoute(token: String) = "login?token=${Uri.encode(token)}"
-    }
+    // The SSO callback token reaches the login screen through SsoCallbackRelay, never the route.
+    data object Login : Screen("login")
 
     data object Dashboard : Screen("dashboard")
 

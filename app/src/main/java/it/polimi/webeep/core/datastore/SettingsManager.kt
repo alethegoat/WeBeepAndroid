@@ -47,7 +47,7 @@ class SettingsManager @Inject constructor(
 
     val syncFrequency: Flow<SyncFrequency> = context.dataStore.data.map { preferences ->
         val raw = preferences[SYNC_FREQUENCY_KEY]
-        SyncFrequency.entries.firstOrNull { it.name == raw } ?: SyncFrequency.FIFTEEN_MINUTES
+        SyncFrequency.entries.firstOrNull { it.name == raw } ?: DEFAULT_SYNC_FREQUENCY
     }
 
     suspend fun setThemePreference(theme: ThemePreference) {
@@ -72,5 +72,9 @@ class SettingsManager @Inject constructor(
         context.dataStore.edit { preferences ->
             preferences[SYNC_FREQUENCY_KEY] = frequency.name
         }
+    }
+
+    companion object {
+        val DEFAULT_SYNC_FREQUENCY = SyncFrequency.ONE_HOUR
     }
 }

@@ -269,7 +269,7 @@ fun CourseDetailScreen(
                     EmptyStateView(
                         icon = Icons.Default.Description,
                         title = stringResource(R.string.sync_error_title),
-                        subtitle = state.message,
+                        subtitle = stringResource(state.messageRes),
                         actionLabel = stringResource(R.string.retry),
                         onAction = { viewModel.loadContents() }
                     )
