@@ -33,23 +33,6 @@ object SsoBrowser {
         context.startActivity(viewIntent)
     }
 
-    /**
-     * Opens the SSO flow in the full browser instead of a Custom Tab. Fallback for
-     * devices where the Custom Tab does not hand off to the CIE ID app.
-     */
-    fun openInExternalBrowser(context: Context, url: String) {
-        val viewIntent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
-            addCategory(Intent.CATEGORY_BROWSABLE)
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            resolveCustomTabsPackage(context)?.let(::setPackage)
-        }
-        try {
-            context.startActivity(viewIntent)
-        } catch (_: Exception) {
-            context.startActivity(viewIntent.setPackage(null))
-        }
-    }
-
     private fun launchCustomTab(context: Context, uri: Uri): Boolean {
         return try {
             val customTabs = CustomTabsIntent.Builder()

@@ -36,7 +36,6 @@
     <string name="politecnico_milano">Politecnico di Milano</string>
     <string name="login_subtitle">Accedi per visualizzare i tuoi corsi</string>
     <string name="login_sso_button">Accedi con SSO</string>
-    <string name="login_sso_external_browser">Problemi con CIE? Apri nel browser</string>
     <string name="course_content_title">Contenuto del corso</string>
     <string name="cd_back">Torna indietro</string>
     <string name="course_empty_title">Corso vuoto</string>
