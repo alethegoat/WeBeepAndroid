@@ -33,7 +33,6 @@ import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
-import it.polimi.webeep.core.ui.util.ScrollBoundaryHaptics
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -192,8 +191,6 @@ fun DashboardScreen(
                             },
                             modifier = Modifier.fillMaxSize()
                         ) {
-                            ScrollBoundaryHaptics(state = lazyGridState)
-
                             LazyVerticalGrid(
                                 state = lazyGridState,
                                 columns = GridCells.Adaptive(minSize = 300.dp),
@@ -278,7 +275,11 @@ fun DashboardScreen(
                                                     )
                                                     Spacer(modifier = Modifier.width(8.dp))
                                                     Text(
-                                                        text = if (isCacheAvailable) stringResource(R.string.offline_cache_message) else stringResource(R.string.offline_no_connection_message),
+                                                        text = if (isCacheAvailable) {
+                                                            stringResource(R.string.offline_cache_message)
+                                                        } else {
+                                                            stringResource(R.string.offline_no_connection_message)
+                                                        },
                                                         style = MaterialTheme.typography.labelMedium,
                                                         color = MaterialTheme.colorScheme.onErrorContainer,
                                                         fontWeight = FontWeight.Medium
@@ -381,7 +382,11 @@ fun DashboardScreen(
                                             } else {
                                                 stringResource(R.string.no_courses_enrolled)
                                             },
-                                            actionLabel = if (searchQuery.isNotEmpty() || courseFilter != CourseFilter.Active) stringResource(R.string.reset_filters) else stringResource(R.string.refresh),
+                                            actionLabel = if (searchQuery.isNotEmpty() || courseFilter != CourseFilter.Active) {
+                                                stringResource(R.string.reset_filters)
+                                            } else {
+                                                stringResource(R.string.refresh)
+                                            },
                                             onAction = {
                                                 if (searchQuery.isNotEmpty() || courseFilter != CourseFilter.Active) {
                                                     searchQuery = ""

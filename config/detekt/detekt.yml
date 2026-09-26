@@ -1,28 +1,58 @@
 # Applied on top of detekt's default config (buildUponDefaultConfig = true).
-# Only overrides that match Jetpack Compose conventions live here.
+# Overrides tuned for Jetpack Compose / Android conventions; detekt is blocking in CI.
 
 naming:
   FunctionNaming:
     ignoreAnnotated:
       - 'Composable'
   TopLevelPropertyNaming:
-    constantPattern: '[A-Z][A-Za-z0-9]*'
+    constantPattern: '[A-Z][_A-Za-z0-9]*'
+  # Compose files are named after their main composable or theme role
+  # (e.g. Motion.kt, Spacing.kt), not after the first declared class.
+  MatchingDeclarationName:
+    active: false
 
 complexity:
   LongParameterList:
+    # Hilt constructors and @Provides functions take one parameter per dependency.
+    functionThreshold: 8
+    constructorThreshold: 10
     ignoreDefaultParameters: true
     ignoreAnnotated:
       - 'Composable'
   LongMethod:
     ignoreAnnotated:
       - 'Composable'
+  CyclomaticComplexMethod:
+    ignoreSimpleWhenEntries: true
+    ignoreAnnotated:
+      - 'Composable'
   TooManyFunctions:
     ignorePrivate: true
+    thresholdInClasses: 15
+    thresholdInInterfaces: 15
 
 style:
+  MaxLineLength:
+    maxLineLength: 140
+  ReturnCount:
+    max: 4
+    excludeGuardClauses: true
+  ThrowsCount:
+    max: 3
+    excludeGuardClauses: true
   MagicNumber:
     ignorePropertyDeclaration: true
     ignoreCompanionObjectPropertyDeclaration: true
+    ignoreNamedArgument: true
+    # 100 is the download-progress 'done' percentage; ranges such as 500..599 read clearly.
+    ignoreNumbers:
+      - '-1'
+      - '0'
+      - '1'
+      - '2'
+      - '100'
+    ignoreRanges: true
     ignoreAnnotated:
       - 'Composable'
       - 'Preview'
@@ -30,4 +60,12 @@ style:
     ignoreAnnotated:
       - 'Preview'
   ForbiddenComment:
+    active: false
+
+exceptions:
+  # `catch (e: Exception) { if (e is CancellationException) throw e ... }` is the
+  # deliberate coroutine-safe pattern used at IO/UI boundaries in this codebase.
+  TooGenericExceptionCaught:
+    active: false
+  InstanceOfCheckForException:
     active: false

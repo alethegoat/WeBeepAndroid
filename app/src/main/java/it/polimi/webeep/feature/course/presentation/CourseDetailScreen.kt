@@ -29,7 +29,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.foundation.lazy.rememberLazyListState
-import it.polimi.webeep.core.ui.util.ScrollBoundaryHaptics
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -139,7 +138,8 @@ fun CourseDetailScreen(
                             enter = fadeIn(),
                             exit = fadeOut()
                         ) {
-                            val courseName = (uiState as? CourseDetailUiState.Success)?.courseName ?: stringResource(R.string.course_content_title)
+                            val courseName = (uiState as? CourseDetailUiState.Success)?.courseName
+                                ?: stringResource(R.string.course_content_title)
                             Text(
                                 text = courseName,
                                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
@@ -197,8 +197,6 @@ fun CourseDetailScreen(
                             modifier = Modifier.fillMaxSize(),
                             contentAlignment = Alignment.TopCenter
                         ) {
-                            ScrollBoundaryHaptics(state = lazyListState)
-
                             LazyColumn(
                                 state = lazyListState,
                                 modifier = Modifier
@@ -601,7 +599,12 @@ private fun FolderTreeView(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
-            Icon(Icons.Default.ExpandMore, null, modifier = Modifier.graphicsLayer { rotationZ = rotation }.size(20.dp), tint = MaterialTheme.colorScheme.onSurface)
+            Icon(
+                Icons.Default.ExpandMore,
+                null,
+                modifier = Modifier.graphicsLayer { rotationZ = rotation }.size(20.dp),
+                tint = MaterialTheme.colorScheme.onSurface
+            )
         }
 
         AnimatedVisibility(

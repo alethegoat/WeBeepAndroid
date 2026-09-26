@@ -20,7 +20,6 @@ import androidx.compose.foundation.gestures.calculateZoom
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
 import androidx.compose.ui.geometry.Offset
-import it.polimi.webeep.core.ui.util.ScrollBoundaryHaptics
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -168,8 +167,6 @@ private fun PdfPages(
 
     val lazyListState = rememberLazyListState()
 
-    ScrollBoundaryHaptics(state = lazyListState)
-
     val currentPage by remember {
         derivedStateOf {
             val layoutInfo = lazyListState.layoutInfo
@@ -280,7 +277,6 @@ private fun PdfPages(
                                 val zoom = event.calculateZoom()
                                 val pan = event.calculatePan()
 
-                                val oldScale = scale
                                 scale = (scale * zoom).coerceIn(1f, 5f)
 
                                 if (scale > 1f) {

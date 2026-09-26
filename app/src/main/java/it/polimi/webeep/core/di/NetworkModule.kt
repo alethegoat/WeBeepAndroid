@@ -36,6 +36,7 @@ object NetworkModule {
     private const val CONNECT_TIMEOUT_SECONDS = 30L
     private const val READ_TIMEOUT_SECONDS = 30L
     private const val WRITE_TIMEOUT_SECONDS = 30L
+    private const val HTTP_CACHE_SIZE_BYTES = 10L * 1024L * 1024L
 
     @Provides
     @Singleton
@@ -86,7 +87,7 @@ object NetworkModule {
         noStoreAuthCacheInterceptor: NoStoreAuthCacheInterceptor,
         retryInterceptor: RetryInterceptor
     ): OkHttpClient {
-        val cacheSize = 10 * 1024 * 1024L
+        val cacheSize = HTTP_CACHE_SIZE_BYTES
         val cacheDir = java.io.File(context.cacheDir, "http_cache")
         return OkHttpClient.Builder()
             .cache(okhttp3.Cache(cacheDir, cacheSize))

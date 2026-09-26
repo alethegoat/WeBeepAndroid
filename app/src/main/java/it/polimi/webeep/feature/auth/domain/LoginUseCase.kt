@@ -22,6 +22,8 @@ class LoginUseCase @Inject constructor(
         return buildSsoLaunchUrl(passport)
     }
 
+    // Linear validation chain: each check maps to a distinct LoginError.
+    @Suppress("ReturnCount")
     suspend fun execute(encodedToken: String): LoginResult {
         val wstoken = try {
             val decodedBytes = decodeBase64Token(decodeTokenParameter(encodedToken))
@@ -46,7 +48,7 @@ class LoginUseCase @Inject constructor(
 
             // parts[2] is the autologin-capable private token: intentionally discarded.
             parts[1].trim().ifEmpty { return LoginResult.Failure(LoginError.InvalidTokenFormat) }
-        } catch (e: IllegalArgumentException) {
+        } catch (_: IllegalArgumentException) {
             return LoginResult.Failure(LoginError.InvalidAccessToken)
         } catch (e: Exception) {
             if (e is kotlinx.coroutines.CancellationException) throw e
@@ -102,7 +104,7 @@ class LoginUseCase @Inject constructor(
          * Official app also retries http/https. Keep bare md5(passport) for older sites.
          */
         fun passportHashes(passport: String): Set<String> {
-            val hashes = LinkedHashSet<String>(5)
+            val hashes = LinkedHashSet<String>()
             hashes.add(md5Hex(passport))
             for (root in wwwrootVariants()) {
                 hashes.add(md5Hex(root + passport))

@@ -46,9 +46,9 @@ class SyncScheduler internal constructor(
         }
 
         val (interval, unit) = when (frequency) {
-            SyncFrequency.FIFTEEN_MINUTES -> 15L to TimeUnit.MINUTES
+            SyncFrequency.FIFTEEN_MINUTES -> FIFTEEN_MINUTES_INTERVAL to TimeUnit.MINUTES
             SyncFrequency.ONE_HOUR -> 1L to TimeUnit.HOURS
-            SyncFrequency.TWELVE_HOURS -> 12L to TimeUnit.HOURS
+            SyncFrequency.TWELVE_HOURS -> TWELVE_HOURS_INTERVAL to TimeUnit.HOURS
             SyncFrequency.DAILY -> 1L to TimeUnit.DAYS
             SyncFrequency.NEVER -> return
         }
@@ -57,7 +57,7 @@ class SyncScheduler internal constructor(
             .setConstraints(networkConstraints())
             .setBackoffCriteria(
                 androidx.work.BackoffPolicy.EXPONENTIAL,
-                10L,
+                BACKOFF_DELAY_MINUTES,
                 TimeUnit.MINUTES
             )
             .build()
@@ -78,7 +78,7 @@ class SyncScheduler internal constructor(
             .setConstraints(networkConstraints())
             .setBackoffCriteria(
                 androidx.work.BackoffPolicy.EXPONENTIAL,
-                10L,
+                BACKOFF_DELAY_MINUTES,
                 TimeUnit.MINUTES
             )
             .build()
@@ -108,5 +108,8 @@ class SyncScheduler internal constructor(
         const val UNIQUE_PERIODIC_WORK = "CourseSyncWorker"
         const val UNIQUE_ONE_SHOT_WORK = "CourseSyncWorkerImmediate"
         const val UNIQUE_WORK_NAME = UNIQUE_PERIODIC_WORK
+        private const val FIFTEEN_MINUTES_INTERVAL = 15L
+        private const val TWELVE_HOURS_INTERVAL = 12L
+        private const val BACKOFF_DELAY_MINUTES = 10L
     }
 }

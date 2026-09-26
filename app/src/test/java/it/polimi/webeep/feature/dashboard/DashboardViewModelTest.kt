@@ -285,8 +285,13 @@ class DashboardViewModelTest {
 
     private class FakeAuthRepository : AuthRepository {
         var logoutCalled = false
-        override suspend fun validateToken(token: String): Result<it.polimi.webeep.feature.auth.domain.UserSession> = Result.failure(Exception())
-        override suspend fun saveAuthData(token: String, privateToken: String?, session: it.polimi.webeep.feature.auth.domain.UserSession) {}
+        override suspend fun validateToken(token: String): Result<it.polimi.webeep.feature.auth.domain.UserSession> =
+            Result.failure(Exception())
+        override suspend fun saveAuthData(
+            token: String,
+            privateToken: String?,
+            session: it.polimi.webeep.feature.auth.domain.UserSession
+        ) = Unit
         override suspend fun isLoggedIn(): Boolean = false
         override suspend fun logout() { logoutCalled = true }
     }

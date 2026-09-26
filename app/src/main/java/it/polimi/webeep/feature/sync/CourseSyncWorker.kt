@@ -203,11 +203,11 @@ class CourseSyncWorker @AssistedInject constructor(
 
         val inboxStyle = NotificationCompat.InboxStyle()
         inboxStyle.setBigContentTitle(courseName)
-        fileRecords.take(5).forEach { record ->
+        fileRecords.take(MAX_INBOX_LINES).forEach { record ->
             inboxStyle.addLine(record.fileName)
         }
-        if (fileRecords.size > 5) {
-            inboxStyle.setSummaryText(appContext.getString(R.string.sync_more_files, fileRecords.size - 5))
+        if (fileRecords.size > MAX_INBOX_LINES) {
+            inboxStyle.setSummaryText(appContext.getString(R.string.sync_more_files, fileRecords.size - MAX_INBOX_LINES))
         }
 
         val builder = NotificationCompat.Builder(appContext, channelId)
@@ -238,5 +238,6 @@ class CourseSyncWorker @AssistedInject constructor(
         const val EXTRA_COURSE_ID = "EXTRA_COURSE_ID"
         private const val MAX_CONCURRENT_COURSE_SYNCS = 2
         private const val SUMMARY_NOTIFICATION_ID = 999_999
+        private const val MAX_INBOX_LINES = 5
     }
 }

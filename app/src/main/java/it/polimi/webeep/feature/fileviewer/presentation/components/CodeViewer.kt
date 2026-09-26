@@ -15,7 +15,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import it.polimi.webeep.core.ui.util.ScrollBoundaryHaptics
 
 @Composable
 fun CodeViewer(
@@ -30,8 +29,6 @@ fun CodeViewer(
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.surfaceContainerLowest)
     ) {
-        ScrollBoundaryHaptics(state = lazyListState)
-
         LazyColumn(
             state = lazyListState,
             modifier = Modifier.fillMaxSize().padding(16.dp)

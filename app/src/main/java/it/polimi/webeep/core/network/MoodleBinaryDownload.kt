@@ -11,9 +11,7 @@ object MoodleBinaryDownload {
     private const val PEEK_BYTES = 4096L
 
     fun requireBinaryBody(response: Response): ResponseBody {
-        if (!response.isSuccessful) {
-            throw IllegalStateException("Download failed (${response.code})")
-        }
+        check(response.isSuccessful) { "Download failed (${response.code})" }
         val contentType = response.header("Content-Type").orEmpty().lowercase()
         val requestUrl = response.request.url.encodedPath.lowercase()
         val isLoginRedirect = response.request.url.encodedPath.contains("/login/")
@@ -31,10 +29,10 @@ object MoodleBinaryDownload {
                 bodyPreview.contains("moodle-login")
 
             val isExplicitHtmlRequest = requestUrl.endsWith(".html") || requestUrl.endsWith(".htm")
-            if (hasLoginMarkers || !isExplicitHtmlRequest) {
-                throw IllegalStateException("Server returned a login page instead of the file")
+            check(!hasLoginMarkers && isExplicitHtmlRequest) {
+                "Server returned a login page instead of the file"
             }
         }
-        return response.body ?: throw IllegalStateException("Empty response from server")
+        return response.body ?: error("Empty response from server")
     }
 }
