@@ -158,16 +158,14 @@ fun FileViewerScreen(
             }
         }
     ) { innerPadding ->
+        val edgeToEdgeContent = uiState is FileViewerUiState.Image ||
+            uiState is FileViewerUiState.Media ||
+            !showTopBar
         Box(modifier = Modifier.fillMaxSize()) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(
-                        if (uiState is FileViewerUiState.Image || uiState is FileViewerUiState.Media || !showTopBar) 
-                            PaddingValues(0.dp) 
-                        else 
-                            innerPadding
-                    )
+                    .padding(if (edgeToEdgeContent) PaddingValues(0.dp) else innerPadding)
             ) {
                 when (val state = uiState) {
                     FileViewerUiState.Loading -> FileViewerLoading()

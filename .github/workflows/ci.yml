@@ -30,10 +30,18 @@ jobs:
         run: ./gradlew :app:lintDebug --no-daemon
 
       - name: Static analysis (detekt, ktlint; report-only)
+        continue-on-error: true
         run: ./gradlew :app:detekt :app:ktlintCheck --no-daemon
 
       - name: Build debug APK
         run: ./gradlew assembleDebug --no-daemon
+
+      - name: Upload debug APK
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: app-debug
+          path: app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
 
       - name: Run unit tests with coverage
         run: ./gradlew test :app:koverXmlReportDebug --no-daemon
