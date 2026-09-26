@@ -244,6 +244,7 @@ private fun GreetingHeader(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun DashboardCourseGrid(
     state: DashboardUiState.Success,
