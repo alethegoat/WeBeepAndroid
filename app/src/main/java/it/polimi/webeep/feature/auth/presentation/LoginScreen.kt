@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Login
 import androidx.compose.material3.CircularProgressIndicator
@@ -51,6 +50,8 @@ import it.polimi.webeep.R
 import it.polimi.webeep.core.ui.components.WeBeepSnackbarHost
 import it.polimi.webeep.core.ui.components.showErrorSnackbar
 import it.polimi.webeep.core.ui.theme.WeBeepMotion
+import it.polimi.webeep.core.ui.theme.WeBeepSpacing
+import it.polimi.webeep.core.ui.theme.WeBeepTheme
 import it.polimi.webeep.core.ui.util.LocalReduceMotion
 import it.polimi.webeep.core.ui.util.bouncyClickable
 import kotlinx.coroutines.delay
@@ -107,7 +108,7 @@ fun LoginScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(innerPadding)
-                    .padding(horizontal = 28.dp)
+                    .padding(horizontal = WeBeepSpacing.lg)
             ) {
                 AnimatedVisibility(
                     visible = logoVisible,
@@ -121,8 +122,8 @@ fun LoginScreen(
                             contentScale = ContentScale.Crop,
                             modifier = Modifier
                                 .size(96.dp)
-                                .shadow(18.dp, RoundedCornerShape(28.dp), clip = false)
-                                .clip(RoundedCornerShape(28.dp))
+                                .shadow(18.dp, MaterialTheme.shapes.large, clip = false)
+                                .clip(MaterialTheme.shapes.large)
                         )
                         Spacer(modifier = Modifier.height(20.dp))
                         Text(
@@ -151,7 +152,7 @@ fun LoginScreen(
                         slideInVertically(WeBeepMotion.enter(WeBeepMotion.LongMs)) { 40 }
                 ) {
                     val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
-                    val cardShape = RoundedCornerShape(28.dp)
+                    val cardShape = MaterialTheme.shapes.extraLarge
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -165,25 +166,25 @@ fun LoginScreen(
                                 width = 1.dp,
                                 brush = Brush.linearGradient(
                                     listOf(
-                                        Color.White.copy(alpha = if (isDark) 0.28f else 0.78f),
-                                        Color.White.copy(alpha = 0.06f)
+                                        WeBeepTheme.colors.glassHighlight.copy(alpha = if (isDark) 0.28f else 0.78f),
+                                        WeBeepTheme.colors.glassHighlight.copy(alpha = 0.06f)
                                     )
                                 ),
                                 shape = cardShape
                             )
-                            .padding(horizontal = 28.dp, vertical = 32.dp),
+                            .padding(horizontal = WeBeepSpacing.lg, vertical = WeBeepSpacing.lg),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
                             text = stringResource(R.string.login_subtitle),
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.78f),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.Center,
-                            modifier = Modifier.padding(bottom = 28.dp)
+                            modifier = Modifier.padding(bottom = WeBeepSpacing.lg)
                         )
 
                         val isLoading = uiState is LoginUiState.Loading
-                        val buttonShape = RoundedCornerShape(18.dp)
+                        val buttonShape = MaterialTheme.shapes.medium
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -228,7 +229,7 @@ fun LoginScreen(
                                         Icon(
                                             imageVector = Icons.AutoMirrored.Filled.Login,
                                             contentDescription = null,
-                                            modifier = Modifier.padding(end = 8.dp),
+                                            modifier = Modifier.padding(end = WeBeepSpacing.xs),
                                             tint = MaterialTheme.colorScheme.onPrimary
                                         )
                                         Text(
@@ -243,6 +244,19 @@ fun LoginScreen(
                             }
                         }
                     }
+                }
+
+                AnimatedVisibility(
+                    visible = cardVisible,
+                    enter = fadeIn(WeBeepMotion.enter(WeBeepMotion.LongMs))
+                ) {
+                    Text(
+                        text = stringResource(R.string.login_disclaimer),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(top = WeBeepSpacing.md)
+                    )
                 }
             }
         }

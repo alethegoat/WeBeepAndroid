@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Icona splash (senza icon background): mostrata a 288dp e ritagliata a un cerchio da 192dp,
+     cioè raggio 36 sul viewport 108. Il disco navy ha raggio 36 e la "W" sta entro raggio ~33. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="288dp"
+    android:height="288dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path android:pathData="M18,54a36,36 0,1 0,72 0a36,36 0,1 0,-72 0z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="18"
+                android:startY="18"
+                android:endX="90"
+                android:endY="90"
+                android:startColor="@color/webeep_brand_navy_light"
+                android:centerColor="@color/webeep_brand_navy"
+                android:endColor="@color/webeep_brand_navy_dark" />
+        </aapt:attr>
+    </path>
+    <path
+        android:pathData="M31,40 L41,70 L54,48 L67,70 L77,40"
+        android:fillColor="#00000000"
+        android:strokeWidth="8"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round">
+        <aapt:attr name="android:strokeColor">
+            <gradient
+                android:type="linear"
+                android:startX="54"
+                android:startY="36"
+                android:endX="54"
+                android:endY="74"
+                android:startColor="@color/webeep_brand_mark"
+                android:endColor="@color/webeep_brand_mark_accent" />
+        </aapt:attr>
+    </path>
+</vector>

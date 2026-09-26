@@ -118,4 +118,11 @@
     <string name="error_data_network">Nessuna connessione. Controlla la rete e riprova.</string>
     <string name="error_data_server">Il server di WeBeep ha restituito un errore. Riprova più tardi.</string>
     <string name="error_data_unknown">Si è verificato un errore imprevisto. Riprova.</string>
+    <string name="course_meta_code">Codice corso: %1$s</string>
+    <string name="course_meta_teacher">Docente: %1$s</string>
+    <string name="course_meta_year">Anno accademico %1$s</string>
+    <string name="cd_downloading">Download in corso</string>
+    <string name="cd_expand_folder">Espandi cartella</string>
+    <string name="cd_collapse_folder">Comprimi cartella</string>
+    <string name="login_disclaimer">App non ufficiale, non affiliata al Politecnico di Milano</string>
 </resources>

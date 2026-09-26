@@ -9,6 +9,7 @@ import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Shapes
@@ -44,7 +45,15 @@ private val LightColorScheme = lightColorScheme(
     inverseSurface = LightInverseSurface,
     inverseOnSurface = LightInverseOnSurface,
     inversePrimary = LightInversePrimary,
-    surfaceTint = LightSurfaceTint
+    surfaceTint = LightSurfaceTint,
+    surfaceBright = LightSurfaceBright,
+    surfaceDim = LightSurfaceDim,
+    surfaceContainerLowest = LightSurfaceContainerLowest,
+    surfaceContainerLow = LightSurfaceContainerLow,
+    surfaceContainer = LightSurfaceContainer,
+    surfaceContainerHigh = LightSurfaceContainerHigh,
+    surfaceContainerHighest = LightSurfaceContainerHighest,
+    scrim = LightScrim
 )
 
 private val DarkColorScheme = darkColorScheme(
@@ -52,7 +61,7 @@ private val DarkColorScheme = darkColorScheme(
     onPrimary = OnPrimaryDark,
     primaryContainer = PrimaryContainerDark,
     onPrimaryContainer = OnPrimaryContainerDark,
-    secondary = PoliMiBrightBlueLight,
+    secondary = SecondaryDark,
     onSecondary = OnSecondaryDark,
     secondaryContainer = SecondaryContainerDark,
     onSecondaryContainer = OnSecondaryContainerDark,
@@ -75,18 +84,29 @@ private val DarkColorScheme = darkColorScheme(
     inverseSurface = DarkInverseSurface,
     inverseOnSurface = DarkInverseOnSurface,
     inversePrimary = DarkInversePrimary,
-    surfaceTint = DarkSurfaceTint
+    surfaceTint = DarkSurfaceTint,
+    surfaceBright = DarkSurfaceBright,
+    surfaceDim = DarkSurfaceDim,
+    surfaceContainerLowest = DarkSurfaceContainerLowest,
+    surfaceContainerLow = DarkSurfaceContainerLow,
+    surfaceContainer = DarkSurfaceContainer,
+    surfaceContainerHigh = DarkSurfaceContainerHigh,
+    surfaceContainerHighest = DarkSurfaceContainerHighest,
+    scrim = DarkScrim
 )
 
+// Single corner scale; screens use MaterialTheme.shapes.* instead of ad-hoc radii.
 private val WeBeepShapes = Shapes(
+    extraSmall = RoundedCornerShape(8.dp),
     small = RoundedCornerShape(12.dp),
-    medium = RoundedCornerShape(24.dp),
-    large = RoundedCornerShape(32.dp),
-    extraLarge = RoundedCornerShape(40.dp)
+    medium = RoundedCornerShape(16.dp),
+    large = RoundedCornerShape(24.dp),
+    extraLarge = RoundedCornerShape(32.dp)
 )
 
 /**
  * Dynamic color applies on Android 12+ only; older versions use the PoliMi palette.
+ * [WeBeepColors] follow light/dark regardless of dynamic color.
  */
 @Composable
 fun WeBeepTheme(
@@ -103,8 +123,13 @@ fun WeBeepTheme(
         else -> LightColorScheme
     }
 
+    val weBeepColors = if (darkTheme) DarkWeBeepColors else LightWeBeepColors
+
     val reduceMotion = rememberReduceMotion()
-    CompositionLocalProvider(LocalReduceMotion provides reduceMotion) {
+    CompositionLocalProvider(
+        LocalReduceMotion provides reduceMotion,
+        LocalWeBeepColors provides weBeepColors,
+    ) {
         MaterialTheme(
             colorScheme = colorScheme,
             typography = WeBeepTypography,
@@ -112,4 +137,12 @@ fun WeBeepTheme(
             content = content,
         )
     }
+}
+
+/** Accessors for theme values outside [MaterialTheme], e.g. `WeBeepTheme.colors.success`. */
+object WeBeepTheme {
+    val colors: WeBeepColors
+        @Composable
+        @ReadOnlyComposable
+        get() = LocalWeBeepColors.current
 }

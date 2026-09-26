@@ -10,6 +10,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavHostController
 import dagger.hilt.android.AndroidEntryPoint
@@ -53,6 +54,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Must run before super.onCreate: swaps Theme.WeBeep.Starting for Theme.WeBeep.
+        installSplashScreen()
         super.onCreate(savedInstanceState)
 
         enableEdgeToEdge()

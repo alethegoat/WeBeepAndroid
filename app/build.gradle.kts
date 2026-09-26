@@ -154,6 +154,7 @@ dependencies {
     // AndroidX Core
     implementation(libs.core.ktx)
     implementation(libs.appcompat)
+    implementation(libs.core.splashscreen)
     implementation(libs.activity.compose)
     implementation(libs.lifecycle.runtime.compose)
 
@@ -164,7 +165,6 @@ dependencies {
     implementation(libs.compose.ui.tooling.preview)
     implementation(libs.compose.material3)
     implementation(libs.compose.material.icons.extended)
-    implementation(libs.compose.ui.text.google.fonts)
 
     // Navigation
     implementation(libs.navigation.compose)

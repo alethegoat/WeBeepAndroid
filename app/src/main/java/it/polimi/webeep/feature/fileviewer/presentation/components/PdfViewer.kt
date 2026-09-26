@@ -28,7 +28,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -58,6 +58,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import it.polimi.webeep.R
 import it.polimi.webeep.core.ui.components.EmptyStateView
+import it.polimi.webeep.core.ui.theme.WeBeepSpacing
+import it.polimi.webeep.core.ui.theme.WeBeepTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CancellationException
@@ -343,17 +345,17 @@ private fun PdfPages(
             exit = fadeOut(animationSpec = tween(500)),
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .padding(16.dp)
+                .padding(WeBeepSpacing.md)
         ) {
             Surface(
-                shape = RoundedCornerShape(20.dp),
-                color = androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.65f),
-                contentColor = androidx.compose.ui.graphics.Color.White
+                shape = CircleShape,
+                color = WeBeepTheme.colors.mediaScrim.copy(alpha = 0.65f),
+                contentColor = WeBeepTheme.colors.onMedia
             ) {
                 Text(
                     text = "${currentPage + 1} / $pageCount",
                     style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                    modifier = Modifier.padding(horizontal = WeBeepSpacing.sm, vertical = WeBeepSpacing.xxs)
                 )
             }
         }

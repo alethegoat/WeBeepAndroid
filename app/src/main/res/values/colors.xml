@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Allineati a core/ui/theme/Color.kt (LightBackground / PoliMiNavy*). -->
+    <color name="webeep_window_background">#FFF7F9FC</color>
+    <color name="webeep_splash_background">#FFF7F9FC</color>
+
+    <!-- Marchio "W": sfondo navy Polimi e tratto chiaro con riflesso azzurro. -->
+    <color name="webeep_brand_navy">#FF0A3366</color>
+    <color name="webeep_brand_navy_light">#FF164B8E</color>
+    <color name="webeep_brand_navy_dark">#FF041C3D</color>
+    <color name="webeep_brand_mark">#FFFFFFFF</color>
+    <color name="webeep_brand_mark_accent">#FF9FE3FF</color>
+</resources>

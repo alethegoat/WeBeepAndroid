@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Primo piano icona adattiva: "W" stilizzata centrata nella safe zone da 66dp
+     (canvas 108dp, contenuto tra 27 e 81). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:pathData="M31,40 L41,70 L54,48 L67,70 L77,40"
+        android:fillColor="#00000000"
+        android:strokeWidth="8"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round">
+        <aapt:attr name="android:strokeColor">
+            <gradient
+                android:type="linear"
+                android:startX="54"
+                android:startY="36"
+                android:endX="54"
+                android:endY="74"
+                android:startColor="@color/webeep_brand_mark"
+                android:endColor="@color/webeep_brand_mark_accent" />
+        </aapt:attr>
+    </path>
+</vector>

@@ -1,5 +1,6 @@
 package it.polimi.webeep.core.ui.components
 
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -7,6 +8,7 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -22,45 +24,69 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.currentStateAsState
 import it.polimi.webeep.core.ui.theme.WeBeepMotion
+import it.polimi.webeep.core.ui.theme.WeBeepTheme
 import it.polimi.webeep.core.ui.util.LocalReduceMotion
 
+/** Glow strength on screens where the aurora is only a calm backdrop. */
+private const val StaticAuroraIntensity = 0.7f
+
 /**
- * Animated aurora/glow background that adapts to light/dark mode.
- * Animation runs only while the host lifecycle is RESUMED.
+ * Aurora/glow background that adapts to light/dark mode.
+ *
+ * With [animated] the glows drift slowly (used by the login screen only);
+ * otherwise they are drawn once, dimmer, with no running animation. Motion
+ * also stops when reduce-motion is on or the host lifecycle is not RESUMED.
+ * Switching [animated] cross-fades between the two layers.
  */
 @Composable
 fun AuroraBackground(
     modifier: Modifier = Modifier,
+    animated: Boolean = true,
     isDark: Boolean = MaterialTheme.colorScheme.background.luminance() < 0.5f,
     content: @Composable () -> Unit
 ) {
-    val lifecycleState by LocalLifecycleOwner.current.lifecycle.currentStateAsState()
     val reduceMotion = LocalReduceMotion.current
-    val animateAurora = !reduceMotion && lifecycleState.isAtLeast(Lifecycle.State.RESUMED)
-    val motion = auroraMotion(animateAurora)
-
-    val backgroundColor = MaterialTheme.colorScheme.background
-
-    val primary = if (isDark) {
-        Color(0xFF1B6FD6).copy(alpha = 0.38f)
-    } else {
-        Color(0xFF8BB6FF).copy(alpha = 0.42f)
-    }
-    val secondary = if (isDark) {
-        Color(0xFF00B7E0).copy(alpha = 0.22f)
-    } else {
-        Color(0xFF6EC8FF).copy(alpha = 0.28f)
-    }
-    val tertiary = if (isDark) {
-        Color(0xFF6B4CFF).copy(alpha = 0.14f)
-    } else {
-        Color(0xFFFFC1D6).copy(alpha = 0.22f)
-    }
-
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(backgroundColor)
+            .background(MaterialTheme.colorScheme.background),
+        contentAlignment = Alignment.Center
+    ) {
+        Crossfade(
+            targetState = animated,
+            modifier = Modifier.fillMaxSize(),
+            animationSpec = WeBeepMotion.smooth(WeBeepMotion.LongMs, reduceMotion),
+            label = "aurora_mode"
+        ) { isAnimated ->
+            AuroraLayer(
+                animated = isAnimated,
+                intensity = if (isAnimated) 1f else StaticAuroraIntensity,
+                isDark = isDark
+            )
+        }
+        content()
+    }
+}
+
+@Composable
+private fun AuroraLayer(
+    animated: Boolean,
+    intensity: Float,
+    isDark: Boolean
+) {
+    val lifecycleState by LocalLifecycleOwner.current.lifecycle.currentStateAsState()
+    val reduceMotion = LocalReduceMotion.current
+    val animateAurora = animated && !reduceMotion && lifecycleState.isAtLeast(Lifecycle.State.RESUMED)
+    val motion = auroraMotion(animateAurora)
+
+    val colors = WeBeepTheme.colors
+    val primary = colors.auroraPrimary.copy(alpha = (if (isDark) 0.38f else 0.42f) * intensity)
+    val secondary = colors.auroraSecondary.copy(alpha = (if (isDark) 0.22f else 0.28f) * intensity)
+    val tertiary = colors.auroraTertiary.copy(alpha = (if (isDark) 0.14f else 0.22f) * intensity)
+
+    Spacer(
+        modifier = Modifier
+            .fillMaxSize()
             .drawBehind {
                 fun glow(color: Color, center: Offset, radius: Float) {
                     drawRect(
@@ -79,11 +105,8 @@ fun AuroraBackground(
                 glow(primary, Offset(motion.x1, motion.y1), size.minDimension * 0.95f * motion.pulse)
                 glow(secondary, Offset(motion.x2, motion.y2), size.minDimension * 0.8f * (1.08f - (motion.pulse - 1f)))
                 glow(tertiary, Offset(motion.x3, motion.y3), size.minDimension * 0.7f * motion.pulse)
-            },
-        contentAlignment = Alignment.Center
-    ) {
-        content()
-    }
+            }
+    )
 }
 
 private data class AuroraMotion(

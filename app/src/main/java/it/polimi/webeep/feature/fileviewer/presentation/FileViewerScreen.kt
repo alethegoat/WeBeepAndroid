@@ -33,10 +33,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.outlined.BrokenImage
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -77,6 +78,8 @@ import coil.compose.SubcomposeAsyncImage
 import coil.compose.SubcomposeAsyncImageContent
 import it.polimi.webeep.R
 import it.polimi.webeep.core.ui.components.EmptyStateView
+import it.polimi.webeep.core.ui.theme.WeBeepSpacing
+import it.polimi.webeep.core.ui.theme.WeBeepTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import it.polimi.webeep.feature.fileviewer.presentation.components.PdfViewer
@@ -116,7 +119,7 @@ fun FileViewerScreen(
 
     Scaffold(
         modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-        containerColor = androidx.compose.ui.graphics.Color.Transparent,
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             if (!isLandscape) {
                 AnimatedVisibility(
@@ -152,9 +155,10 @@ fun FileViewerScreen(
                                 )
                             }
                         },
+                        // Opaque in both states: pages must never show through the title.
                         colors = TopAppBarDefaults.topAppBarColors(
-                            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
-                            scrolledContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f)
+                            containerColor = MaterialTheme.colorScheme.surface,
+                            scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainer
                         ),
                         scrollBehavior = scrollBehavior
                     )
@@ -215,13 +219,13 @@ fun FileViewerScreen(
                     modifier = Modifier
                         .align(Alignment.TopStart)
                         .windowInsetsPadding(WindowInsets.safeDrawing)
-                        .padding(top = 8.dp, start = 16.dp)
-                        .background(androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.5f), RoundedCornerShape(50))
+                        .padding(top = WeBeepSpacing.xs, start = WeBeepSpacing.md)
+                        .background(WeBeepTheme.colors.mediaScrim.copy(alpha = 0.6f), CircleShape)
                 ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = stringResource(R.string.cd_back),
-                        tint = androidx.compose.ui.graphics.Color.White
+                        tint = WeBeepTheme.colors.onMedia
                     )
                 }
             }
@@ -234,7 +238,7 @@ private fun FileViewerLoading() {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(32.dp),
+            .padding(WeBeepSpacing.xl),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
@@ -243,7 +247,7 @@ private fun FileViewerLoading() {
             text = stringResource(R.string.file_viewer_loading),
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(top = 24.dp),
+            modifier = Modifier.padding(top = WeBeepSpacing.lg),
             textAlign = TextAlign.Center
         )
     }
@@ -324,13 +328,12 @@ private fun ImagePreviewContent(
                 }
             },
             error = {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text(
-                        text = stringResource(R.string.file_viewer_image_error),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.error
-                    )
-                }
+                EmptyStateView(
+                    icon = Icons.Outlined.BrokenImage,
+                    title = stringResource(R.string.file_viewer_error_title),
+                    subtitle = stringResource(R.string.file_viewer_image_error),
+                    modifier = Modifier.fillMaxSize()
+                )
             },
             success = { SubcomposeAsyncImageContent() }
         )
@@ -338,16 +341,15 @@ private fun ImagePreviewContent(
         Surface(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .padding(16.dp),
-            shape = RoundedCornerShape(20.dp),
-            color = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.92f),
-            tonalElevation = 2.dp
+                .padding(WeBeepSpacing.md),
+            shape = CircleShape,
+            color = WeBeepTheme.colors.mediaScrim.copy(alpha = 0.65f),
+            contentColor = WeBeepTheme.colors.onMedia
         ) {
             Text(
                 text = stringResource(R.string.file_viewer_pinch_hint),
                 style = MaterialTheme.typography.labelMedium,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                modifier = Modifier.padding(horizontal = WeBeepSpacing.md, vertical = WeBeepSpacing.xs)
             )
         }
     }

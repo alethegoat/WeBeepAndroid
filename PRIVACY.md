@@ -24,7 +24,7 @@ WeBeep Android is an **unofficial**, open-source client for the WeBeep (Moodle) 
 
 - **Login**: the Politecnico SSO page opens in your browser (Custom Tabs). The app never sees your password. The Moodle "private token" returned by SSO is discarded, not stored.
 - **Network**: requests go only to `https://webeep.polimi.it` (HTTPS only). Files you choose to open with another app are shared with that app through a temporary `content://` link.
-- **Fonts**: the Outfit and Inter fonts are requested through the Google Fonts provider of Google Play services. The request contains only the font name, and Google Play services handles it under Google's own privacy policy.
+- **Fonts**: the Outfit and Inter fonts (SIL Open Font License 1.1) are bundled in the app. No font is downloaded at runtime.
 - **No analytics, ads or crash reporting**: the app contains no tracking SDKs and sends nothing to the developers or other third parties.
 - **Background sync**: WorkManager periodically checks your courses for new files and shows a local notification. Notifications are generated on the device; there is no push server.
 
@@ -56,7 +56,7 @@ WeBeep Android è un client **non ufficiale** e open source per la piattaforma W
 
 - **Login**: la pagina SSO del Politecnico si apre nel browser (Custom Tabs). L'app non vede mai la tua password. Il "private token" Moodle restituito dall'SSO viene scartato, non salvato.
 - **Rete**: le richieste vanno solo a `https://webeep.polimi.it` (solo HTTPS). I file che scegli di aprire con un'altra app le vengono passati tramite un link `content://` temporaneo.
-- **Font**: i font Outfit e Inter sono richiesti al provider Google Fonts di Google Play services. La richiesta contiene solo il nome del font ed è gestita da Google Play services secondo la privacy policy di Google.
+- **Font**: i font Outfit e Inter (SIL Open Font License 1.1) sono inclusi nell'app. Nessun font viene scaricato durante l'uso.
 - **Niente analytics, pubblicità o crash reporting**: l'app non contiene SDK di tracciamento e non invia nulla agli sviluppatori o ad altre terze parti.
 - **Sync in background**: WorkManager controlla periodicamente i corsi e mostra una notifica locale per i file nuovi. Le notifiche sono generate sul dispositivo, senza server push.
 

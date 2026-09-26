@@ -21,8 +21,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
@@ -38,6 +37,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import it.polimi.webeep.core.ui.theme.WeBeepSpacing
 import it.polimi.webeep.core.ui.theme.WeBeepTheme
 
 import androidx.compose.ui.composed
@@ -66,7 +66,7 @@ fun ShimmerEffect(
     modifier: Modifier = Modifier,
     width: Dp? = null,
     height: Dp = 16.dp,
-    shape: RoundedCornerShape = RoundedCornerShape(8.dp),
+    shape: Shape = MaterialTheme.shapes.extraSmall,
 ) {
     val reduceMotion = LocalReduceMotion.current
     val translateAnim = if (reduceMotion) {
@@ -131,75 +131,56 @@ fun ShimmerCourseCard(
     }
 
     Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(228.dp),
-        shape = RoundedCornerShape(24.dp),
+        modifier = modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
-        Column(
+        Row(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.SpaceBetween,
+                .fillMaxWidth()
+                .padding(WeBeepSpacing.md),
+            verticalAlignment = Alignment.Top,
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
+            Box(
+                modifier = Modifier
+                    .size(56.dp)
+                    .clip(MaterialTheme.shapes.medium)
+                    .then(shimmerModifier),
+            )
+            Spacer(modifier = Modifier.width(WeBeepSpacing.md))
+            Column(modifier = Modifier.weight(1f)) {
                 Box(
                     modifier = Modifier
-                        .width(72.dp)
-                        .height(24.dp)
-                        .clip(RoundedCornerShape(12.dp))
+                        .width(56.dp)
+                        .height(12.dp)
+                        .clip(MaterialTheme.shapes.extraSmall)
                         .then(shimmerModifier),
                 )
+                Spacer(modifier = Modifier.height(WeBeepSpacing.xs))
                 Box(
                     modifier = Modifier
-                        .size(24.dp)
-                        .clip(CircleShape)
+                        .fillMaxWidth(0.9f)
+                        .height(18.dp)
+                        .clip(MaterialTheme.shapes.extraSmall)
                         .then(shimmerModifier),
                 )
-            }
-
-            Spacer(modifier = Modifier.weight(1f))
-
-            Column {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth(0.85f)
-                        .height(20.dp)
-                        .clip(RoundedCornerShape(4.dp))
-                        .then(shimmerModifier),
-                )
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(WeBeepSpacing.xxs))
                 Box(
                     modifier = Modifier
                         .fillMaxWidth(0.6f)
-                        .height(20.dp)
-                        .clip(RoundedCornerShape(4.dp))
+                        .height(18.dp)
+                        .clip(MaterialTheme.shapes.extraSmall)
                         .then(shimmerModifier),
                 )
-                Spacer(modifier = Modifier.height(12.dp))
-
+                Spacer(modifier = Modifier.height(WeBeepSpacing.xs))
                 Box(
                     modifier = Modifier
-                        .fillMaxWidth(0.4f)
-                        .height(14.dp)
-                        .clip(RoundedCornerShape(4.dp))
-                        .then(shimmerModifier),
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(4.dp)
-                        .clip(RoundedCornerShape(2.dp))
+                        .fillMaxWidth(0.45f)
+                        .height(12.dp)
+                        .clip(MaterialTheme.shapes.extraSmall)
                         .then(shimmerModifier),
                 )
             }
@@ -216,9 +197,9 @@ fun ShimmerCourseList(
     LazyVerticalGrid(
         columns = GridCells.Fixed(columns),
         modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        contentPadding = PaddingValues(WeBeepSpacing.md),
+        verticalArrangement = Arrangement.spacedBy(WeBeepSpacing.sm),
+        horizontalArrangement = Arrangement.spacedBy(WeBeepSpacing.sm),
     ) {
         items(itemCount) {
             ShimmerCourseCard()
@@ -232,7 +213,7 @@ fun ShimmerCourseList(
 @Composable
 private fun ShimmerCourseCardLightPreview() {
     WeBeepTheme(darkTheme = false) {
-        Box(modifier = Modifier.padding(16.dp)) {
+        Box(modifier = Modifier.padding(WeBeepSpacing.md)) {
             ShimmerCourseCard()
         }
     }
@@ -242,7 +223,7 @@ private fun ShimmerCourseCardLightPreview() {
 @Composable
 private fun ShimmerCourseCardDarkPreview() {
     WeBeepTheme(darkTheme = true) {
-        Box(modifier = Modifier.padding(16.dp)) {
+        Box(modifier = Modifier.padding(WeBeepSpacing.md)) {
             ShimmerCourseCard()
         }
     }

@@ -40,6 +40,14 @@ val LightInverseSurface = Color(0xFF1A202C)
 val LightInverseOnSurface = Color(0xFFEDF2F7)
 val LightInversePrimary = Color(0xFFA5C8FF)
 val LightSurfaceTint = PoliMiNavy
+val LightSurfaceDim = Color(0xFFD8DEE7)
+val LightSurfaceBright = Color(0xFFF7F9FC)
+val LightSurfaceContainerLowest = Color(0xFFFFFFFF)
+val LightSurfaceContainerLow = Color(0xFFF1F4F9)
+val LightSurfaceContainer = Color(0xFFEBEFF5)
+val LightSurfaceContainerHigh = Color(0xFFE5EAF1)
+val LightSurfaceContainerHighest = Color(0xFFDFE5ED)
+val LightScrim = Color(0xFF000000)
 
 // ── dark theme (oled optimized) ──────────────────────────────────────
 val DarkBackground = Color(0xFF000000)
@@ -54,6 +62,14 @@ val DarkInverseSurface = Color(0xFFEDF2F7)
 val DarkInverseOnSurface = Color(0xFF1A202C)
 val DarkInversePrimary = PoliMiNavy
 val DarkSurfaceTint = PoliMiBrightBlueLight
+val DarkSurfaceDim = Color(0xFF0B0D12)
+val DarkSurfaceBright = Color(0xFF2D323C)
+val DarkSurfaceContainerLowest = Color(0xFF050608)
+val DarkSurfaceContainerLow = Color(0xFF0E1116)
+val DarkSurfaceContainer = Color(0xFF151920)
+val DarkSurfaceContainerHigh = Color(0xFF1C2029)
+val DarkSurfaceContainerHighest = Color(0xFF262B35)
+val DarkScrim = Color(0xFF000000)
 
 // ── colors on-* (light) ─────────────────────────────────────────────
 val OnPrimaryLight = Color(0xFFFFFFFF)
@@ -67,17 +83,19 @@ val OnTertiaryContainerLight = Color(0xFF410002)
 val TertiaryContainerLight = Color(0xFFFFDAD6)
 
 // ── colors on-* (dark) ──────────────────────────────────────────────
+// Teal secondary keeps primary/secondary gradients visible on OLED black.
+val SecondaryDark = Color(0xFF5ED6CE)
 val OnPrimaryDark = Color(0xFF003062)
 val OnPrimaryContainerDark = Color(0xFFD6E3FF)
 val PrimaryContainerDark = Color(0xFF00468A)
-val OnSecondaryDark = Color(0xFF003549)
-val OnSecondaryContainerDark = Color(0xFFBFE9FF)
-val SecondaryContainerDark = Color(0xFF004C68)
+val OnSecondaryDark = Color(0xFF003733)
+val OnSecondaryContainerDark = Color(0xFFB3F2EB)
+val SecondaryContainerDark = Color(0xFF00504A)
 val OnTertiaryDark = Color(0xFF690005)
 val OnTertiaryContainerDark = Color(0xFFFFDAD6)
 val TertiaryContainerDark = Color(0xFF93000A)
 
-// ── file type semantic colors ────────────────────────────────────────
+// ── file type semantic colors (light) ────────────────────────────────
 val ColorPdf = Color(0xFFE53935)
 val ColorWord = Color(0xFF1E88E5)
 val ColorExcel = Color(0xFF43A047)
@@ -86,6 +104,44 @@ val ColorZip = Color(0xFF8E24AA)
 val ColorFolder = Color(0xFFFFB300)
 val ColorLink = Color(0xFF039BE5)
 val ColorGenericFile = Color(0xFF757575)
+
+// ── file type semantic colors (dark, desaturated) ────────────────────
+val ColorPdfDark = Color(0xFFF28B82)
+val ColorWordDark = Color(0xFF8AB4F8)
+val ColorExcelDark = Color(0xFF81C995)
+val ColorPowerPointDark = Color(0xFFFCAD70)
+val ColorZipDark = Color(0xFFC58AF9)
+val ColorFolderDark = Color(0xFFFDD663)
+val ColorLinkDark = Color(0xFF78D0F5)
+val ColorGenericFileDark = Color(0xFFA0AEC0)
+
+// ── status ───────────────────────────────────────────────────────────
+val SuccessLight = Color(0xFF2E7D32)
+val OnSuccessLight = Color(0xFFFFFFFF)
+val SuccessContainerLight = Color(0xFFC8E6C9)
+val OnSuccessContainerLight = Color(0xFF0B3D0F)
+val WarningLight = Color(0xFFB26A00)
+val OnWarningLight = Color(0xFFFFFFFF)
+
+val SuccessDark = Color(0xFF7BD88A)
+val OnSuccessDark = Color(0xFF00390F)
+val SuccessContainerDark = Color(0xFF0F4D1C)
+val OnSuccessContainerDark = Color(0xFFB9F0C0)
+val WarningDark = Color(0xFFFFB74D)
+val OnWarningDark = Color(0xFF3F2400)
+
+// ── media overlays, favourite, aurora glows ──────────────────────────
+val MediaScrim = Color(0xFF000000)
+val OnMedia = Color(0xFFFFFFFF)
+val FavouriteGold = Color(0xFFFFD700)
+val GlassHighlight = Color(0xFFFFFFFF)
+
+val AuroraPrimaryLight = Color(0xFF8BB6FF)
+val AuroraSecondaryLight = Color(0xFF6EC8FF)
+val AuroraTertiaryLight = Color(0xFFFFC1D6)
+val AuroraPrimaryDark = Color(0xFF1B6FD6)
+val AuroraSecondaryDark = Color(0xFF00B7E0)
+val AuroraTertiaryDark = Color(0xFF1FA3A0)
 
 // ── gradients & glassmorphism ────────────────────────────────────────
 val GradientDarkStart = Color(0xFF102C53)
