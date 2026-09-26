@@ -1,34 +1,35 @@
 package it.polimi.webeep
 
+import android.Manifest
 import android.content.Intent
-import android.net.Uri
+import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
-import android.Manifest
-import android.content.pm.PackageManager
-import androidx.activity.ComponentActivity
-import androidx.appcompat.app.AppCompatActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
-import androidx.navigation.NavHostController
 import androidx.lifecycle.lifecycleScope
+import androidx.navigation.NavHostController
 import dagger.hilt.android.AndroidEntryPoint
 import it.polimi.webeep.core.datastore.SettingsManager
-import it.polimi.webeep.core.datastore.TokenManager
+import it.polimi.webeep.core.datastore.TokenProvider
+import it.polimi.webeep.core.session.SessionExpiryHandler
+import it.polimi.webeep.feature.auth.domain.SsoCallbackParser
+import it.polimi.webeep.feature.auth.domain.SsoCallbackRelay
+import it.polimi.webeep.feature.sync.CourseSyncWorker
 import it.polimi.webeep.feature.sync.SyncScheduler
 import it.polimi.webeep.navigation.Screen
+import it.polimi.webeep.navigation.navigateToLogin
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-
-import android.view.WindowManager
 
 @AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
 
     @Inject
-    lateinit var tokenManager: TokenManager
+    lateinit var tokenProvider: TokenProvider
 
     @Inject
     lateinit var settingsManager: SettingsManager
@@ -36,44 +37,53 @@ class MainActivity : AppCompatActivity() {
     @Inject
     lateinit var syncScheduler: SyncScheduler
 
+    @Inject
+    lateinit var ssoCallbackRelay: SsoCallbackRelay
+
+    @Inject
+    lateinit var sessionExpiryHandler: SessionExpiryHandler
+
     private var navController: NavHostController? = null
-    private var pendingToken: String? = null
     private var pendingCourseId: Int? = null
 
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
-    ) { isGranted: Boolean ->
+    ) { _: Boolean ->
         setupPeriodicSync()
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        
+
         enableEdgeToEdge()
 
-        checkSsoDeepLink(intent)
-        checkCourseIntent(intent)
+        // Intents are replayed on recreation (rotation, process death): consume them only once.
+        val isFreshStart = savedInstanceState == null
+        if (isFreshStart) {
+            consumeSsoDeepLink(intent)
+            checkCourseIntent(intent)
+        }
+        val startAtLogin = ssoCallbackRelay.hasPending
 
         setContent {
             WeBeepApp(
-                tokenManager = tokenManager,
+                tokenProvider = tokenProvider,
                 settingsManager = settingsManager,
-                initialDeepLinkToken = pendingToken,
+                sessionExpiryHandler = sessionExpiryHandler,
+                startAtLogin = startAtLogin,
                 onNavControllerReady = { controller ->
                     navController = controller
-                    pendingToken = null
-
-                    pendingCourseId?.let { courseId ->
-                        if (tokenManager.getTokenSync() != null) {
-                            controller.navigate(Screen.CourseDetail.createRoute(courseId))
-                        }
-                        pendingCourseId = null
+                    if (ssoCallbackRelay.hasPending) {
+                        controller.navigateToLogin()
                     }
+                    openPendingCourse(controller)
                 }
             )
         }
 
-        checkAndRequestNotificationPermission()
+        if (isFreshStart) {
+            checkAndRequestNotificationPermission()
+        }
     }
 
     private fun checkAndRequestNotificationPermission() {
@@ -101,40 +111,44 @@ class MainActivity : AppCompatActivity() {
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        setIntent(intent)
-        checkSsoDeepLink(intent)
+        val hasSsoCallback = consumeSsoDeepLink(intent)
         checkCourseIntent(intent)
+        setIntent(intent)
 
-        pendingToken?.let { token ->
-            navController?.navigate(Screen.Login.createRoute(token)) {
-                popUpTo(navController!!.graph.startDestinationId) { inclusive = true }
-            }
-            pendingToken = null
+        // Without a NavController yet, onNavControllerReady routes to login.
+        val controller = navController ?: return
+        if (hasSsoCallback) {
+            controller.navigateToLogin()
         }
-        
-        pendingCourseId?.let { courseId ->
-            if (tokenManager.getTokenSync() != null) {
-                navController?.navigate(Screen.CourseDetail.createRoute(courseId))
-            }
-            pendingCourseId = null
+        openPendingCourse(controller)
+    }
+
+    private fun openPendingCourse(controller: NavHostController) {
+        val courseId = pendingCourseId ?: return
+        pendingCourseId = null
+        if (tokenProvider.getTokenSync() != null) {
+            controller.navigate(Screen.CourseDetail.createRoute(courseId))
         }
     }
 
-    private fun checkSsoDeepLink(intent: Intent?) {
-        val data = intent?.data ?: return
-        if (data.scheme !in SSO_CALLBACK_SCHEMES) return
-
-        it.polimi.webeep.feature.auth.domain.SsoCallbackParser.extractToken(data)?.let { token ->
-            pendingToken = token
-        }
+    /**
+     * Hands the SSO blob to [SsoCallbackRelay] and strips it from the intent, so it is
+     * never kept by the Activity, the task record or saved state.
+     */
+    private fun consumeSsoDeepLink(intent: Intent): Boolean {
+        val data = intent.data ?: return false
+        if (data.scheme !in SSO_CALLBACK_SCHEMES) return false
+        val token = SsoCallbackParser.extractToken(data)
+        intent.data = null
+        token?.let(ssoCallbackRelay::offer)
+        return token != null
     }
 
-    private fun checkCourseIntent(intent: Intent?) {
-        val courseId = intent?.getIntExtra(
-            it.polimi.webeep.feature.sync.CourseSyncWorker.EXTRA_COURSE_ID, -1
-        ) ?: -1
+    private fun checkCourseIntent(intent: Intent) {
+        val courseId = intent.getIntExtra(CourseSyncWorker.EXTRA_COURSE_ID, -1)
         if (courseId > 0) {
             pendingCourseId = courseId
+            intent.removeExtra(CourseSyncWorker.EXTRA_COURSE_ID)
         }
     }
 

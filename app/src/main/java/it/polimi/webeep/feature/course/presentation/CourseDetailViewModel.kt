@@ -1,11 +1,13 @@
 package it.polimi.webeep.feature.course.presentation
 
+import androidx.annotation.StringRes
 import androidx.compose.runtime.Immutable
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import it.polimi.webeep.core.util.Resource
+import it.polimi.webeep.core.util.toMessageRes
 import it.polimi.webeep.feature.course.domain.CourseRepository
 import it.polimi.webeep.feature.course.domain.GetCourseContentsUseCase
 import it.polimi.webeep.feature.course.domain.model.FileResource
@@ -34,7 +36,7 @@ sealed interface CourseDetailUiState {
         val courseName: String,
         val sections: List<SectionUiModel>
     ) : CourseDetailUiState
-    data class Error(val message: String) : CourseDetailUiState
+    data class Error(@StringRes val messageRes: Int) : CourseDetailUiState
 }
 
 @Immutable
@@ -133,15 +135,15 @@ class CourseDetailViewModel @Inject constructor(
                                 section.toUiModel(wasExpanded)
                             }
                         }
-                        _uiState.update { 
+                        _uiState.update { current ->
                             CourseDetailUiState.Success(
                                 courseName = courseName,
-                                sections = uiSections
+                                sections = uiSections.withInFlightDownloadStates(current)
                             )
                         }
                     }
                     is Resource.Error -> {
-                        _uiState.update { CourseDetailUiState.Error(resource.message) }
+                        _uiState.update { CourseDetailUiState.Error(resource.error.toMessageRes()) }
                     }
                 }
             }
@@ -227,6 +229,41 @@ class CourseDetailViewModel @Inject constructor(
             } else {
                 state
             }
+        }
+    }
+
+    /**
+     * A cache re-emit rebuilds every [FileUiModel] from disk state only: carry over
+     * DOWNLOADING (the job is still running) and FAILED (unless the file is now on disk).
+     */
+    private fun List<SectionUiModel>.withInFlightDownloadStates(
+        previous: CourseDetailUiState
+    ): List<SectionUiModel> {
+        if (previous !is CourseDetailUiState.Success) return this
+        val carriedStates = previous.sections.asSequence()
+            .flatMap { it.modules.asSequence() }
+            .flatMap { it.files.asSequence() }
+            .filter {
+                it.downloadState == DownloadState.DOWNLOADING || it.downloadState == DownloadState.FAILED
+            }
+            .associate { it.fileUrl to it.downloadState }
+        if (carriedStates.isEmpty()) return this
+        return map { section ->
+            section.copy(
+                modules = section.modules.map { module ->
+                    module.copy(
+                        files = module.files.map { file ->
+                            when (carriedStates[file.fileUrl]) {
+                                DownloadState.DOWNLOADING -> file.copy(downloadState = DownloadState.DOWNLOADING)
+                                DownloadState.FAILED ->
+                                    if (file.downloadState == DownloadState.COMPLETED) file
+                                    else file.copy(downloadState = DownloadState.FAILED)
+                                else -> file
+                            }
+                        }
+                    )
+                }
+            )
         }
     }
 

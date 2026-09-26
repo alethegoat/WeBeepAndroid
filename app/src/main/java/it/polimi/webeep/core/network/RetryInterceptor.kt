@@ -9,8 +9,9 @@ import javax.inject.Inject
  * okhttp interceptor for automatic retry with exponential backoff.
  * retries failed requests for network errors or 5xx server errors.
  * NOTE: OkHttp interceptors are blocking by design; Thread.sleep here holds
- * one dispatcher thread (max ~7s total: 1s+2s+4s) with 30s timeouts configured
- * in NetworkModule. Only idempotent GET/HEAD/OPTIONS are retried.
+ * one dispatcher thread (max ~3s total: 1s+2s) with 30s timeouts configured
+ * in NetworkModule. Only idempotent GET/HEAD/OPTIONS and POSTs marked with
+ * [MoodleApiServiceImpl.READ_ONLY_WS_HEADER] are retried; canceled calls stop early.
  */
 class RetryInterceptor @Inject constructor(
     private val maxRetries: Int = 3,
@@ -22,8 +23,17 @@ class RetryInterceptor @Inject constructor(
     }
 
     override fun intercept(chain: Interceptor.Chain): Response {
-        val request = chain.request()
-        if (request.method !in IDEMPOTENT_METHODS || request.body?.isOneShot() == true) {
+        val original = chain.request()
+        val isReadOnlyWs = original.header(MoodleApiServiceImpl.READ_ONLY_WS_HEADER) != null
+        val request = if (isReadOnlyWs) {
+            original.newBuilder().removeHeader(MoodleApiServiceImpl.READ_ONLY_WS_HEADER).build()
+        } else {
+            original
+        }
+
+        val retryable = (request.method in IDEMPOTENT_METHODS || isReadOnlyWs) &&
+            request.body?.isOneShot() != true
+        if (!retryable) {
             return chain.proceed(request)
         }
 
@@ -31,10 +41,14 @@ class RetryInterceptor @Inject constructor(
         var lastResponse: Response? = null
 
         repeat(maxRetries) { attempt ->
+            lastResponse?.close()
+            lastResponse = null
+            if (chain.call().isCanceled()) {
+                throw IOException("Canceled", lastException)
+            }
             try {
-                lastResponse?.close()
                 val response = chain.proceed(request)
-                if (response.isSuccessful || response.code !in 500..599) {
+                if (response.code !in 500..599) {
                     return response
                 }
                 lastResponse = response
@@ -46,13 +60,14 @@ class RetryInterceptor @Inject constructor(
                     Thread.sleep(initialDelayMs * (1L shl attempt))
                 } catch (e: InterruptedException) {
                     Thread.currentThread().interrupt()
-                    throw IOException("Retry interrotto", e)
+                    lastResponse?.close()
+                    throw IOException("Retry interrupted", e)
                 }
             }
         }
 
         lastResponse?.let { return it }
 
-        throw lastException ?: IOException("Numero massimo di retry ($maxRetries) superato")
+        throw lastException ?: IOException("Max retries ($maxRetries) exceeded")
     }
 }

@@ -50,9 +50,23 @@ class LoginUseCaseTest {
         assertTrue(result is LoginResult.Success)
         assertEquals(sampleSession, (result as LoginResult.Success).session)
         assertEquals("wstoken_123", fakeAuthRepository.savedToken)
-        assertEquals("private_token_456", fakeAuthRepository.savedPrivateToken)
+        assertNull(fakeAuthRepository.savedPrivateToken)
         assertEquals(sampleSession, fakeAuthRepository.savedSession)
         assertNull(fakeTokenProvider.getPendingPassportSync())
+    }
+
+    @Test
+    fun `execute with expired or missing passports returns SessionExpired and saves nothing`() = runTest {
+        val encodedToken = encodeSsoPayload(LoginUseCase.md5Hex(passport), "wstoken_123", "private_token_456")
+        fakeAuthRepository.validateResult = Result.success(sampleSession)
+        // TokenManager drops passports older than the TTL, so an expired one reads as none.
+        fakeTokenProvider.clearPendingPassportSync()
+
+        val result = loginUseCase.execute(encodedToken)
+
+        assertTrue(result is LoginResult.Failure)
+        assertEquals(LoginError.SessionExpired, (result as LoginResult.Failure).error)
+        assertNull(fakeAuthRepository.savedToken)
     }
 
     @Test

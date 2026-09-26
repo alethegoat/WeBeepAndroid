@@ -10,6 +10,11 @@ import coil.ImageLoader
 import coil.ImageLoaderFactory
 import coil.disk.DiskCache
 import coil.memory.MemoryCache
+import it.polimi.webeep.core.datastore.TokenProvider
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
 
 @HiltAndroidApp
@@ -20,6 +25,17 @@ class WeBeepApplication : Application(), Configuration.Provider, ImageLoaderFact
 
     @Inject
     lateinit var okHttpClientLazy: dagger.Lazy<OkHttpClient>
+
+    @Inject
+    lateinit var tokenProvider: TokenProvider
+
+    private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
+    override fun onCreate() {
+        super.onCreate()
+        // Warm up the Keystore-backed session off the main thread, before the first frame needs it.
+        appScope.launch { runCatching { tokenProvider.ensureLoaded() } }
+    }
 
     override val workManagerConfiguration: Configuration
         get() = Configuration.Builder()

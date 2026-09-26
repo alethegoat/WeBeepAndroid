@@ -5,6 +5,9 @@ plugins {
     alias(libs.plugins.hilt)
     alias(libs.plugins.compose.compiler)
     alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.detekt)
+    alias(libs.plugins.ktlint)
+    alias(libs.plugins.kover)
 }
 
 android {
@@ -46,27 +49,13 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            // Release packaging/signing tasks fail fast below when no keystore is
+            // configured; the debug placeholder only keeps lint/unit tests working.
             val releaseSigning = signingConfigs.getByName("release")
-            // Fail fast when a release is actually requested, instead of silently
-            // shipping a debug-signed release. CI smoke opts in explicitly via
-            // ALLOW_DEBUG_RELEASE_SIGNING=true. Non-release tasks keep a debug
-            // placeholder so unit tests/lint still run without a keystore.
-            val allowDebugFallback = System.getenv("ALLOW_DEBUG_RELEASE_SIGNING") == "true"
-            val releaseRequested = gradle.startParameter.taskNames.any {
-                it.contains("Release", ignoreCase = true)
-            }
             signingConfig = if (releaseSigning.storeFile?.exists() == true) {
                 releaseSigning
-            } else if (allowDebugFallback || !releaseRequested) {
-                if (releaseRequested) {
-                    logger.warn("Signing release with debug keystore (ALLOW_DEBUG_RELEASE_SIGNING=true, CI smoke only).")
-                }
-                signingConfigs.getByName("debug")
             } else {
-                throw GradleException(
-                    "Missing release keystore: set KEYSTORE_FILE/KEYSTORE_PASSWORD/KEY_ALIAS/KEY_PASSWORD " +
-                        "or set ALLOW_DEBUG_RELEASE_SIGNING=true for CI smoke builds."
-                )
+                signingConfigs.getByName("debug")
             }
         }
     }
@@ -87,14 +76,65 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    kotlinOptions {
-        jvmTarget = "17"
-        freeCompilerArgs = freeCompilerArgs + listOf("-language-version", "2.1", "-api-version", "2.1")
-    }
-
     buildFeatures {
         compose = true
         buildConfig = true
+    }
+
+    sourceSets["androidTest"].assets.srcDir("$projectDir/schemas")
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+        languageVersion.set(org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_2_1)
+        apiVersion.set(org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_2_1)
+    }
+}
+
+// Configuration-cache safe: the doFirst action captures only a Boolean.
+val hasReleaseKeystore = System.getenv("KEYSTORE_FILE")
+    ?.takeIf { it.isNotBlank() }
+    ?.let { file(it).exists() } == true
+val allowDebugReleaseSigning = System.getenv("ALLOW_DEBUG_RELEASE_SIGNING") == "true"
+tasks.matching { it.name == "packageRelease" || it.name == "signReleaseBundle" }.configureEach {
+    val keystoreMissing = !hasReleaseKeystore
+    val debugFallbackAllowed = allowDebugReleaseSigning
+    doFirst {
+        if (keystoreMissing && !debugFallbackAllowed) {
+            throw GradleException(
+                "Missing release keystore: set KEYSTORE_FILE/KEYSTORE_PASSWORD/KEY_ALIAS/KEY_PASSWORD " +
+                    "or set ALLOW_DEBUG_RELEASE_SIGNING=true for CI smoke builds."
+            )
+        }
+        if (keystoreMissing) {
+            logger.warn("Signing release with debug keystore (ALLOW_DEBUG_RELEASE_SIGNING=true, CI smoke only).")
+        }
+    }
+}
+
+detekt {
+    buildUponDefaultConfig = true
+    config.setFrom(rootProject.file("config/detekt/detekt.yml"))
+    baseline = rootProject.file("config/detekt/baseline.xml")
+    // Report-only until the existing findings are triaged into the baseline.
+    ignoreFailures = true
+}
+
+// Keep detekt on the Kotlin version it was compiled against.
+configurations.matching { it.name == "detekt" }.configureEach {
+    resolutionStrategy.eachDependency {
+        if (requested.group == "org.jetbrains.kotlin") {
+            useVersion(io.gitlab.arturbosch.detekt.getSupportedKotlinVersion())
+        }
+    }
+}
+
+ktlint {
+    android.set(true)
+    ignoreFailures.set(true)
+    filter {
+        exclude { it.file.path.contains("/build/") }
     }
 }
 
@@ -166,6 +206,7 @@ dependencies {
     // Media3 (Video/Audio Player)
     implementation(libs.media3.exoplayer)
     implementation(libs.media3.ui)
+    implementation(libs.media3.datasource.okhttp)
 
     // WorkManager
     implementation(libs.work.runtime.ktx)
@@ -187,4 +228,5 @@ dependencies {
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.androidx.test.core)
     androidTestImplementation(libs.coroutines.test)
+    androidTestImplementation(libs.room.testing)
 }

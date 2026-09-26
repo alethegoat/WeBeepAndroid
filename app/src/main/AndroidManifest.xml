@@ -41,7 +41,7 @@
         android:theme="@style/Theme.AppCompat.DayNight.NoActionBar"
         android:localeConfig="@xml/locales_config"
         android:hardwareAccelerated="true"
-        tools:targetApi="35">
+        tools:targetApi="36">
 
         <activity
             android:name=".MainActivity"
@@ -55,7 +55,8 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
-            <!-- Deep link per callback SSO Moodle -->
+            <!-- Deep link per callback SSO Moodle.
+                 moodlemobile: rimozione da valutare dopo aver verificato tool_mobile_forcedurlscheme. -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
@@ -75,6 +76,16 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths" />
         </provider>
+
+        <!-- Persiste la lingua per-app scelta con AppCompatDelegate su API <= 32 -->
+        <service
+            android:name="androidx.appcompat.app.AppLocalesMetadataHolderService"
+            android:enabled="false"
+            android:exported="false">
+            <meta-data
+                android:name="autoStoreLocales"
+                android:value="true" />
+        </service>
 
         <!-- Disabilita l'inizializzazione automatica di WorkManager per usare Hilt -->
         <provider

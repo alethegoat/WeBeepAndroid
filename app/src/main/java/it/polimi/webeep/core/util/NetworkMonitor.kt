@@ -13,7 +13,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class NetworkMonitor @Inject constructor(application: Application) {
+class NetworkMonitor @Inject constructor(application: Application) : ConnectivityObserver {
 
     private val connectivityManager =
         application.getSystemService(ConnectivityManager::class.java)
@@ -21,7 +21,7 @@ class NetworkMonitor @Inject constructor(application: Application) {
     /**
      * Emits the current connectivity immediately upon subscription, then updates.
      */
-    val isOnline: Flow<Boolean> = callbackFlow {
+    override val isOnline: Flow<Boolean> = callbackFlow {
         val networkCallback = object : ConnectivityManager.NetworkCallback() {
             override fun onAvailable(network: Network) {
                 trySend(true)

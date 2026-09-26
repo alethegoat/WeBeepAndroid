@@ -2,11 +2,17 @@ package it.polimi.webeep.core.network
 
 import it.polimi.webeep.core.datastore.TokenProvider
 import okhttp3.Interceptor
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Response
+import okio.Buffer
+import java.net.URLEncoder
 import javax.inject.Inject
 
 /**
- * Injects wstoken and handles Moodle auth errors only for REST API calls.
+ * Injects wstoken into the POST form body (never the URL) and handles Moodle
+ * auth errors only for REST API calls on the trusted host.
  * File/image requests must not log the user out on 403.
  */
 class TokenInterceptor @Inject constructor(
@@ -24,6 +30,7 @@ class TokenInterceptor @Inject constructor(
 
     companion object {
         private const val TOKEN_PEEK_BYTES = 8_192L
+        private const val FORM_SUBTYPE = "x-www-form-urlencoded"
         private val INVALID_TOKEN_MARKERS = listOf(
             "\"errorcode\":\"invalidtoken\"",
             "\"errorcode\":\"accessexception\""
@@ -36,14 +43,7 @@ class TokenInterceptor @Inject constructor(
             MoodleFileUrlBuilder.isMoodleRestPath(request.url.encodedPath)
 
         if (isMoodleRest) {
-            val explicitToken = request.url.queryParameter("wstoken")
-            val token = explicitToken ?: tokenProvider.getTokenSync()
-            if (token != null && explicitToken == null) {
-                val url = request.url.newBuilder()
-                    .addQueryParameter("wstoken", token)
-                    .build()
-                request = request.newBuilder().url(url).build()
-            }
+            request = withFormToken(request)
         }
 
         val response = chain.proceed(request)
@@ -80,5 +80,30 @@ class TokenInterceptor @Inject constructor(
         }
 
         return response
+    }
+
+    private fun withFormToken(request: Request): Request {
+        val body = request.body ?: return request
+        // Ktor's OkHttp engine may leave the body without a media type and send
+        // Content-Type only as a request header, so fall back to the header.
+        val contentType = body.contentType() ?: request.header("Content-Type")?.toMediaTypeOrNull()
+        if (request.method != "POST" ||
+            contentType?.subtype?.equals(FORM_SUBTYPE, ignoreCase = true) != true ||
+            body.isOneShot()
+        ) {
+            return request
+        }
+
+        val form = Buffer().also { body.writeTo(it) }.readUtf8()
+        if (form.split('&').any { it.startsWith("wstoken=") }) {
+            return request
+        }
+        val token = tokenProvider.getTokenSync() ?: return request
+
+        val encodedToken = URLEncoder.encode(token, Charsets.UTF_8.name())
+        val newForm = if (form.isEmpty()) "wstoken=$encodedToken" else "$form&wstoken=$encodedToken"
+        return request.newBuilder()
+            .method(request.method, newForm.toRequestBody(contentType))
+            .build()
     }
 }

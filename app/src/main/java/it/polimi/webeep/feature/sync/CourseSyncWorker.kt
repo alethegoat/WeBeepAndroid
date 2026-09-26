@@ -20,7 +20,7 @@ import dagger.assisted.AssistedInject
 import it.polimi.webeep.MainActivity
 import it.polimi.webeep.R
 import it.polimi.webeep.core.database.dao.CourseDao
-import it.polimi.webeep.core.datastore.TokenManager
+import it.polimi.webeep.core.datastore.TokenProvider
 import it.polimi.webeep.feature.course.data.CourseContentMapper
 import it.polimi.webeep.feature.course.domain.CourseRepository
 import it.polimi.webeep.feature.course.domain.model.Section
@@ -41,14 +41,14 @@ class CourseSyncWorker @AssistedInject constructor(
     private val courseDao: CourseDao,
     private val courseRepository: CourseRepository,
     private val dashboardRepository: DashboardRepository,
-    private val tokenManager: TokenManager
+    private val tokenProvider: TokenProvider
 ) : CoroutineWorker(appContext, workerParams) {
 
     data class NewFileRecord(val courseId: Int, val courseName: String, val fileName: String)
 
     override suspend fun doWork(): Result {
         Log.d("CourseSyncWorker", "Worker started")
-        tokenManager.getToken() ?: run {
+        tokenProvider.getToken() ?: run {
             Log.d("CourseSyncWorker", "No token. Stopping worker.")
             return Result.failure()
         }
@@ -94,7 +94,7 @@ class CourseSyncWorker @AssistedInject constructor(
                                 }
                             } catch (e: Exception) {
                                 if (e is kotlinx.coroutines.CancellationException) throw e
-                                Log.e("CourseSyncWorker", "Sync error for ${course.shortname}: ${e.message}")
+                                Log.e("CourseSyncWorker", "Sync error course=${course.id} type=${e::class.simpleName}")
                                 hasErrors.set(true)
                             }
                         }
@@ -120,7 +120,7 @@ class CourseSyncWorker @AssistedInject constructor(
             return if (hasErrors.get() && syncedCourses.get() == 0) Result.retry() else Result.success()
         } catch (e: Exception) {
             if (e is kotlinx.coroutines.CancellationException) throw e
-            Log.e("CourseSyncWorker", "Fatal worker error: ${e.message}")
+            Log.e("CourseSyncWorker", "Fatal worker error type=${e::class.simpleName}")
             return Result.retry()
         }
     }
@@ -173,6 +173,8 @@ class CourseSyncWorker @AssistedInject constructor(
                     .setSummaryText(appContext.getString(R.string.sync_summary, totalNewFiles))
             )
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
+            .setPublicVersion(buildPublicNotification(channelId))
             .setGroup("WE_BEEP_SYNC_GROUP")
             .setGroupSummary(true)
             .setAutoCancel(true)
@@ -215,11 +217,22 @@ class CourseSyncWorker @AssistedInject constructor(
             .setStyle(inboxStyle)
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setContentIntent(pendingIntent)
+            .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
+            .setPublicVersion(buildPublicNotification(channelId))
             .setGroup("WE_BEEP_SYNC_GROUP")
             .setAutoCancel(true)
 
         notificationManager.notify(courseId, builder.build())
     }
+
+    /**
+     * Lock-screen variant: no course or file names.
+     */
+    private fun buildPublicNotification(channelId: String) =
+        NotificationCompat.Builder(appContext, channelId)
+            .setSmallIcon(R.drawable.ic_stat_notify)
+            .setContentTitle(appContext.getString(R.string.sync_completed_title))
+            .build()
 
     companion object {
         const val EXTRA_COURSE_ID = "EXTRA_COURSE_ID"

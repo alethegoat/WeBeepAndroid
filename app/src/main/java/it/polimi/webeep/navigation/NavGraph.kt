@@ -13,11 +13,10 @@ import it.polimi.webeep.core.ui.theme.WeBeepMotion
 import it.polimi.webeep.core.ui.util.LocalNavAnimatedVisibilityScope
 import it.polimi.webeep.core.ui.util.LocalNavSharedTransitionScope
 import it.polimi.webeep.core.ui.util.LocalReduceMotion
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavBackStackEntry
-import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -95,25 +94,7 @@ fun NavGraph(
         }
     ) {
         composable(route = Screen.Login.route) {
-            LoginEntry(
-                token = null,
-                navController = navController
-            )
-        }
-
-        composable(
-            route = Screen.Login.routeWithToken,
-            arguments = listOf(
-                navArgument(Screen.Login.TOKEN_ARG) {
-                    type = NavType.StringType
-                    nullable = false
-                }
-            )
-        ) { backStackEntry ->
-            LoginEntry(
-                token = backStackEntry.arguments?.getString(Screen.Login.TOKEN_ARG),
-                navController = navController
-            )
+            LoginEntry(navController = navController)
         }
 
         composable(route = Screen.Dashboard.route) {
@@ -136,14 +117,7 @@ fun NavGraph(
             SettingsScreen(
                 viewModel = viewModel,
                 onBackClick = { navController.navigateUp() },
-                onLogoutSuccess = {
-                    navController.navigate(Screen.Login.route) {
-                        popUpTo(navController.graph.findStartDestination().id) {
-                            inclusive = true
-                        }
-                        launchSingleTop = true
-                    }
-                }
+                onLogoutSuccess = { navController.navigateToLogin() }
             )
         }
 
@@ -211,26 +185,27 @@ private fun AnimatedContentTransitionScope<NavBackStackEntry>.isCourseListTransf
         (from == Screen.CourseDetail.route && to == Screen.Dashboard.route)
 }
 
-@Composable
-private fun LoginEntry(
-    token: String?,
-    navController: NavHostController
-) {
-    val viewModel: LoginViewModel = hiltViewModel()
-
-    LaunchedEffect(token) {
-        if (!token.isNullOrBlank()) {
-            viewModel.handleSsoCallback(token)
-        } else {
-            viewModel.resetState()
-        }
+/**
+ * Clears the whole back stack and shows the login screen. No-op when it is already shown,
+ * so manual logout and session expiry can both call it without stacking entries.
+ */
+fun NavController.navigateToLogin() {
+    if (currentDestination?.route == Screen.Login.route) return
+    navigate(Screen.Login.route) {
+        popUpTo(graph.id) { inclusive = true }
+        launchSingleTop = true
     }
+}
+
+@Composable
+private fun LoginEntry(navController: NavHostController) {
+    val viewModel: LoginViewModel = hiltViewModel()
 
     LoginScreen(
         viewModel = viewModel,
         onLoginSuccess = {
             navController.navigate(Screen.Dashboard.route) {
-                popUpTo(navController.graph.findStartDestination().id) {
+                popUpTo(navController.graph.id) {
                     inclusive = true
                 }
                 launchSingleTop = true

@@ -20,7 +20,8 @@ object DatabaseModule {
     private const val DATABASE_NAME = "webeep_database"
 
     /**
-     * Destructive fallback is DEBUG-only; production relies on explicit migrations.
+     * Full destructive fallback is DEBUG-only; production relies on explicit migrations
+     * and only drops the (rebuildable) cache on a version downgrade.
      */
     @Provides
     @Singleton
@@ -30,9 +31,11 @@ object DatabaseModule {
             WeBeepDatabase::class.java,
             DATABASE_NAME
         )
-            .addMigrations(DatabaseMigrations.MIGRATION_1_2, DatabaseMigrations.MIGRATION_2_3, DatabaseMigrations.MIGRATION_3_4)
+            .addMigrations(*DatabaseMigrations.ALL)
         if (BuildConfig.DEBUG) {
             builder.fallbackToDestructiveMigration(dropAllTables = true)
+        } else {
+            builder.fallbackToDestructiveMigrationOnDowngrade(dropAllTables = true)
         }
         return builder.build()
     }

@@ -1,7 +1,8 @@
 package it.polimi.webeep.feature.course.domain
 
-import it.polimi.webeep.core.util.NetworkMonitor
+import it.polimi.webeep.core.util.ConnectivityObserver
 import it.polimi.webeep.core.util.Resource
+import it.polimi.webeep.core.util.toDataError
 import it.polimi.webeep.feature.course.domain.model.Section
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
@@ -14,7 +15,7 @@ import javax.inject.Inject
  */
 class GetCourseContentsUseCase @Inject constructor(
     private val repository: CourseRepository,
-    private val networkMonitor: NetworkMonitor
+    private val connectivityObserver: ConnectivityObserver
 ) {
     operator fun invoke(courseId: Int): Flow<Resource<List<Section>>> = channelFlow {
         var isSyncing = true
@@ -33,13 +34,13 @@ class GetCourseContentsUseCase @Inject constructor(
 
         cacheStarted.await()
 
-        val online = runCatching { networkMonitor.isOnline.first() }.getOrDefault(true)
+        val online = runCatching { connectivityObserver.isOnline.first() }.getOrDefault(true)
         if (online) {
             val syncResult = repository.getCourseContents(courseId)
             syncResult.onFailure { throwable ->
                 val isCacheEmpty = lastCachedSections?.isEmpty() ?: true
                 if (isCacheEmpty) {
-                    send(Resource.Error(throwable.localizedMessage ?: "content synchronization error", throwable))
+                    send(Resource.Error(throwable.toDataError(), throwable))
                 }
             }
         }

@@ -23,7 +23,7 @@ class LoginUseCase @Inject constructor(
     }
 
     suspend fun execute(encodedToken: String): LoginResult {
-        val (wstoken, privateToken) = try {
+        val wstoken = try {
             val decodedBytes = decodeBase64Token(decodeTokenParameter(encodedToken))
             val decodedString = String(decodedBytes, Charsets.UTF_8)
 
@@ -44,10 +44,8 @@ class LoginUseCase @Inject constructor(
                 return LoginResult.Failure(LoginError.InvalidPassport)
             }
 
-            val wsToken = parts[1]
-            val privateToken = parts.getOrNull(2)
-
-            wsToken to privateToken
+            // parts[2] is the autologin-capable private token: intentionally discarded.
+            parts[1].trim().ifEmpty { return LoginResult.Failure(LoginError.InvalidTokenFormat) }
         } catch (e: IllegalArgumentException) {
             return LoginResult.Failure(LoginError.InvalidAccessToken)
         } catch (e: Exception) {
@@ -59,7 +57,7 @@ class LoginUseCase @Inject constructor(
             val result = authRepository.validateToken(wstoken)
             if (result.isSuccess) {
                 val siteInfo = result.getOrThrow()
-                authRepository.saveAuthData(wstoken, privateToken, siteInfo)
+                authRepository.saveAuthData(wstoken, null, siteInfo)
                 tokenProvider.clearPendingPassportSync()
                 LoginResult.Success(siteInfo)
             } else {

@@ -34,8 +34,9 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Description
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -52,15 +53,23 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChanged
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import it.polimi.webeep.R
+import it.polimi.webeep.core.ui.components.EmptyStateView
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.io.File
+import kotlin.math.min
 import kotlin.math.roundToInt
 
 @Composable
@@ -71,31 +80,6 @@ fun PdfViewer(
     ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
     onToggleFullScreen: () -> Unit = {}
 ) {
-    var scale by remember { mutableStateOf(1f) }
-    var offsetX by remember { mutableStateOf(0f) }
-    var offsetY by remember { mutableStateOf(0f) }
-    
-    val coroutineScope = rememberCoroutineScope()
-
-    val pdfSession = remember(file) {
-        val descriptor = ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
-        PdfSession(descriptor = descriptor, renderer = PdfRenderer(descriptor))
-    }
-    val pdfRenderer = pdfSession.renderer
-
-    // First-page ratio as placeholder to prevent scroll jumps.
-    val defaultAspectRatio = remember(pdfRenderer) {
-        try {
-            val page = pdfRenderer.openPage(0)
-            val ratio = page.width.toFloat() / page.height.toFloat()
-            page.close()
-            ratio
-        } catch (e: Exception) {
-            if (e is CancellationException) throw e
-            1f / 1.414f // fallback a4
-        }
-    }
-
     val pdfMutex = remember { Mutex() }
 
     // Small hard-capped cache. Never recycle evicted bitmaps here: a composed
@@ -112,17 +96,75 @@ fun PdfViewer(
         }
     }
 
-    DisposableEffect(pdfSession) {
-        onDispose {
-            memoryCache.evictAll()
-            try {
-                pdfSession.renderer.close()
-            } catch (_: Exception) {}
-            try {
-                pdfSession.descriptor.close()
-            } catch (_: Exception) {}
+    // HD pages never exceed the screen width: a full 1800 px ARGB page is ~18 MB.
+    val screenWidthPx = with(LocalDensity.current) { LocalConfiguration.current.screenWidthDp.dp.roundToPx() }
+    val highResWidth = remember(screenWidthPx) { min(MAX_HIGH_RES_WIDTH, screenWidthPx) }
+
+    val loadState by produceState<PdfLoadState>(PdfLoadState.Loading, file) {
+        value = PdfLoadState.Loading
+        var session: PdfSession? = null
+        try {
+            val opened = withContext(ioDispatcher) {
+                // Tracked before returning so a cancellation here still closes it.
+                pdfMutex.withLock { openPdfSession(file) }.also { session = it?.session }
+            }
+            value = if (opened != null) PdfLoadState.Ready(opened.session, opened.firstPageAspectRatio) else PdfLoadState.Error
+            awaitCancellation()
+        } finally {
+            val toClose = session
+            withContext(NonCancellable + ioDispatcher) {
+                pdfMutex.withLock {
+                    memoryCache.evictAll()
+                    toClose?.close()
+                }
+            }
         }
     }
+
+    when (val state = loadState) {
+        PdfLoadState.Loading -> Box(
+            modifier = modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator()
+        }
+        PdfLoadState.Error -> EmptyStateView(
+            icon = Icons.Default.Description,
+            title = stringResource(R.string.file_viewer_error_title),
+            subtitle = stringResource(R.string.file_viewer_error_pdf),
+            modifier = modifier.fillMaxSize()
+        )
+        is PdfLoadState.Ready -> PdfPages(
+            pdfRenderer = state.session.renderer,
+            pageCount = pageCount,
+            defaultAspectRatio = state.defaultAspectRatio,
+            highResWidth = highResWidth,
+            memoryCache = memoryCache,
+            pdfMutex = pdfMutex,
+            ioDispatcher = ioDispatcher,
+            onToggleFullScreen = onToggleFullScreen,
+            modifier = modifier
+        )
+    }
+}
+
+@Composable
+private fun PdfPages(
+    pdfRenderer: PdfRenderer,
+    pageCount: Int,
+    defaultAspectRatio: Float,
+    highResWidth: Int,
+    memoryCache: android.util.LruCache<String, Bitmap>,
+    pdfMutex: Mutex,
+    ioDispatcher: CoroutineDispatcher,
+    onToggleFullScreen: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var scale by remember { mutableStateOf(1f) }
+    var offsetX by remember { mutableStateOf(0f) }
+    var offsetY by remember { mutableStateOf(0f) }
+
+    val coroutineScope = rememberCoroutineScope()
 
     val lazyListState = rememberLazyListState()
 
@@ -167,7 +209,6 @@ fun PdfViewer(
                         try {
                             val page = pdfRenderer.openPage(pageIndex)
                             try {
-                                val FAST_WIDTH = 800
                                 val renderScale = FAST_WIDTH.toFloat() / page.width.toFloat()
                                 val height = (page.height * renderScale).roundToInt().coerceAtLeast(1)
                                 val bmp = Bitmap.createBitmap(FAST_WIDTH, height, Bitmap.Config.ARGB_8888)
@@ -292,6 +333,7 @@ fun PdfViewer(
                     pdfRenderer = pdfRenderer,
                     pageIndex = pageIndex,
                     defaultAspectRatio = defaultAspectRatio,
+                    highResWidth = highResWidth,
                     memoryCache = memoryCache,
                     pdfMutex = pdfMutex,
                     ioDispatcher = ioDispatcher
@@ -325,7 +367,52 @@ fun PdfViewer(
 private class PdfSession(
     val descriptor: ParcelFileDescriptor,
     val renderer: PdfRenderer
-)
+) {
+    fun close() {
+        try {
+            renderer.close()
+        } catch (_: Exception) {}
+        try {
+            descriptor.close()
+        } catch (_: Exception) {}
+    }
+}
+
+private class OpenedPdf(val session: PdfSession, val firstPageAspectRatio: Float)
+
+private sealed interface PdfLoadState {
+    data object Loading : PdfLoadState
+    class Ready(val session: PdfSession, val defaultAspectRatio: Float) : PdfLoadState
+    data object Error : PdfLoadState
+}
+
+/**
+ * Opens the renderer and reads the first-page ratio (placeholder that prevents
+ * scroll jumps). Blocking: call on an I/O dispatcher while holding the PDF mutex.
+ */
+private fun openPdfSession(file: File): OpenedPdf? {
+    var descriptor: ParcelFileDescriptor? = null
+    return try {
+        val opened = ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
+        descriptor = opened
+        val renderer = PdfRenderer(opened)
+        val ratio = try {
+            renderer.openPage(0).use { page -> page.width.toFloat() / page.height.toFloat() }
+        } catch (_: Exception) {
+            DEFAULT_ASPECT_RATIO
+        }
+        OpenedPdf(PdfSession(opened, renderer), ratio)
+    } catch (_: Exception) {
+        try {
+            descriptor?.close()
+        } catch (_: Exception) {}
+        null
+    }
+}
+
+private const val MAX_HIGH_RES_WIDTH = 1800
+private const val FAST_WIDTH = 800
+private const val DEFAULT_ASPECT_RATIO = 1f / 1.414f
 
 private const val MIN_CACHE_SIZE_KB = 8 * 1024
 private const val MAX_CACHE_SIZE_KB = 24 * 1024
@@ -341,6 +428,7 @@ private fun PdfPageItem(
     pdfRenderer: PdfRenderer,
     pageIndex: Int,
     defaultAspectRatio: Float,
+    highResWidth: Int,
     memoryCache: android.util.LruCache<String, Bitmap>,
     pdfMutex: Mutex,
     ioDispatcher: CoroutineDispatcher
@@ -354,7 +442,7 @@ private fun PdfPageItem(
             highResBitmap = memoryCache.get(highKey),
             aspectRatio = defaultAspectRatio
         ), 
-        pdfRenderer, pageIndex
+        pdfRenderer, pageIndex, highResWidth
     ) {
         // Skip rendering entirely when HD is cached: saves CPU/battery.
         if (value.highResBitmap != null) {
@@ -375,7 +463,6 @@ private fun PdfPageItem(
                         val page = pdfRenderer.openPage(pageIndex)
                         try {
                             currentAspectRatio = page.width.toFloat() / page.height.toFloat()
-                            val FAST_WIDTH = 800
                             val renderScale = FAST_WIDTH.toFloat() / page.width.toFloat()
                             val height = (page.height * renderScale).roundToInt().coerceAtLeast(1)
                             val rendered = Bitmap.createBitmap(FAST_WIDTH, height, Bitmap.Config.ARGB_8888)
@@ -397,6 +484,9 @@ private fun PdfPageItem(
             // Show the fast bitmap instantly, upgrade to HD once scrolling settles.
             value = PageRenderResult(fastBitmap = fastBitmap, aspectRatio = currentAspectRatio)
 
+            // Screens narrower than the fast render gain nothing from an HD pass.
+            if (highResWidth <= FAST_WIDTH) return@withContext
+
             kotlinx.coroutines.delay(250)
             if (!isActive) return@withContext
 
@@ -407,10 +497,9 @@ private fun PdfPageItem(
                     try {
                         val page = pdfRenderer.openPage(pageIndex)
                         try {
-                            val HIGH_RES_WIDTH = 1800
-                            val renderScale = HIGH_RES_WIDTH.toFloat() / page.width.toFloat()
+                            val renderScale = highResWidth.toFloat() / page.width.toFloat()
                             val height = (page.height * renderScale).roundToInt().coerceAtLeast(1)
-                            val rendered = Bitmap.createBitmap(HIGH_RES_WIDTH, height, Bitmap.Config.ARGB_8888)
+                            val rendered = Bitmap.createBitmap(highResWidth, height, Bitmap.Config.ARGB_8888)
                             rendered.eraseColor(Color.WHITE)
                             page.render(rendered, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
                             highResBitmap = rendered

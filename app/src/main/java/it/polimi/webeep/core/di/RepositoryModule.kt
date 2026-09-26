@@ -4,6 +4,8 @@ import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import it.polimi.webeep.core.util.ConnectivityObserver
+import it.polimi.webeep.core.util.NetworkMonitor
 import it.polimi.webeep.feature.auth.data.AuthRepositoryImpl
 import it.polimi.webeep.feature.auth.domain.AuthRepository
 import it.polimi.webeep.feature.course.data.CourseRepositoryImpl
@@ -41,4 +43,10 @@ abstract class RepositoryModule {
     abstract fun bindDownloadRepository(
         impl: DownloadRepositoryImpl
     ): DownloadRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindConnectivityObserver(
+        impl: NetworkMonitor
+    ): ConnectivityObserver
 }

@@ -2,7 +2,7 @@ package it.polimi.webeep.feature.course.data
 
 import it.polimi.webeep.core.database.dao.CourseContentDao
 import it.polimi.webeep.core.database.dao.CourseDao
-import it.polimi.webeep.core.datastore.TokenManager
+import it.polimi.webeep.core.datastore.TokenProvider
 import it.polimi.webeep.core.di.DefaultDispatcher
 import it.polimi.webeep.core.network.MoodleApiService
 import it.polimi.webeep.core.network.MoodleFileUrlBuilder
@@ -14,6 +14,7 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 /**
@@ -24,18 +25,18 @@ class CourseRepositoryImpl @Inject constructor(
     private val apiService: MoodleApiService,
     private val contentDao: CourseContentDao,
     private val courseDao: CourseDao,
-    private val tokenManager: TokenManager,
+    private val tokenProvider: TokenProvider,
     @DefaultDispatcher private val defaultDispatcher: CoroutineDispatcher
 ) : CourseRepository {
 
     override suspend fun getCourseContents(courseId: Int): Result<List<Section>> {
         return runCatching {
-            tokenManager.getToken() ?: throw IllegalStateException("token not available. please log in.")
+            tokenProvider.getToken() ?: throw IllegalStateException("token not available. please log in.")
 
-            val mapped = CourseContentMapper.map(
-                courseId = courseId,
-                sectionDtos = apiService.getCourseContents(courseId = courseId)
-            )
+            val sectionDtos = apiService.getCourseContents(courseId = courseId)
+            val mapped = withContext(defaultDispatcher) {
+                CourseContentMapper.map(courseId = courseId, sectionDtos = sectionDtos)
+            }
             contentDao.replaceCourseContent(
                 courseId,
                 mapped.sectionEntities,

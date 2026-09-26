@@ -14,7 +14,7 @@
 ---
 
 <div align="center">
-  <a href="#-italiano">🇮🇹 Italiano</a> | <a href="#-english">🇬🇧 English</a>
+  <a href="#-italiano">🇮🇹 Italiano</a> | <a href="#-english">🇬🇧 English</a> | <a href="PRIVACY.md">🔒 Privacy</a>
 </div>
 
 ---
@@ -30,7 +30,7 @@ WeBeep Android is a native application designed to make it easier for Politecnic
 - **Notifications**: Alerts you when new files appear. Tapping the notification opens the course.
 - **In-app viewers**: PDF (`PdfRenderer`), video/audio (Media3), images, and code, plus open-with for other types.
 - **Search**: Filter courses on the dashboard and materials inside a course.
-- **Polimi SSO**: Login via Chrome Custom Tabs using the official Politecnico authentication system. Tokens live in EncryptedSharedPreferences.
+- **Polimi SSO**: Login via Chrome Custom Tabs using the official Politecnico authentication system. The access token lives in EncryptedSharedPreferences.
 - **Bilingual Support**: Fully localized in English and Italian, including a per-app language setting.
 - **Modern UI**: Jetpack Compose and Material 3, with dark mode and optional dynamic color.
 
@@ -45,7 +45,7 @@ WeBeep Android is a native application designed to make it easier for Politecnic
 2. Open the project in Android Studio.
 3. Sync the project and run it on an emulator or device.
 
-Release builds minify with R8 and fail fast if the release keystore is missing. If `KEYSTORE_FILE` is unset, set `ALLOW_DEBUG_RELEASE_SIGNING=true` for a debug-signed CI smoke build only. For Play, export:
+Release builds minify with R8 and fail fast if the release keystore is missing. This applies to every task that packages or signs the release (`assemble`, `build`, `bundle` included). If `KEYSTORE_FILE` is unset, set `ALLOW_DEBUG_RELEASE_SIGNING=true` for a debug-signed CI smoke build only. For Play, export:
 
 ```
 KEYSTORE_FILE=/path/to/upload.jks
@@ -74,10 +74,13 @@ This project follows Clean Architecture and MVVM (StateFlow + Compose). Version 
 
 ### Security model
 
-* **Tokens**: stored in EncryptedSharedPreferences (StrongBox when available), excluded from cloud/device backup. Never persisted in Room or navigation args (`stripAuthFromUrl`). Moodle requires tokens as URL query params: responses carrying them are `no-store`, and logs redact `wstoken`/`token`/`private_token`/Bearer.
-* **WebView**: JavaScript on (course content needs it), but no file/content access, no popups, no autoplay; TLS errors fail closed; third-party cookies off.
-* **Files**: app-private storage only, shared outward via FileProvider; logout wipes Room, downloads, caches, cookies and WebView data.
-* **Builds**: release fails fast without a keystore; R8 minifies and strips verbose logs.
+* **Tokens**: the `wstoken` is stored in EncryptedSharedPreferences (StrongBox when available), excluded from cloud backup and device transfer; the SSO `private_token` is discarded, never stored. Tokens never reach Room or navigation args (`stripAuthFromUrl`). Moodle requires tokens as URL query params: responses carrying them are `no-store`, and logs redact `wstoken`/`token`/`private_token`/Bearer.
+* **No WebView**: in-app viewers are native (PDF, Media3, images, code); web pages open in Custom Tabs.
+* **Files**: downloads live in app-private internal storage (`files/downloads`) and are shared outward only via FileProvider.
+* **Session**: logout, and a forced logout when the server revokes the token, wipe Room, downloads, caches and cookies, then return to the login screen.
+* **Builds**: release packaging/signing fails fast without a keystore; R8 minifies and strips verbose logs. CI runs lint, detekt, ktlint, Kover and validates the Gradle wrapper; Dependabot tracks dependencies.
+
+See [PRIVACY.md](PRIVACY.md) for the data the app handles.
 
 ---
 
@@ -92,7 +95,7 @@ WeBeep Android è un'app nativa che semplifica l'accesso ai corsi di WeBeep per 
 - **Notifiche**: Avviso quando compaiono file nuovi. Il tap apre il corso.
 - **Viewer in-app**: PDF (`PdfRenderer`), video/audio (Media3), immagini e codice; il resto si apre con un'app esterna.
 - **Ricerca**: Filtra i corsi in dashboard e i materiali dentro un corso.
-- **Login ufficiale**: SSO Politecnico via Chrome Custom Tabs. I token stanno in EncryptedSharedPreferences.
+- **Login ufficiale**: SSO Politecnico via Chrome Custom Tabs. Il token di accesso sta in EncryptedSharedPreferences.
 - **Multilingua**: Italiano e inglese, anche come lingua dell'app.
 - **Interfaccia**: Jetpack Compose e Material 3, con Dark Mode e colori dinamici opzionali.
 
@@ -107,7 +110,7 @@ WeBeep Android è un'app nativa che semplifica l'accesso ai corsi di WeBeep per 
 2. Apri il progetto in Android Studio.
 3. Fai la sync di Gradle e avvia l'app su un emulatore o un telefono fisico.
 
-Le build release usano R8 e falliscono se il keystore release manca. Per uno smoke test CI firmato debug usa `ALLOW_DEBUG_RELEASE_SIGNING=true`. Per Play:
+Le build release usano R8 e falliscono se il keystore release manca, con qualunque task che impacchetta o firma la release (anche `assemble`, `build`, `bundle`). Per uno smoke test CI firmato debug usa `ALLOW_DEBUG_RELEASE_SIGNING=true`. Per Play:
 
 ```
 KEYSTORE_FILE=/path/to/upload.jks
@@ -136,10 +139,13 @@ Il progetto segue Clean Architecture e MVVM (StateFlow + Compose). Versione `1.0
 
 ### Modello di sicurezza
 
-* **Token**: in EncryptedSharedPreferences (StrongBox dove disponibile), esclusi da backup cloud/dispositivo. Mai persistiti in Room o negli args di navigazione (`stripAuthFromUrl`). Moodle li richiede come query param: le risposte che li contengono sono `no-store` e i log oscurano `wstoken`/`token`/`private_token`/Bearer.
-* **WebView**: JavaScript attivo (serve ai contenuti), ma niente accesso file/content, popup o autoplay; errori TLS bloccanti; niente cookie di terze parti.
-* **File**: solo storage privato dell'app, condivisi via FileProvider; il logout cancella Room, download, cache, cookie e dati WebView.
-* **Build**: la release fallisce senza keystore; R8 minifica e rimuove i log verbosi.
+* **Token**: il `wstoken` sta in EncryptedSharedPreferences (StrongBox dove disponibile), escluso da backup cloud e trasferimento tra dispositivi; il `private_token` dell'SSO viene scartato, mai salvato. I token non finiscono mai in Room o negli args di navigazione (`stripAuthFromUrl`). Moodle li richiede come query param: le risposte che li contengono sono `no-store` e i log oscurano `wstoken`/`token`/`private_token`/Bearer.
+* **Niente WebView**: i viewer in-app sono nativi (PDF, Media3, immagini, codice); le pagine web si aprono in Custom Tabs.
+* **File**: i download stanno nello storage interno privato dell'app (`files/downloads`) e sono condivisi solo via FileProvider.
+* **Sessione**: il logout, e il logout forzato quando il server revoca il token, cancellano Room, download, cache e cookie, poi riportano al login.
+* **Build**: packaging e firma release falliscono senza keystore; R8 minifica e rimuove i log verbosi. La CI esegue lint, detekt, ktlint, Kover e valida il Gradle wrapper; Dependabot tiene d'occhio le dipendenze.
+
+Vedi [PRIVACY.md](PRIVACY.md) per i dati trattati dall'app.
 
 ---
 

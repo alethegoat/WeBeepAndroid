@@ -1,17 +1,18 @@
 package it.polimi.webeep.feature.dashboard.presentation
 
+import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import it.polimi.webeep.R
 import it.polimi.webeep.core.ui.components.CourseUiModel
+import it.polimi.webeep.core.util.ConnectivityObserver
 import it.polimi.webeep.core.util.Resource
+import it.polimi.webeep.core.util.toMessageRes
 import it.polimi.webeep.feature.auth.domain.AuthRepository
 import it.polimi.webeep.feature.dashboard.domain.DashboardRepository
 import it.polimi.webeep.feature.dashboard.domain.GetCoursesUseCase
 import it.polimi.webeep.feature.dashboard.domain.SyncCoursesUseCase
 import it.polimi.webeep.feature.dashboard.domain.model.Course
-import it.polimi.webeep.core.util.NetworkMonitor
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -27,11 +28,12 @@ sealed interface DashboardUiState {
     data object Loading : DashboardUiState
     data class Success(
         val courses: List<CourseUiModel>,
+        /** Blank until the profile is loaded; the screen shows a localized placeholder. */
         val userName: String,
         val userAvatar: String,
         val isRefreshing: Boolean = false
     ) : DashboardUiState
-    data class Error(val message: String) : DashboardUiState
+    data class Error(@StringRes val messageRes: Int) : DashboardUiState
 }
 
 @HiltViewModel
@@ -40,13 +42,12 @@ class DashboardViewModel @Inject constructor(
     private val syncCoursesUseCase: SyncCoursesUseCase,
     private val dashboardRepository: DashboardRepository,
     private val authRepository: AuthRepository,
-    private val networkMonitor: NetworkMonitor,
-    private val application: android.app.Application
+    connectivityObserver: ConnectivityObserver
 ) : ViewModel() {
 
     private var coursesJob: Job? = null
 
-    val isOnline: StateFlow<Boolean> = networkMonitor.isOnline
+    val isOnline: StateFlow<Boolean> = connectivityObserver.isOnline
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
@@ -54,12 +55,12 @@ class DashboardViewModel @Inject constructor(
         )
 
     private data class VmState(
-        val userName: String = "Studente",
+        val userName: String = "",
         val userAvatar: String = "",
         val courses: List<CourseUiModel>? = null,
         val isLoading: Boolean = true,
         val isRefreshing: Boolean = false,
-        val error: String? = null
+        @StringRes val error: Int? = null
     ) {
         fun toUiState(): DashboardUiState {
             if (isLoading) return DashboardUiState.Loading
@@ -120,7 +121,7 @@ class DashboardViewModel @Inject constructor(
                     }
                 }
                 is Resource.Error -> {
-                    _vmState.update { it.copy(isLoading = false, error = resource.message) }
+                    _vmState.update { it.copy(isLoading = false, error = resource.error.toMessageRes()) }
                 }
             }
         }
@@ -136,30 +137,26 @@ class DashboardViewModel @Inject constructor(
     fun refresh() {
         _vmState.update { it.copy(isRefreshing = true) }
         viewModelScope.launch {
-            syncCoursesUseCase().fold(
-                onSuccess = { courses ->
+            when (val result = syncCoursesUseCase()) {
+                is Resource.Success -> {
                     _vmState.update {
                         it.copy(
                             isRefreshing = false,
-                            courses = courses.map { course -> course.toUiModel() },
+                            courses = result.data.map { course -> course.toUiModel() },
                             isLoading = false,
                             error = null
                         )
                     }
-                },
-                onFailure = { throwable ->
+                }
+                is Resource.Error -> {
                     _vmState.update {
-                        val newError = if (it.courses == null) {
-                            throwable.localizedMessage ?: application.getString(
-                                R.string.error_refresh_courses
-                            )
-                        } else {
-                            null // keep existing data
-                        }
+                        // Keep existing data; surface the error only when there is nothing to show.
+                        val newError = if (it.courses == null) result.error.toMessageRes() else null
                         it.copy(isRefreshing = false, error = newError, isLoading = false)
                     }
                 }
-            )
+                Resource.Loading -> Unit
+            }
         }
     }
 

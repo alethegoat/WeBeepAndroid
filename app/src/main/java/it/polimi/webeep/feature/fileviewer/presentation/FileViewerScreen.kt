@@ -1,17 +1,10 @@
 package it.polimi.webeep.feature.fileviewer.presentation
 
 import android.content.Intent
-import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.pdf.PdfRenderer
 import android.os.ParcelFileDescriptor
-import android.webkit.SslErrorHandler
-import android.net.http.SslError
-import android.webkit.WebResourceRequest
-import android.webkit.WebView
-import android.webkit.WebViewClient
-import it.polimi.webeep.core.network.MoodleFileUrlBuilder
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
@@ -32,6 +25,9 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -54,7 +50,6 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
@@ -74,7 +69,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.FileProvider
 import androidx.compose.runtime.LaunchedEffect
 import android.net.Uri
@@ -107,7 +101,6 @@ fun FileViewerScreen(
     val pageSubtitle = when (val state = uiState) {
         is FileViewerUiState.Pdf -> androidx.compose.ui.res.pluralStringResource(R.plurals.file_viewer_pdf_pages, state.pageCount, state.pageCount)
         is FileViewerUiState.Image -> stringResource(R.string.file_viewer_image)
-        is FileViewerUiState.Web -> stringResource(R.string.file_viewer_web)
         else -> null
     }
     
@@ -188,9 +181,11 @@ fun FileViewerScreen(
                         pageCount = state.pageCount,
                         onToggleFullScreen = { showTopBar = !showTopBar }
                     )
-                    is FileViewerUiState.Media -> MediaViewer(url = state.url)
+                    is FileViewerUiState.Media -> MediaViewer(
+                        url = state.url,
+                        callFactory = viewModel.mediaCallFactory
+                    )
                     is FileViewerUiState.Code -> CodeViewer(content = state.content)
-                    is FileViewerUiState.Web -> WebContent(url = state.url)
                     is FileViewerUiState.CustomTab -> CustomTabLauncher(
                         url = state.url,
                         onLaunched = onBackClick
@@ -203,7 +198,7 @@ fun FileViewerScreen(
                     is FileViewerUiState.Error -> EmptyStateView(
                         icon = Icons.Default.Description,
                         title = stringResource(R.string.file_viewer_error_title),
-                        subtitle = state.message,
+                        subtitle = stringResource(state.messageRes),
                         actionLabel = stringResource(R.string.retry),
                         onAction = viewModel::load,
                         modifier = Modifier.fillMaxSize()
@@ -217,7 +212,8 @@ fun FileViewerScreen(
                     onClick = onBackClick,
                     modifier = Modifier
                         .align(Alignment.TopStart)
-                        .padding(top = 40.dp, start = 16.dp)
+                        .windowInsetsPadding(WindowInsets.safeDrawing)
+                        .padding(top = 8.dp, start = 16.dp)
                         .background(androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.5f), RoundedCornerShape(50))
                 ) {
                     Icon(
@@ -407,122 +403,4 @@ private fun CustomTabLauncher(
         onLaunched()
     }
     FileViewerLoading()
-}
-
-@android.annotation.SuppressLint("SetJavaScriptEnabled")
-@Composable
-private fun WebContent(
-    url: String,
-    modifier: Modifier = Modifier
-) {
-    var isLoading by remember { androidx.compose.runtime.mutableStateOf(true) }
-    var webView by remember { androidx.compose.runtime.mutableStateOf<WebView?>(null) }
-    var lastLoadedUrl by remember { androidx.compose.runtime.mutableStateOf<String?>(null) }
-
-    DisposableEffect(Unit) {
-        onDispose {
-            webView?.apply {
-                stopLoading()
-                webViewClient = WebViewClient()
-                webChromeClient = android.webkit.WebChromeClient()
-                loadUrl("about:blank")
-                destroy()
-            }
-            webView = null
-        }
-    }
-
-    Box(modifier = modifier.fillMaxSize()) {
-        Surface(
-            modifier = Modifier.fillMaxSize(),
-            color = MaterialTheme.colorScheme.surface
-        ) {
-            AndroidView(
-                modifier = Modifier.fillMaxSize(),
-                factory = { context ->
-                    WebView(context).apply {
-                        webView = this
-                        webViewClient = object : WebViewClient() {
-                            override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
-                                super.onPageStarted(view, url, favicon)
-                                isLoading = true
-                            }
-                            
-                            override fun onPageFinished(view: WebView?, url: String?) {
-                                super.onPageFinished(view, url)
-                                isLoading = false
-                            }
-
-                            override fun onReceivedSslError(
-                                view: WebView?,
-                                handler: SslErrorHandler?,
-                                error: SslError?
-                            ) {
-                                // Fail closed: never ignore TLS errors for course content.
-                                handler?.cancel()
-                            }
-
-                            override fun shouldOverrideUrlLoading(
-                                view: WebView?,
-                                request: WebResourceRequest?
-                            ): Boolean {
-                                val requestUrl = request?.url ?: return true
-                                val scheme = requestUrl.scheme?.lowercase() ?: return true
-                                if (scheme == "http" || scheme == "https") {
-                                    return false // loads inside the webview
-                                }
-                                if (scheme == "mailto" || scheme == "tel") {
-                                    try {
-                                        val intent = Intent(Intent.ACTION_VIEW, requestUrl)
-                                        view?.context?.startActivity(intent)
-                                    } catch (_: Exception) {}
-                                }
-                                return true
-                            }
-                        }
-                        
-                        webChromeClient = android.webkit.WebChromeClient()
-                        
-                        settings.apply {
-                            javaScriptEnabled = true
-                            domStorageEnabled = true
-                            loadWithOverviewMode = true
-                            useWideViewPort = true
-                            builtInZoomControls = true
-                            displayZoomControls = false
-                            // Harden: no autoplay, no popups, no file/content access.
-                            mediaPlaybackRequiresUserGesture = true
-                            javaScriptCanOpenWindowsAutomatically = false
-                            allowFileAccess = false
-                            allowContentAccess = false
-                        }
-
-                        android.webkit.CookieManager.getInstance().setAcceptThirdPartyCookies(this, false)
-
-                        val cleanUrl = MoodleFileUrlBuilder.stripAuthFromUrl(url)
-                        lastLoadedUrl = cleanUrl
-                        loadUrl(cleanUrl)
-                    }
-                },
-                update = { webView ->
-                    val cleanUrl = MoodleFileUrlBuilder.stripAuthFromUrl(url)
-                    if (lastLoadedUrl != cleanUrl) {
-                        lastLoadedUrl = cleanUrl
-                        webView.loadUrl(cleanUrl)
-                    }
-                }
-            )
-        }
-        
-        if (isLoading) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator()
-            }
-        }
-    }
 }

@@ -1,7 +1,8 @@
 package it.polimi.webeep.feature.dashboard.domain
 
-import it.polimi.webeep.core.util.NetworkMonitor
+import it.polimi.webeep.core.util.ConnectivityObserver
 import it.polimi.webeep.core.util.Resource
+import it.polimi.webeep.core.util.toDataError
 import it.polimi.webeep.feature.dashboard.domain.model.Course
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
@@ -14,7 +15,7 @@ import javax.inject.Inject
  */
 class GetCoursesUseCase @Inject constructor(
     private val repository: DashboardRepository,
-    private val networkMonitor: NetworkMonitor
+    private val connectivityObserver: ConnectivityObserver
 ) {
     operator fun invoke(): Flow<Resource<List<Course>>> = channelFlow {
         var isSyncing = true
@@ -33,7 +34,7 @@ class GetCoursesUseCase @Inject constructor(
 
         cacheStarted.await()
 
-        val online = runCatching { networkMonitor.isOnline.first() }.getOrDefault(true)
+        val online = runCatching { connectivityObserver.isOnline.first() }.getOrDefault(true)
         if (online) {
             val syncResult = repository.syncCourses()
             syncResult.onSuccess {
@@ -44,12 +45,7 @@ class GetCoursesUseCase @Inject constructor(
             }.onFailure { throwable ->
                 val isCacheEmpty = lastCachedCourses?.isEmpty() ?: true
                 if (isCacheEmpty) {
-                    send(
-                        Resource.Error(
-                            throwable.localizedMessage ?: "Nessun dato locale disponibile ed errore di rete",
-                            throwable
-                        )
-                    )
+                    send(Resource.Error(throwable.toDataError(), throwable))
                 }
             }
         } else {

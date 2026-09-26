@@ -1,12 +1,12 @@
 package it.polimi.webeep.feature.dashboard
 
 import app.cash.turbine.test
-import io.mockk.every
-import io.mockk.mockk
-import it.polimi.webeep.core.util.NetworkMonitor
+import it.polimi.webeep.core.util.ConnectivityObserver
+import it.polimi.webeep.core.util.DataError
 import it.polimi.webeep.core.util.Resource
 import it.polimi.webeep.feature.dashboard.domain.DashboardRepository
 import it.polimi.webeep.feature.dashboard.domain.GetCoursesUseCase
+import it.polimi.webeep.feature.dashboard.domain.SyncCoursesUseCase
 import it.polimi.webeep.feature.dashboard.domain.model.Course
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -16,6 +16,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.IOException
 
 class GetCoursesUseCaseTest {
 
@@ -38,11 +39,7 @@ class GetCoursesUseCaseTest {
         repository.cachedCoursesFlow.value = listOf(sampleCourse)
         repository.syncResult = Result.success(emptyList())
 
-        val networkMonitor = mockk<NetworkMonitor> {
-            every { isOnline } returns flowOf(false)
-        }
-
-        GetCoursesUseCase(repository, networkMonitor)().test {
+        GetCoursesUseCase(repository, connectivity(false))().test {
             val success = awaitItem()
             assertTrue(success is Resource.Success)
             assertEquals(1, (success as Resource.Success).data.size)
@@ -57,15 +54,61 @@ class GetCoursesUseCaseTest {
         repository.cachedCoursesFlow.value = listOf(sampleCourse)
         repository.syncResult = Result.success(listOf(sampleCourse))
 
-        val networkMonitor = mockk<NetworkMonitor> {
-            every { isOnline } returns flowOf(true)
-        }
-
-        GetCoursesUseCase(repository, networkMonitor)().test {
+        GetCoursesUseCase(repository, connectivity(true))().test {
             awaitItem()
             assertTrue(repository.syncCalled)
             cancelAndIgnoreRemainingEvents()
         }
+    }
+
+    @Test
+    fun `emits typed network error when sync fails with empty cache`() = runTest {
+        val repository = FakeDashboardRepository()
+        val failure = IOException("Unable to resolve host")
+        repository.syncResult = Result.failure(failure)
+
+        GetCoursesUseCase(repository, connectivity(true))().test {
+            val error = awaitItem()
+            assertTrue(error is Resource.Error)
+            assertEquals(DataError.Network, (error as Resource.Error).error)
+            assertEquals(failure, error.throwable)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `sync use case fails fast when offline`() = runTest {
+        val repository = FakeDashboardRepository()
+
+        val result = SyncCoursesUseCase(repository, connectivity(false))()
+
+        assertEquals(Resource.Error(DataError.Network), result)
+        assertFalse(repository.syncCalled)
+    }
+
+    @Test
+    fun `sync use case maps failures to DataError`() = runTest {
+        val repository = FakeDashboardRepository()
+        repository.syncResult = Result.failure(RuntimeException("boom"))
+
+        val result = SyncCoursesUseCase(repository, connectivity(true))()
+
+        assertTrue(result is Resource.Error)
+        assertEquals(DataError.Unknown, (result as Resource.Error).error)
+    }
+
+    @Test
+    fun `sync use case returns synced courses`() = runTest {
+        val repository = FakeDashboardRepository()
+        repository.syncResult = Result.success(listOf(sampleCourse))
+
+        val result = SyncCoursesUseCase(repository, connectivity(true))()
+
+        assertEquals(Resource.Success(listOf(sampleCourse)), result)
+    }
+
+    private fun connectivity(online: Boolean) = object : ConnectivityObserver {
+        override val isOnline: Flow<Boolean> = flowOf(online)
     }
 
     private class FakeDashboardRepository : DashboardRepository {
