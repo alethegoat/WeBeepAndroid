@@ -154,6 +154,7 @@ dependencies {
     // AndroidX Core
     implementation(libs.core.ktx)
     implementation(libs.appcompat)
+    implementation(libs.core.splashscreen)
     implementation(libs.activity.compose)
     implementation(libs.lifecycle.runtime.compose)
 

@@ -21,7 +21,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -132,75 +131,56 @@ fun ShimmerCourseCard(
     }
 
     Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(228.dp),
+        modifier = modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
-        Column(
+        Row(
             modifier = Modifier
-                .fillMaxSize()
+                .fillMaxWidth()
                 .padding(WeBeepSpacing.md),
-            verticalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.Top,
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
+            Box(
+                modifier = Modifier
+                    .size(56.dp)
+                    .clip(MaterialTheme.shapes.medium)
+                    .then(shimmerModifier),
+            )
+            Spacer(modifier = Modifier.width(WeBeepSpacing.md))
+            Column(modifier = Modifier.weight(1f)) {
                 Box(
                     modifier = Modifier
-                        .width(72.dp)
-                        .height(24.dp)
-                        .clip(CircleShape)
-                        .then(shimmerModifier),
-                )
-                Box(
-                    modifier = Modifier
-                        .size(24.dp)
-                        .clip(CircleShape)
-                        .then(shimmerModifier),
-                )
-            }
-
-            Spacer(modifier = Modifier.weight(1f))
-
-            Column {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth(0.85f)
-                        .height(20.dp)
+                        .width(56.dp)
+                        .height(12.dp)
                         .clip(MaterialTheme.shapes.extraSmall)
                         .then(shimmerModifier),
                 )
                 Spacer(modifier = Modifier.height(WeBeepSpacing.xs))
                 Box(
                     modifier = Modifier
+                        .fillMaxWidth(0.9f)
+                        .height(18.dp)
+                        .clip(MaterialTheme.shapes.extraSmall)
+                        .then(shimmerModifier),
+                )
+                Spacer(modifier = Modifier.height(WeBeepSpacing.xxs))
+                Box(
+                    modifier = Modifier
                         .fillMaxWidth(0.6f)
-                        .height(20.dp)
+                        .height(18.dp)
                         .clip(MaterialTheme.shapes.extraSmall)
                         .then(shimmerModifier),
                 )
-                Spacer(modifier = Modifier.height(WeBeepSpacing.sm))
-
+                Spacer(modifier = Modifier.height(WeBeepSpacing.xs))
                 Box(
                     modifier = Modifier
-                        .fillMaxWidth(0.4f)
-                        .height(14.dp)
+                        .fillMaxWidth(0.45f)
+                        .height(12.dp)
                         .clip(MaterialTheme.shapes.extraSmall)
-                        .then(shimmerModifier),
-                )
-                Spacer(modifier = Modifier.height(WeBeepSpacing.sm))
-
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(4.dp)
-                        .clip(CircleShape)
                         .then(shimmerModifier),
                 )
             }

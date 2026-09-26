@@ -16,6 +16,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import it.polimi.webeep.core.datastore.SettingsManager
 import it.polimi.webeep.core.datastore.ThemePreference
@@ -66,7 +67,11 @@ fun WeBeepApp(
         darkTheme = isDarkTheme,
         dynamicColor = dynamicColor
     ) {
-        AuroraBackground {
+        val navController = rememberNavController()
+        val backStackEntry by navController.currentBackStackEntryAsState()
+        // Animated aurora only behind the login screen; a calm static backdrop elsewhere.
+        val isOnLogin = backStackEntry?.destination?.route == Screen.Login.route
+        AuroraBackground(animated = isOnLogin) {
             when (val destination = startDestination) {
                 null -> {
                     Box(
@@ -80,7 +85,6 @@ fun WeBeepApp(
                     }
                 }
                 else -> {
-                    val navController = rememberNavController()
                     LaunchedEffect(navController) {
                         onNavControllerReady(navController)
                     }

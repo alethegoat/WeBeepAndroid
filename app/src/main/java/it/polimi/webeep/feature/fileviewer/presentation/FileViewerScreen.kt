@@ -34,10 +34,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.outlined.BrokenImage
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -119,7 +119,7 @@ fun FileViewerScreen(
 
     Scaffold(
         modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-        containerColor = androidx.compose.ui.graphics.Color.Transparent,
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             if (!isLandscape) {
                 AnimatedVisibility(
@@ -155,9 +155,10 @@ fun FileViewerScreen(
                                 )
                             }
                         },
+                        // Opaque in both states: pages must never show through the title.
                         colors = TopAppBarDefaults.topAppBarColors(
-                            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
-                            scrolledContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f)
+                            containerColor = MaterialTheme.colorScheme.surface,
+                            scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainer
                         ),
                         scrollBehavior = scrollBehavior
                     )
@@ -219,7 +220,7 @@ fun FileViewerScreen(
                         .align(Alignment.TopStart)
                         .windowInsetsPadding(WindowInsets.safeDrawing)
                         .padding(top = WeBeepSpacing.xs, start = WeBeepSpacing.md)
-                        .background(WeBeepTheme.colors.mediaScrim.copy(alpha = 0.5f), RoundedCornerShape(50))
+                        .background(WeBeepTheme.colors.mediaScrim.copy(alpha = 0.6f), CircleShape)
                 ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
@@ -327,13 +328,12 @@ private fun ImagePreviewContent(
                 }
             },
             error = {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text(
-                        text = stringResource(R.string.file_viewer_image_error),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.error
-                    )
-                }
+                EmptyStateView(
+                    icon = Icons.Outlined.BrokenImage,
+                    title = stringResource(R.string.file_viewer_error_title),
+                    subtitle = stringResource(R.string.file_viewer_image_error),
+                    modifier = Modifier.fillMaxSize()
+                )
             },
             success = { SubcomposeAsyncImageContent() }
         )
@@ -343,14 +343,13 @@ private fun ImagePreviewContent(
                 .align(Alignment.BottomCenter)
                 .padding(WeBeepSpacing.md),
             shape = CircleShape,
-            color = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.92f),
-            tonalElevation = 2.dp
+            color = WeBeepTheme.colors.mediaScrim.copy(alpha = 0.65f),
+            contentColor = WeBeepTheme.colors.onMedia
         ) {
             Text(
                 text = stringResource(R.string.file_viewer_pinch_hint),
                 style = MaterialTheme.typography.labelMedium,
-                modifier = Modifier.padding(horizontal = WeBeepSpacing.md, vertical = WeBeepSpacing.xs),
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                modifier = Modifier.padding(horizontal = WeBeepSpacing.md, vertical = WeBeepSpacing.xs)
             )
         }
     }

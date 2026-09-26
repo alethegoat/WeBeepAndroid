@@ -3,12 +3,10 @@ package it.polimi.webeep.core.ui.components
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.animation.fadeIn
-import androidx.compose.animation.scaleIn
 import androidx.compose.animation.slideInVertically
-import it.polimi.webeep.core.ui.theme.WeBeepMotion
-import it.polimi.webeep.core.ui.theme.WeBeepSpacing
-import it.polimi.webeep.core.ui.util.LocalReduceMotion
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -18,8 +16,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.School
 import androidx.compose.material.icons.outlined.SearchOff
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -27,11 +24,21 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import it.polimi.webeep.core.ui.theme.WeBeepMotion
+import it.polimi.webeep.core.ui.theme.WeBeepSpacing
 import it.polimi.webeep.core.ui.theme.WeBeepTheme
+import it.polimi.webeep.core.ui.util.LocalReduceMotion
+
+/** Size of the tonal tile that hosts the empty-state icon. */
+private val EmptyStateIconContainerSize = 88.dp
+
+/** Size of the icon inside [EmptyStateIconContainerSize]. */
+private val EmptyStateIconSize = 40.dp
 
 @Composable
 fun EmptyStateView(
@@ -53,97 +60,67 @@ fun EmptyStateView(
         visibleState = visibleState,
         enter = fadeIn(
             animationSpec = WeBeepMotion.enter(reduceMotion = reduceMotion),
+        ) + slideInVertically(
+            initialOffsetY = { it / 12 },
+            animationSpec = WeBeepMotion.enter(reduceMotion = reduceMotion),
         ),
     ) {
         Column(
             modifier = modifier
                 .fillMaxSize()
-                .padding(horizontal = WeBeepSpacing.xl),
+                .padding(horizontal = WeBeepSpacing.xl, vertical = WeBeepSpacing.lg),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
         ) {
-            AnimatedVisibility(
-                visibleState = remember {
-                    MutableTransitionState(false).apply { targetState = true }
-                },
-                enter = scaleIn(
-                    animationSpec = WeBeepMotion.softSpring(),
-                ) + fadeIn(WeBeepMotion.enter()),
-            ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    modifier = Modifier.size(96.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                )
-            }
+            EmptyStateIcon(icon = icon)
 
             Spacer(modifier = Modifier.height(WeBeepSpacing.lg))
 
-            AnimatedVisibility(
-                visibleState = remember {
-                    MutableTransitionState(false).apply { targetState = true }
-                },
-                enter = slideInVertically(
-                    initialOffsetY = { it / 4 },
-                    animationSpec = WeBeepMotion.enter(),
-                ) + fadeIn(WeBeepMotion.enter()),
-            ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                textAlign = TextAlign.Center,
+            )
+
+            if (subtitle != null) {
+                Spacer(modifier = Modifier.height(WeBeepSpacing.xs))
                 Text(
-                    text = title,
-                    style = MaterialTheme.typography.headlineSmall,
-                    color = MaterialTheme.colorScheme.onSurface,
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
                 )
             }
 
-            if (subtitle != null) {
-                Spacer(modifier = Modifier.height(WeBeepSpacing.xs))
-
-                AnimatedVisibility(
-                    visibleState = remember {
-                        MutableTransitionState(false).apply { targetState = true }
-                    },
-                    enter = slideInVertically(
-                        initialOffsetY = { it / 4 },
-                        animationSpec = WeBeepMotion.enter(),
-                    ) + fadeIn(WeBeepMotion.enter()),
-                ) {
+            if (actionLabel != null && onAction != null) {
+                Spacer(modifier = Modifier.height(WeBeepSpacing.lg))
+                FilledTonalButton(onClick = onAction) {
                     Text(
-                        text = subtitle,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center,
+                        text = actionLabel,
+                        style = MaterialTheme.typography.labelLarge,
                     )
                 }
             }
-
-            if (actionLabel != null && onAction != null) {
-                Spacer(modifier = Modifier.height(WeBeepSpacing.lg))
-
-                AnimatedVisibility(
-                    visibleState = remember {
-                        MutableTransitionState(false).apply { targetState = true }
-                    },
-                    enter = scaleIn(
-                        animationSpec = WeBeepMotion.softSpring(),
-                    ) + fadeIn(WeBeepMotion.enter()),
-                ) {
-                    Button(
-                        onClick = onAction,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary,
-                            contentColor = MaterialTheme.colorScheme.onPrimary,
-                        ),
-                    ) {
-                        Text(
-                            text = actionLabel,
-                            style = MaterialTheme.typography.labelLarge,
-                        )
-                    }
-                }
-            }
         }
+    }
+}
+
+@Composable
+private fun EmptyStateIcon(icon: ImageVector) {
+    Box(
+        modifier = Modifier
+            .size(EmptyStateIconContainerSize)
+            .clip(MaterialTheme.shapes.extraLarge)
+            .background(MaterialTheme.colorScheme.secondaryContainer),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            modifier = Modifier.size(EmptyStateIconSize),
+            tint = MaterialTheme.colorScheme.onSecondaryContainer,
+        )
     }
 }
 

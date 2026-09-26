@@ -4,14 +4,13 @@ import android.content.Intent
 import android.net.Uri
 import androidx.annotation.OptIn
 import androidx.compose.foundation.background
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.VideocamOff
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
@@ -22,8 +21,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -39,7 +36,8 @@ import androidx.media3.ui.PlayerView
 import it.polimi.webeep.R
 import it.polimi.webeep.core.network.MoodleFileUrlBuilder
 import okhttp3.Call
-import it.polimi.webeep.core.ui.theme.WeBeepSpacing
+import it.polimi.webeep.core.ui.components.EmptyStateView
+import it.polimi.webeep.core.ui.theme.WeBeepTheme
 
 @OptIn(UnstableApi::class)
 @Composable
@@ -109,7 +107,7 @@ fun MediaViewer(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.scrim)
+            .background(WeBeepTheme.colors.mediaScrim)
     ) {
         AndroidView(
             factory = { ctx ->
@@ -126,39 +124,44 @@ fun MediaViewer(
         if (isBuffering && !hasError) {
             CircularProgressIndicator(
                 modifier = Modifier.align(Alignment.Center),
-                color = MaterialTheme.colorScheme.primary
+                color = WeBeepTheme.colors.onMedia
             )
         }
 
         if (hasError) {
-            Column(
-                modifier = Modifier
-                    .align(Alignment.Center)
-                    .background(MaterialTheme.colorScheme.errorContainer, MaterialTheme.shapes.extraSmall)
-                    .padding(WeBeepSpacing.md),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(
-                    text = stringResource(R.string.media_playback_error),
-                    color = MaterialTheme.colorScheme.onErrorContainer,
-                    modifier = Modifier.padding(top = WeBeepSpacing.xs),
-                    textAlign = TextAlign.Center
-                )
-
-                val externalUrl = MoodleFileUrlBuilder.stripAuthFromUrl(url)
-                if (!MoodleFileUrlBuilder.isPluginFilePath(externalUrl)) {
-                    Button(
-                        onClick = {
-                            try {
-                                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(externalUrl)))
-                            } catch (_: Exception) {}
-                        },
-                        modifier = Modifier.padding(top = WeBeepSpacing.md)
-                    ) {
-                        Text(stringResource(R.string.open_in_browser))
-                    }
-                }
-            }
+            MediaErrorState(url = url, modifier = Modifier.fillMaxSize())
         }
+    }
+}
+
+/** Opaque themed surface over the player so the empty state keeps its contrast. */
+@Composable
+private fun MediaErrorState(
+    url: String,
+    modifier: Modifier = Modifier
+) {
+    val context = LocalContext.current
+    val externalUrl = remember(url) { MoodleFileUrlBuilder.stripAuthFromUrl(url) }
+    val canOpenExternally = remember(externalUrl) { !MoodleFileUrlBuilder.isPluginFilePath(externalUrl) }
+
+    Surface(
+        modifier = modifier,
+        color = MaterialTheme.colorScheme.background
+    ) {
+        EmptyStateView(
+            icon = Icons.Outlined.VideocamOff,
+            title = stringResource(R.string.media_playback_error),
+            actionLabel = if (canOpenExternally) stringResource(R.string.open_in_browser) else null,
+            onAction = if (canOpenExternally) {
+                {
+                    try {
+                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(externalUrl)))
+                    } catch (_: Exception) {}
+                }
+            } else {
+                null
+            },
+            modifier = Modifier.fillMaxSize()
+        )
     }
 }

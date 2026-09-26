@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Allineati a core/ui/theme/Color.kt (DarkBackground). -->
+    <color name="webeep_window_background">#FF000000</color>
+    <color name="webeep_splash_background">#FF000000</color>
+</resources>

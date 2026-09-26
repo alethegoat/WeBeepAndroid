@@ -355,7 +355,7 @@ private fun PdfPages(
                 Text(
                     text = "${currentPage + 1} / $pageCount",
                     style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                    modifier = Modifier.padding(horizontal = WeBeepSpacing.sm, vertical = 6.dp)
+                    modifier = Modifier.padding(horizontal = WeBeepSpacing.sm, vertical = WeBeepSpacing.xxs)
                 )
             }
         }

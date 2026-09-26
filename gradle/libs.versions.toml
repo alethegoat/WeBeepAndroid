@@ -29,6 +29,7 @@ robolectric = "4.14.1"
 androidxTestCore = "1.6.1"
 androidxTestExtJunit = "1.2.1"
 appcompat = "1.7.0"
+coreSplashscreen = "1.0.1"
 detekt = "1.23.8"
 ktlintGradle = "12.1.2"
 kover = "0.9.9"
@@ -39,6 +40,7 @@ core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx"
 activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
 lifecycle-runtime-compose = { group = "androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "lifecycleRuntimeCompose" }
 appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
+core-splashscreen = { group = "androidx.core", name = "core-splashscreen", version.ref = "coreSplashscreen" }
 
 # Compose
 compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "composeBom" }

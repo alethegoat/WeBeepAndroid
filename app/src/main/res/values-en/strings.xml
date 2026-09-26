@@ -118,4 +118,11 @@
     <string name="error_data_network">No connection. Check your network and try again.</string>
     <string name="error_data_server">The WeBeep server returned an error. Please try again later.</string>
     <string name="error_data_unknown">Something went wrong. Please try again.</string>
+    <string name="course_meta_code">Course code: %1$s</string>
+    <string name="course_meta_teacher">Lecturer: %1$s</string>
+    <string name="course_meta_year">Academic year %1$s</string>
+    <string name="cd_downloading">Downloading</string>
+    <string name="cd_expand_folder">Expand folder</string>
+    <string name="cd_collapse_folder">Collapse folder</string>
+    <string name="login_disclaimer">Unofficial app, not affiliated with Politecnico di Milano</string>
 </resources>

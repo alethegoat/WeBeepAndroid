@@ -108,7 +108,7 @@ fun LoginScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(innerPadding)
-                    .padding(horizontal = 28.dp)
+                    .padding(horizontal = WeBeepSpacing.lg)
             ) {
                 AnimatedVisibility(
                     visible = logoVisible,
@@ -172,15 +172,15 @@ fun LoginScreen(
                                 ),
                                 shape = cardShape
                             )
-                            .padding(horizontal = 28.dp, vertical = WeBeepSpacing.xl),
+                            .padding(horizontal = WeBeepSpacing.lg, vertical = WeBeepSpacing.lg),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
                             text = stringResource(R.string.login_subtitle),
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.78f),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.Center,
-                            modifier = Modifier.padding(bottom = 28.dp)
+                            modifier = Modifier.padding(bottom = WeBeepSpacing.lg)
                         )
 
                         val isLoading = uiState is LoginUiState.Loading
@@ -244,6 +244,19 @@ fun LoginScreen(
                             }
                         }
                     }
+                }
+
+                AnimatedVisibility(
+                    visible = cardVisible,
+                    enter = fadeIn(WeBeepMotion.enter(WeBeepMotion.LongMs))
+                ) {
+                    Text(
+                        text = stringResource(R.string.login_disclaimer),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(top = WeBeepSpacing.md)
+                    )
                 }
             }
         }

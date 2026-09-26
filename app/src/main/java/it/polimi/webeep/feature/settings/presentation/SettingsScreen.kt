@@ -3,23 +3,22 @@ package it.polimi.webeep.feature.settings.presentation
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.ui.draw.drawBehind
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -31,17 +30,17 @@ import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -57,6 +56,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import it.polimi.webeep.core.datastore.SyncFrequency
@@ -117,22 +117,7 @@ fun SettingsScreen(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         containerColor = Color.Transparent,
             topBar = {
-                val backgroundColor = MaterialTheme.colorScheme.background
                 TopAppBar(
-                    modifier = Modifier.drawBehind {
-                        val fraction = scrollBehavior.state.overlappedFraction.coerceIn(0f, 1f)
-                        if (fraction > 0f) {
-                            drawRect(
-                                brush = androidx.compose.ui.graphics.Brush.verticalGradient(
-                                    colors = listOf(
-                                        backgroundColor.copy(alpha = 0.95f * fraction),
-                                        backgroundColor.copy(alpha = 0.5f * fraction),
-                                        androidx.compose.ui.graphics.Color.Transparent
-                                    )
-                                )
-                            )
-                        }
-                    },
                     title = {
                         AnimatedVisibility(
                             visible = scrollBehavior.state.overlappedFraction > 0.5f,
@@ -154,8 +139,8 @@ fun SettingsScreen(
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = androidx.compose.ui.graphics.Color.Transparent,
-                        scrolledContainerColor = androidx.compose.ui.graphics.Color.Transparent,
+                        containerColor = Color.Transparent,
+                        scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainer,
                         navigationIconContentColor = MaterialTheme.colorScheme.onBackground,
                         titleContentColor = MaterialTheme.colorScheme.onBackground
                     ),
@@ -184,7 +169,7 @@ fun SettingsScreen(
                     .fillMaxWidth()
                     .padding(horizontal = WeBeepSpacing.md)
                     .clip(MaterialTheme.shapes.large)
-                    .background(MaterialTheme.colorScheme.surfaceContainerLowest)
+                    .background(MaterialTheme.colorScheme.surfaceContainerLow)
                     .padding(vertical = WeBeepSpacing.xs)
             ) {
                 ThemeSelectionRow(
@@ -211,7 +196,7 @@ fun SettingsScreen(
                     .fillMaxWidth()
                     .padding(horizontal = WeBeepSpacing.md)
                     .clip(MaterialTheme.shapes.large)
-                    .background(MaterialTheme.colorScheme.surfaceContainerLowest)
+                    .background(MaterialTheme.colorScheme.surfaceContainerLow)
                     .padding(vertical = WeBeepSpacing.xs)
             ) {
                 SettingsSwitchItem(
@@ -234,29 +219,27 @@ fun SettingsScreen(
 
             Spacer(modifier = Modifier.height(WeBeepSpacing.xs))
 
-            Box(
+            OutlinedButton(
+                onClick = { showLogoutDialog = true },
+                colors = ButtonDefaults.outlinedButtonColors(
+                    contentColor = MaterialTheme.colorScheme.error
+                ),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.error),
+                contentPadding = ButtonDefaults.ButtonWithIconContentPadding,
                 modifier = Modifier
-                    .fillMaxWidth()
                     .padding(horizontal = WeBeepSpacing.md)
-                    .height(56.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.errorContainer)
-                    .bouncyClickable { showLogoutDialog = true },
-                contentAlignment = Alignment.Center
+                    .heightIn(min = WeBeepSpacing.touchTarget)
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ExitToApp,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onErrorContainer
-                    )
-                    Spacer(modifier = Modifier.width(WeBeepSpacing.xs))
-                    Text(
-                        text = stringResource(R.string.logout),
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                        color = MaterialTheme.colorScheme.onErrorContainer
-                    )
-                }
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ExitToApp,
+                    contentDescription = null,
+                    modifier = Modifier.size(ButtonDefaults.IconSize)
+                )
+                Spacer(modifier = Modifier.width(ButtonDefaults.IconSpacing))
+                Text(
+                    text = stringResource(R.string.logout),
+                    style = MaterialTheme.typography.labelLarge
+                )
             }
             Spacer(modifier = Modifier.height(WeBeepSpacing.xl))
         }
@@ -301,7 +284,7 @@ private fun ThemeSelectionRow(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(MaterialTheme.shapes.small)
-                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+                .background(MaterialTheme.colorScheme.surfaceContainerHigh)
                 .padding(WeBeepSpacing.xxs),
             horizontalArrangement = Arrangement.spacedBy(WeBeepSpacing.xxs)
         ) {
@@ -312,7 +295,7 @@ private fun ThemeSelectionRow(
             )
             options.forEach { (theme, label) ->
                 val isSelected = selectedTheme == theme
-                val background = if (isSelected) MaterialTheme.colorScheme.primary else androidx.compose.ui.graphics.Color.Transparent
+                val background = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent
                 val contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
 
                 Box(
@@ -348,7 +331,11 @@ private fun SettingsSwitchItem(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .bouncyClickable { onCheckedChange(!checked) }
+            .toggleable(
+                value = checked,
+                role = Role.Switch,
+                onValueChange = onCheckedChange
+            )
             .padding(horizontal = WeBeepSpacing.md, vertical = WeBeepSpacing.sm),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -370,9 +357,17 @@ private fun SettingsSwitchItem(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
+        Spacer(modifier = Modifier.width(WeBeepSpacing.sm))
+        // Row owns the toggle semantics; unchecked thumb/border use onSurfaceVariant
+        // so the "off" state stays readable on dark containers.
         Switch(
             checked = checked,
-            onCheckedChange = onCheckedChange
+            onCheckedChange = null,
+            colors = SwitchDefaults.colors(
+                uncheckedThumbColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                uncheckedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                uncheckedTrackColor = MaterialTheme.colorScheme.surfaceContainerHighest
+            )
         )
     }
 }
