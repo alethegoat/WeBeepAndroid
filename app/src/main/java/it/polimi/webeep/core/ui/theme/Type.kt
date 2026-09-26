@@ -5,6 +5,7 @@ import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontVariation
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
@@ -20,7 +21,9 @@ import it.polimi.webeep.R
 private fun variableFont(resId: Int, weight: FontWeight) = Font(
     resId = resId,
     weight = weight,
-    variationSettings = FontVariation.Settings(FontVariation.weight(weight.weight))
+    style = FontStyle.Normal,
+    // Sets both the wght and ital axes explicitly so each weight gets its own instance.
+    variationSettings = FontVariation.Settings(weight, FontStyle.Normal)
 )
 
 val OutfitFamily = FontFamily(
@@ -79,7 +82,7 @@ val WeBeepTypography = Typography(
     ),
     headlineSmall = TextStyle(
         fontFamily = OutfitFamily,
-        fontWeight = FontWeight.Medium,
+        fontWeight = FontWeight.SemiBold,
         fontSize = 24.sp,
         lineHeight = 32.sp,
         letterSpacing = 0.sp,
@@ -95,14 +98,14 @@ val WeBeepTypography = Typography(
     ),
     titleMedium = TextStyle(
         fontFamily = OutfitFamily,
-        fontWeight = FontWeight.Medium,
+        fontWeight = FontWeight.SemiBold,
         fontSize = 16.sp,
         lineHeight = 24.sp,
         letterSpacing = 0.15.sp,
     ),
     titleSmall = TextStyle(
         fontFamily = OutfitFamily,
-        fontWeight = FontWeight.Medium,
+        fontWeight = FontWeight.SemiBold,
         fontSize = 14.sp,
         lineHeight = 20.sp,
         letterSpacing = 0.1.sp,
