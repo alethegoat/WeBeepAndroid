@@ -15,11 +15,12 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clip
+import it.polimi.webeep.core.ui.theme.WeBeepSpacing
 import it.polimi.webeep.core.ui.util.bouncyClickable
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import it.polimi.webeep.core.ui.theme.WeBeepTheme
 import it.polimi.webeep.feature.course.presentation.DownloadState
 
 @Composable
@@ -56,7 +57,7 @@ fun DownloadProgressIndicator(
                     color = MaterialTheme.colorScheme.secondary,
                     strokeWidth = 3.dp,
                     modifier = Modifier
-                        .padding(8.dp)
+                        .padding(WeBeepSpacing.xs)
                         .size(24.dp)
                 )
             }
@@ -65,14 +66,14 @@ fun DownloadProgressIndicator(
                     modifier = Modifier
                         .size(40.dp)
                         .clip(CircleShape)
-                        .background(Color(0xFF2E7D32).copy(alpha = 0.1f))
+                        .background(WeBeepTheme.colors.success.copy(alpha = 0.1f))
                         .bouncyClickable(onClick = onOpenClick),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Default.CheckCircle,
                         contentDescription = androidx.compose.ui.res.stringResource(it.polimi.webeep.R.string.cd_open_file),
-                        tint = Color(0xFF2E7D32)
+                        tint = WeBeepTheme.colors.success
                     )
                 }
             }

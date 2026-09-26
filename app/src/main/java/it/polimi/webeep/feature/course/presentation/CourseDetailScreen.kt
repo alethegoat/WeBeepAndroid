@@ -29,7 +29,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Book
@@ -44,14 +43,6 @@ import androidx.compose.material.icons.filled.TableChart
 import androidx.compose.material.icons.filled.FolderZip
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.ui.graphics.vector.ImageVector
-import it.polimi.webeep.core.ui.theme.ColorExcel
-import it.polimi.webeep.core.ui.theme.ColorFolder
-import it.polimi.webeep.core.ui.theme.ColorGenericFile
-import it.polimi.webeep.core.ui.theme.ColorLink
-import it.polimi.webeep.core.ui.theme.ColorPdf
-import it.polimi.webeep.core.ui.theme.ColorPowerPoint
-import it.polimi.webeep.core.ui.theme.ColorWord
-import it.polimi.webeep.core.ui.theme.ColorZip
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -87,8 +78,10 @@ import it.polimi.webeep.R
 import it.polimi.webeep.core.ui.components.EmptyStateView
 import it.polimi.webeep.core.ui.components.ShimmerCourseList
 import it.polimi.webeep.core.ui.components.WeBeepSearchField
+import it.polimi.webeep.core.ui.theme.WeBeepColors
 import it.polimi.webeep.core.ui.theme.WeBeepMotion
 import it.polimi.webeep.core.ui.theme.WeBeepSpacing
+import it.polimi.webeep.core.ui.theme.WeBeepTheme
 import it.polimi.webeep.core.ui.util.bouncyClickable
 import it.polimi.webeep.core.ui.util.courseSharedBounds
 import it.polimi.webeep.feature.download.presentation.DownloadProgressIndicator
@@ -203,10 +196,10 @@ fun CourseDetailScreen(
                                     .fillMaxHeight()
                                     .widthIn(max = 840.dp),
                                 contentPadding = androidx.compose.foundation.layout.PaddingValues(
-                                    top = innerPadding.calculateTopPadding() + 8.dp,
-                                    bottom = innerPadding.calculateBottomPadding() + 16.dp
+                                    top = innerPadding.calculateTopPadding() + WeBeepSpacing.xs,
+                                    bottom = innerPadding.calculateBottomPadding() + WeBeepSpacing.md
                                 ),
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                                verticalArrangement = Arrangement.spacedBy(WeBeepSpacing.xs)
                             ) {
                             item {
                                 val courseName = state.courseName ?: stringResource(R.string.course_content_title)
@@ -257,7 +250,7 @@ fun CourseDetailScreen(
                             }
                             }
                             item {
-                                Spacer(modifier = Modifier.height(16.dp))
+                                Spacer(modifier = Modifier.height(WeBeepSpacing.md))
                             }
                             }
                         }
@@ -293,7 +286,7 @@ private fun SectionItem(
     )
 
     Card(
-        shape = RoundedCornerShape(24.dp),
+        shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
             contentColor = MaterialTheme.colorScheme.onSurface
@@ -305,7 +298,7 @@ private fun SectionItem(
         ),
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 6.dp)
+            .padding(horizontal = WeBeepSpacing.md, vertical = 6.dp)
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
             Row(
@@ -313,7 +306,7 @@ private fun SectionItem(
                 modifier = Modifier
                     .fillMaxWidth()
                     .bouncyClickable { onHeaderClick() }
-                    .padding(16.dp)
+                    .padding(WeBeepSpacing.md)
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
@@ -332,7 +325,7 @@ private fun SectionItem(
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 2,
-                            modifier = Modifier.padding(top = 4.dp)
+                            modifier = Modifier.padding(top = WeBeepSpacing.xxs)
                         )
                     }
                 }
@@ -363,10 +356,10 @@ private fun SectionItem(
                             text = stringResource(R.string.no_materials_section),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(16.dp)
+                            modifier = Modifier.padding(WeBeepSpacing.md)
                         )
                     } else {
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(WeBeepSpacing.xs))
                         section.modules.forEachIndexed { index, module ->
                             ModuleItem(
                                 module = module,
@@ -375,7 +368,7 @@ private fun SectionItem(
                                 onOpenClick = onOpenClick
                             )
                         }
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(WeBeepSpacing.xs))
                     }
                 }
             }
@@ -395,11 +388,12 @@ private fun ModuleItem(
     val isSingleFile = module.type != "folder" && module.type !in setOf("url", "lti", "webex") && module.files.size == 1
     val isMultiFile = module.type != "folder" && module.type !in setOf("url", "lti", "webex") && module.files.size > 1
 
+    val fileColors = WeBeepTheme.colors
     val (moduleIcon, moduleColor) = when {
-        isFolder -> Icons.Default.Folder to ColorFolder
-        module.type in setOf("url", "lti", "webex") -> Icons.Default.Link to ColorLink
-        isSingleFile -> getFileIconAndColor(module.files.first().filename)
-        else -> Icons.Default.Description to ColorGenericFile
+        isFolder -> Icons.Default.Folder to fileColors.fileFolder
+        module.type in setOf("url", "lti", "webex") -> Icons.Default.Link to fileColors.fileLink
+        isSingleFile -> getFileIconAndColor(module.files.first().filename, fileColors)
+        else -> Icons.Default.Description to fileColors.fileGeneric
     }
 
     val isFolderExpanded = remember { androidx.compose.runtime.mutableStateOf(false) }
@@ -407,10 +401,10 @@ private fun ModuleItem(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp, horizontal = 16.dp)
-            .clip(RoundedCornerShape(16.dp))
+            .padding(vertical = WeBeepSpacing.xxs, horizontal = WeBeepSpacing.md)
+            .clip(MaterialTheme.shapes.medium)
             .background(MaterialTheme.colorScheme.surfaceContainerLowest)
-            .padding(8.dp)
+            .padding(WeBeepSpacing.xs)
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -443,7 +437,7 @@ private fun ModuleItem(
             Box(
                 modifier = Modifier
                     .size(48.dp)
-                    .clip(RoundedCornerShape(16.dp))
+                    .clip(MaterialTheme.shapes.medium)
                     .background(moduleColor.copy(alpha = 0.15f)),
                 contentAlignment = Alignment.Center
             ) {
@@ -454,7 +448,7 @@ private fun ModuleItem(
                     modifier = Modifier.size(28.dp)
                 )
             }
-            Spacer(modifier = Modifier.width(16.dp))
+            Spacer(modifier = Modifier.width(WeBeepSpacing.md))
             Text(
                 text = module.name,
                 style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
@@ -486,7 +480,7 @@ private fun ModuleItem(
                     imageVector = Icons.Default.Visibility,
                     contentDescription = stringResource(R.string.cd_preview),
                     tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(start = 8.dp)
+                    modifier = Modifier.padding(start = WeBeepSpacing.xs)
                 )
             }
         }
@@ -499,7 +493,7 @@ private fun ModuleItem(
                 text = cleanDescription,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(start = 56.dp, top = 4.dp, bottom = 8.dp)
+                modifier = Modifier.padding(start = 56.dp, top = WeBeepSpacing.xxs, bottom = WeBeepSpacing.xs)
             )
         }
 
@@ -531,10 +525,10 @@ private fun ModuleItem(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(start = 56.dp, top = 8.dp)
-                    .clip(RoundedCornerShape(16.dp))
+                    .padding(start = 56.dp, top = WeBeepSpacing.xs)
+                    .clip(MaterialTheme.shapes.medium)
                     .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
-                    .padding(vertical = 8.dp)
+                    .padding(vertical = WeBeepSpacing.xs)
             ) {
                 FolderTreeView(
                     node = rootNode,
@@ -549,15 +543,15 @@ private fun ModuleItem(
     }
 }
 
-private fun getFileIconAndColor(filename: String): Pair<ImageVector, Color> {
+private fun getFileIconAndColor(filename: String, colors: WeBeepColors): Pair<ImageVector, Color> {
     val ext = filename.substringAfterLast('.', "").lowercase()
     return when (ext) {
-        "pdf" -> Icons.Default.PictureAsPdf to ColorPdf
-        "doc", "docx" -> Icons.Default.Description to ColorWord
-        "xls", "xlsx" -> Icons.Default.TableChart to ColorExcel
-        "ppt", "pptx" -> Icons.Default.Slideshow to ColorPowerPoint
-        "zip", "rar", "7z" -> Icons.Default.FolderZip to ColorZip
-        else -> Icons.Default.Description to ColorGenericFile
+        "pdf" -> Icons.Default.PictureAsPdf to colors.filePdf
+        "doc", "docx" -> Icons.Default.Description to colors.fileWord
+        "xls", "xlsx" -> Icons.Default.TableChart to colors.fileExcel
+        "ppt", "pptx" -> Icons.Default.Slideshow to colors.filePowerPoint
+        "zip", "rar", "7z" -> Icons.Default.FolderZip to colors.fileZip
+        else -> Icons.Default.Description to colors.fileGeneric
     }
 }
 
@@ -587,10 +581,10 @@ private fun FolderTreeView(
             modifier = Modifier
                 .fillMaxWidth()
                 .bouncyClickable { expandedFolders[node.fullPath] = !isExpanded }
-                .padding(start = (12 + depth * 16).dp, top = 12.dp, bottom = 12.dp, end = 16.dp)
+                .padding(start = (12 + depth * 16).dp, top = WeBeepSpacing.sm, bottom = WeBeepSpacing.sm, end = WeBeepSpacing.md)
         ) {
-            Icon(Icons.Default.Folder, null, tint = ColorFolder, modifier = Modifier.size(24.dp))
-            Spacer(Modifier.width(12.dp))
+            Icon(Icons.Default.Folder, null, tint = WeBeepTheme.colors.fileFolder, modifier = Modifier.size(24.dp))
+            Spacer(Modifier.width(WeBeepSpacing.sm))
             Text(
                 text = node.name,
                 style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
@@ -641,19 +635,19 @@ private fun FileRowItem(
     onOpenClick: (FileUiModel) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val (fileIcon, fileColor) = getFileIconAndColor(file.filename)
+    val (fileIcon, fileColor) = getFileIconAndColor(file.filename, WeBeepTheme.colors)
 
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
             .fillMaxWidth()
             .bouncyClickable { onPreviewClick(file) }
-            .padding(start = startPadding, top = 12.dp, bottom = 12.dp, end = 8.dp)
+            .padding(start = startPadding, top = WeBeepSpacing.sm, bottom = WeBeepSpacing.sm, end = WeBeepSpacing.xs)
     ) {
         Box(
             modifier = Modifier
                 .size(40.dp)
-                .clip(RoundedCornerShape(12.dp))
+                .clip(MaterialTheme.shapes.small)
                 .background(fileColor.copy(alpha = 0.15f)),
             contentAlignment = Alignment.Center
         ) {
@@ -664,7 +658,7 @@ private fun FileRowItem(
                 modifier = Modifier.size(22.dp)
             )
         }
-        Spacer(modifier = Modifier.width(12.dp))
+        Spacer(modifier = Modifier.width(WeBeepSpacing.sm))
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = file.filename,

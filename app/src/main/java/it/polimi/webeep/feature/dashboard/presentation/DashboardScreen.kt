@@ -34,7 +34,6 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.filled.Settings
@@ -170,7 +169,13 @@ fun DashboardScreen(
             Box(modifier = Modifier.fillMaxSize()) {
                 when (val state = uiState) {
                     is DashboardUiState.Loading -> {
-                        Column(modifier = Modifier.padding(top = innerPadding.calculateTopPadding(), start = 16.dp, end = 16.dp)) {
+                        Column(
+                            modifier = Modifier.padding(
+                                top = innerPadding.calculateTopPadding(),
+                                start = WeBeepSpacing.md,
+                                end = WeBeepSpacing.md
+                            )
+                        ) {
                             ShimmerCourseList()
                         }
                     }
@@ -195,13 +200,13 @@ fun DashboardScreen(
                                 state = lazyGridState,
                                 columns = GridCells.Adaptive(minSize = 300.dp),
                                 contentPadding = PaddingValues(
-                                    top = innerPadding.calculateTopPadding() + 8.dp,
-                                    bottom = innerPadding.calculateBottomPadding() + 16.dp,
-                                    start = 16.dp,
-                                    end = 16.dp
+                                    top = innerPadding.calculateTopPadding() + WeBeepSpacing.xs,
+                                    bottom = innerPadding.calculateBottomPadding() + WeBeepSpacing.md,
+                                    start = WeBeepSpacing.md,
+                                    end = WeBeepSpacing.md
                                 ),
-                                horizontalArrangement = Arrangement.spacedBy(16.dp),
-                                verticalArrangement = Arrangement.spacedBy(16.dp),
+                                horizontalArrangement = Arrangement.spacedBy(WeBeepSpacing.md),
+                                verticalArrangement = Arrangement.spacedBy(WeBeepSpacing.md),
                                 modifier = Modifier.fillMaxSize()
                             ) {
                                 item(span = { GridItemSpan(maxLineSpan) }) {
@@ -210,7 +215,7 @@ fun DashboardScreen(
                                             verticalAlignment = Alignment.CenterVertically,
                                             modifier = Modifier
                                                 .fillMaxWidth()
-                                                .padding(vertical = 8.dp)
+                                                .padding(vertical = WeBeepSpacing.xs)
                                         ) {
                                             Box(
                                                 modifier = Modifier
@@ -234,7 +239,7 @@ fun DashboardScreen(
                                                     )
                                                 }
                                             }
-                                            Spacer(modifier = Modifier.width(16.dp))
+                                            Spacer(modifier = Modifier.width(WeBeepSpacing.md))
                                             Column {
                                                 Text(
                                                     text = stringResource(R.string.welcome_back),
@@ -257,10 +262,10 @@ fun DashboardScreen(
                                             Box(
                                                 modifier = Modifier
                                                     .fillMaxWidth()
-                                                    .padding(vertical = 8.dp)
-                                                    .clip(RoundedCornerShape(16.dp))
+                                                    .padding(vertical = WeBeepSpacing.xs)
+                                                    .clip(MaterialTheme.shapes.medium)
                                                     .background(MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.9f))
-                                                    .padding(vertical = 12.dp, horizontal = 16.dp),
+                                                    .padding(vertical = WeBeepSpacing.sm, horizontal = WeBeepSpacing.md),
                                                 contentAlignment = Alignment.Center
                                             ) {
                                                 Row(
@@ -273,7 +278,7 @@ fun DashboardScreen(
                                                         tint = MaterialTheme.colorScheme.onErrorContainer,
                                                         modifier = Modifier.size(16.dp)
                                                     )
-                                                    Spacer(modifier = Modifier.width(8.dp))
+                                                    Spacer(modifier = Modifier.width(WeBeepSpacing.xs))
                                                     Text(
                                                         text = if (isCacheAvailable) {
                                                             stringResource(R.string.offline_cache_message)
@@ -299,9 +304,9 @@ fun DashboardScreen(
                                             modifier = Modifier
                                                 .fillMaxWidth()
                                                 .padding(vertical = 6.dp)
-                                                .clip(RoundedCornerShape(WeBeepSpacing.chipRadius))
+                                                .clip(MaterialTheme.shapes.medium)
                                                 .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
-                                                .padding(4.dp)
+                                                .padding(WeBeepSpacing.xxs)
                                         ) {
                                             val filters = listOf(
                                                 CourseFilter.Active to stringResource(R.string.filter_active),
@@ -322,7 +327,7 @@ fun DashboardScreen(
                                                     .offset { androidx.compose.ui.unit.IntOffset(pillOffset.roundToPx(), 0) }
                                                     .width(pillWidth)
                                                     .height(WeBeepSpacing.touchTarget)
-                                                    .clip(RoundedCornerShape(WeBeepSpacing.sm))
+                                                    .clip(MaterialTheme.shapes.small)
                                                     .background(MaterialTheme.colorScheme.primary)
                                             )
 
@@ -368,7 +373,7 @@ fun DashboardScreen(
                                             }
                                         }
                                         
-                                        Spacer(modifier = Modifier.height(8.dp))
+                                        Spacer(modifier = Modifier.height(WeBeepSpacing.xs))
                                     }
                                 }
 

@@ -6,7 +6,6 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarData
@@ -23,6 +22,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import it.polimi.webeep.core.ui.theme.WeBeepSpacing
 import it.polimi.webeep.core.ui.theme.WeBeepTheme
 
 data class WeBeepSnackbarVisuals(
@@ -59,8 +59,8 @@ private fun WeBeepSnackbar(
         exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
     ) {
         Snackbar(
-            modifier = modifier.padding(12.dp),
-            shape = RoundedCornerShape(12.dp),
+            modifier = modifier.padding(WeBeepSpacing.sm),
+            shape = MaterialTheme.shapes.small,
             containerColor = if (isError) {
                 MaterialTheme.colorScheme.errorContainer
             } else {

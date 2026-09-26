@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -40,6 +39,7 @@ import androidx.media3.ui.PlayerView
 import it.polimi.webeep.R
 import it.polimi.webeep.core.network.MoodleFileUrlBuilder
 import okhttp3.Call
+import it.polimi.webeep.core.ui.theme.WeBeepSpacing
 
 @OptIn(UnstableApi::class)
 @Composable
@@ -134,14 +134,14 @@ fun MediaViewer(
             Column(
                 modifier = Modifier
                     .align(Alignment.Center)
-                    .background(MaterialTheme.colorScheme.errorContainer, RoundedCornerShape(8.dp))
-                    .padding(16.dp),
+                    .background(MaterialTheme.colorScheme.errorContainer, MaterialTheme.shapes.extraSmall)
+                    .padding(WeBeepSpacing.md),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
                     text = stringResource(R.string.media_playback_error),
                     color = MaterialTheme.colorScheme.onErrorContainer,
-                    modifier = Modifier.padding(top = 8.dp),
+                    modifier = Modifier.padding(top = WeBeepSpacing.xs),
                     textAlign = TextAlign.Center
                 )
 
@@ -153,7 +153,7 @@ fun MediaViewer(
                                 context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(externalUrl)))
                             } catch (_: Exception) {}
                         },
-                        modifier = Modifier.padding(top = 16.dp)
+                        modifier = Modifier.padding(top = WeBeepSpacing.md)
                     ) {
                         Text(stringResource(R.string.open_in_browser))
                     }

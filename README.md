@@ -62,7 +62,7 @@ Keep a backup of the upload keystore. Losing it means you cannot update the app 
 
 This project follows Clean Architecture and MVVM (StateFlow + Compose). Version `1.0.1` (`versionCode` 2), `minSdk` 26.
 
-* **UI**: Jetpack Compose, Material 3
+* **UI**: Jetpack Compose, Material 3; Outfit + Inter fonts bundled (SIL OFL 1.1, texts in `app/src/main/assets/licenses`)
 * **State**: Kotlin Coroutines & StateFlow
 * **DI**: Dagger Hilt
 * **Storage**: Room, Preferences DataStore, EncryptedSharedPreferences
@@ -127,7 +127,7 @@ Tieni un backup del keystore di upload. Senza quello non puoi aggiornare l'app s
 
 Il progetto segue Clean Architecture e MVVM (StateFlow + Compose). Versione `1.0.1` (`versionCode` 2), `minSdk` 26.
 
-* **UI**: Jetpack Compose, Material 3
+* **UI**: Jetpack Compose, Material 3; font Outfit + Inter inclusi (SIL OFL 1.1, testi in `app/src/main/assets/licenses`)
 * **State**: Kotlin Coroutines & StateFlow
 * **DI**: Dagger Hilt
 * **Storage**: Room, Preferences DataStore, EncryptedSharedPreferences

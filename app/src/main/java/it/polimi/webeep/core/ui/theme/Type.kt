@@ -1,38 +1,40 @@
 package it.polimi.webeep.core.ui.theme
 
 import androidx.compose.material3.Typography
+import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontVariation
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.googlefonts.Font
-import androidx.compose.ui.text.googlefonts.GoogleFont
 import androidx.compose.ui.unit.sp
 import it.polimi.webeep.R
 
 /**
  * Outfit for titles/headlines/displays, Inter for body/labels.
+ * Both ship in the APK as variable fonts (res/font, SIL OFL 1.1), so no
+ * download is needed and the first frame already uses the right typeface.
  */
 
-val provider = GoogleFont.Provider(
-    providerAuthority = "com.google.android.gms.fonts",
-    providerPackage = "com.google.android.gms",
-    certificates = R.array.com_google_android_gms_fonts_certs
+@OptIn(ExperimentalTextApi::class)
+private fun variableFont(resId: Int, weight: FontWeight) = Font(
+    resId = resId,
+    weight = weight,
+    variationSettings = FontVariation.Settings(FontVariation.weight(weight.weight))
 )
 
-val OutfitFont = GoogleFont("Outfit")
-val InterFont = GoogleFont("Inter")
-
 val OutfitFamily = FontFamily(
-    Font(googleFont = OutfitFont, fontProvider = provider, weight = FontWeight.Normal),
-    Font(googleFont = OutfitFont, fontProvider = provider, weight = FontWeight.Medium),
-    Font(googleFont = OutfitFont, fontProvider = provider, weight = FontWeight.SemiBold),
-    Font(googleFont = OutfitFont, fontProvider = provider, weight = FontWeight.Bold)
+    variableFont(R.font.outfit_variable, FontWeight.Normal),
+    variableFont(R.font.outfit_variable, FontWeight.Medium),
+    variableFont(R.font.outfit_variable, FontWeight.SemiBold),
+    variableFont(R.font.outfit_variable, FontWeight.Bold)
 )
 
 val InterFamily = FontFamily(
-    Font(googleFont = InterFont, fontProvider = provider, weight = FontWeight.Normal),
-    Font(googleFont = InterFont, fontProvider = provider, weight = FontWeight.Medium),
-    Font(googleFont = InterFont, fontProvider = provider, weight = FontWeight.SemiBold)
+    variableFont(R.font.inter_variable, FontWeight.Normal),
+    variableFont(R.font.inter_variable, FontWeight.Medium),
+    variableFont(R.font.inter_variable, FontWeight.SemiBold),
+    variableFont(R.font.inter_variable, FontWeight.Bold)
 )
 
 val WeBeepTypography = Typography(

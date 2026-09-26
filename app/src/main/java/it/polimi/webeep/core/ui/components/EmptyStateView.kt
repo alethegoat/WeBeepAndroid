@@ -6,6 +6,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.slideInVertically
 import it.polimi.webeep.core.ui.theme.WeBeepMotion
+import it.polimi.webeep.core.ui.theme.WeBeepSpacing
 import it.polimi.webeep.core.ui.util.LocalReduceMotion
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -57,7 +58,7 @@ fun EmptyStateView(
         Column(
             modifier = modifier
                 .fillMaxSize()
-                .padding(horizontal = 32.dp),
+                .padding(horizontal = WeBeepSpacing.xl),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
         ) {
@@ -77,7 +78,7 @@ fun EmptyStateView(
                 )
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(WeBeepSpacing.lg))
 
             AnimatedVisibility(
                 visibleState = remember {
@@ -97,7 +98,7 @@ fun EmptyStateView(
             }
 
             if (subtitle != null) {
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(WeBeepSpacing.xs))
 
                 AnimatedVisibility(
                     visibleState = remember {
@@ -118,7 +119,7 @@ fun EmptyStateView(
             }
 
             if (actionLabel != null && onAction != null) {
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(WeBeepSpacing.lg))
 
                 AnimatedVisibility(
                     visibleState = remember {

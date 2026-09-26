@@ -22,6 +22,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.currentStateAsState
 import it.polimi.webeep.core.ui.theme.WeBeepMotion
+import it.polimi.webeep.core.ui.theme.WeBeepTheme
 import it.polimi.webeep.core.ui.util.LocalReduceMotion
 
 /**
@@ -40,22 +41,11 @@ fun AuroraBackground(
     val motion = auroraMotion(animateAurora)
 
     val backgroundColor = MaterialTheme.colorScheme.background
+    val colors = WeBeepTheme.colors
 
-    val primary = if (isDark) {
-        Color(0xFF1B6FD6).copy(alpha = 0.38f)
-    } else {
-        Color(0xFF8BB6FF).copy(alpha = 0.42f)
-    }
-    val secondary = if (isDark) {
-        Color(0xFF00B7E0).copy(alpha = 0.22f)
-    } else {
-        Color(0xFF6EC8FF).copy(alpha = 0.28f)
-    }
-    val tertiary = if (isDark) {
-        Color(0xFF6B4CFF).copy(alpha = 0.14f)
-    } else {
-        Color(0xFFFFC1D6).copy(alpha = 0.22f)
-    }
+    val primary = colors.auroraPrimary.copy(alpha = if (isDark) 0.38f else 0.42f)
+    val secondary = colors.auroraSecondary.copy(alpha = if (isDark) 0.22f else 0.28f)
+    val tertiary = colors.auroraTertiary.copy(alpha = if (isDark) 0.14f else 0.22f)
 
     Box(
         modifier = modifier

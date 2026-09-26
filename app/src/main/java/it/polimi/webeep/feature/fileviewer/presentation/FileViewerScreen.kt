@@ -33,6 +33,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -77,6 +78,8 @@ import coil.compose.SubcomposeAsyncImage
 import coil.compose.SubcomposeAsyncImageContent
 import it.polimi.webeep.R
 import it.polimi.webeep.core.ui.components.EmptyStateView
+import it.polimi.webeep.core.ui.theme.WeBeepSpacing
+import it.polimi.webeep.core.ui.theme.WeBeepTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import it.polimi.webeep.feature.fileviewer.presentation.components.PdfViewer
@@ -215,13 +218,13 @@ fun FileViewerScreen(
                     modifier = Modifier
                         .align(Alignment.TopStart)
                         .windowInsetsPadding(WindowInsets.safeDrawing)
-                        .padding(top = 8.dp, start = 16.dp)
-                        .background(androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.5f), RoundedCornerShape(50))
+                        .padding(top = WeBeepSpacing.xs, start = WeBeepSpacing.md)
+                        .background(WeBeepTheme.colors.mediaScrim.copy(alpha = 0.5f), RoundedCornerShape(50))
                 ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = stringResource(R.string.cd_back),
-                        tint = androidx.compose.ui.graphics.Color.White
+                        tint = WeBeepTheme.colors.onMedia
                     )
                 }
             }
@@ -234,7 +237,7 @@ private fun FileViewerLoading() {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(32.dp),
+            .padding(WeBeepSpacing.xl),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
@@ -243,7 +246,7 @@ private fun FileViewerLoading() {
             text = stringResource(R.string.file_viewer_loading),
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(top = 24.dp),
+            modifier = Modifier.padding(top = WeBeepSpacing.lg),
             textAlign = TextAlign.Center
         )
     }
@@ -338,15 +341,15 @@ private fun ImagePreviewContent(
         Surface(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .padding(16.dp),
-            shape = RoundedCornerShape(20.dp),
+                .padding(WeBeepSpacing.md),
+            shape = CircleShape,
             color = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.92f),
             tonalElevation = 2.dp
         ) {
             Text(
                 text = stringResource(R.string.file_viewer_pinch_hint),
                 style = MaterialTheme.typography.labelMedium,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                modifier = Modifier.padding(horizontal = WeBeepSpacing.md, vertical = WeBeepSpacing.xs),
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }

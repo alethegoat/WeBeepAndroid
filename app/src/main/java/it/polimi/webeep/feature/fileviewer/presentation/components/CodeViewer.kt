@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import it.polimi.webeep.core.ui.theme.WeBeepSpacing
 
 @Composable
 fun CodeViewer(
@@ -31,7 +32,7 @@ fun CodeViewer(
     ) {
         LazyColumn(
             state = lazyListState,
-            modifier = Modifier.fillMaxSize().padding(16.dp)
+            modifier = Modifier.fillMaxSize().padding(WeBeepSpacing.md)
         ) {
             items(
                 count = lines.size,

@@ -16,6 +16,4 @@ object WeBeepSpacing {
 
     val touchTarget = 48.dp
     val searchHeight = 52.dp
-    val cardRadius = 24.dp
-    val chipRadius = 16.dp
 }

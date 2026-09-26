@@ -19,7 +19,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -61,6 +61,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import it.polimi.webeep.core.datastore.SyncFrequency
 import it.polimi.webeep.core.datastore.ThemePreference
+import it.polimi.webeep.core.ui.theme.WeBeepSpacing
 import it.polimi.webeep.core.ui.util.bouncyClickable
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -172,19 +173,19 @@ fun SettingsScreen(
                 text = stringResource(R.string.settings),
                 style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold),
                 color = MaterialTheme.colorScheme.onBackground,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                modifier = Modifier.padding(horizontal = WeBeepSpacing.md, vertical = WeBeepSpacing.xs)
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(WeBeepSpacing.md))
 
             SettingsSectionTitle(stringResource(R.string.settings_section_appearance))
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
-                    .clip(RoundedCornerShape(24.dp))
+                    .padding(horizontal = WeBeepSpacing.md)
+                    .clip(MaterialTheme.shapes.large)
                     .background(MaterialTheme.colorScheme.surfaceContainerLowest)
-                    .padding(vertical = 8.dp)
+                    .padding(vertical = WeBeepSpacing.xs)
             ) {
                 ThemeSelectionRow(
                     selectedTheme = uiState.themePreference,
@@ -202,16 +203,16 @@ fun SettingsScreen(
                 LanguageSelectionRow()
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(WeBeepSpacing.lg))
 
             SettingsSectionTitle(stringResource(R.string.settings_section_sync))
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
-                    .clip(RoundedCornerShape(24.dp))
+                    .padding(horizontal = WeBeepSpacing.md)
+                    .clip(MaterialTheme.shapes.large)
                     .background(MaterialTheme.colorScheme.surfaceContainerLowest)
-                    .padding(vertical = 8.dp)
+                    .padding(vertical = WeBeepSpacing.xs)
             ) {
                 SettingsSwitchItem(
                     icon = Icons.Default.Wifi,
@@ -227,18 +228,18 @@ fun SettingsScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(WeBeepSpacing.lg))
 
             SettingsSectionTitle(stringResource(R.string.settings_section_account))
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(WeBeepSpacing.xs))
 
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
+                    .padding(horizontal = WeBeepSpacing.md)
                     .height(56.dp)
-                    .clip(RoundedCornerShape(28.dp))
+                    .clip(CircleShape)
                     .background(MaterialTheme.colorScheme.errorContainer)
                     .bouncyClickable { showLogoutDialog = true },
                 contentAlignment = Alignment.Center
@@ -249,7 +250,7 @@ fun SettingsScreen(
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.onErrorContainer
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
+                    Spacer(modifier = Modifier.width(WeBeepSpacing.xs))
                     Text(
                         text = stringResource(R.string.logout),
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
@@ -257,7 +258,7 @@ fun SettingsScreen(
                     )
                 }
             }
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(WeBeepSpacing.xl))
         }
     }
 }
@@ -270,7 +271,7 @@ private fun SettingsSectionTitle(title: String) {
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.primary
         ),
-        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+        modifier = Modifier.padding(horizontal = WeBeepSpacing.md, vertical = WeBeepSpacing.xs)
     )
 }
 
@@ -279,14 +280,14 @@ private fun ThemeSelectionRow(
     selectedTheme: ThemePreference,
     onThemeSelected: (ThemePreference) -> Unit
 ) {
-    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+    Column(modifier = Modifier.padding(horizontal = WeBeepSpacing.md, vertical = WeBeepSpacing.xs)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(
                 imageVector = Icons.Default.DarkMode,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            Spacer(modifier = Modifier.width(16.dp))
+            Spacer(modifier = Modifier.width(WeBeepSpacing.md))
             Text(
                 text = stringResource(R.string.app_theme),
                 style = MaterialTheme.typography.bodyLarge,
@@ -294,15 +295,15 @@ private fun ThemeSelectionRow(
             )
         }
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(WeBeepSpacing.sm))
 
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(12.dp))
+                .clip(MaterialTheme.shapes.small)
                 .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
-                .padding(4.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                .padding(WeBeepSpacing.xxs),
+            horizontalArrangement = Arrangement.spacedBy(WeBeepSpacing.xxs)
         ) {
             val options = listOf(
                 ThemePreference.SYSTEM_DEFAULT to stringResource(R.string.settings_theme_system),
@@ -317,10 +318,10 @@ private fun ThemeSelectionRow(
                 Box(
                     modifier = Modifier
                         .weight(1f)
-                        .clip(RoundedCornerShape(8.dp))
+                        .clip(MaterialTheme.shapes.extraSmall)
                         .background(background)
                         .bouncyClickable { onThemeSelected(theme) }
-                        .padding(vertical = 12.dp),
+                        .padding(vertical = WeBeepSpacing.sm),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
@@ -348,7 +349,7 @@ private fun SettingsSwitchItem(
         modifier = Modifier
             .fillMaxWidth()
             .bouncyClickable { onCheckedChange(!checked) }
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+            .padding(horizontal = WeBeepSpacing.md, vertical = WeBeepSpacing.sm),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
@@ -356,7 +357,7 @@ private fun SettingsSwitchItem(
             contentDescription = null,
             tint = MaterialTheme.colorScheme.onSurfaceVariant
         )
-        Spacer(modifier = Modifier.width(16.dp))
+        Spacer(modifier = Modifier.width(WeBeepSpacing.md))
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = title,
@@ -395,7 +396,7 @@ private fun SyncFrequencyItem(
         modifier = Modifier
             .fillMaxWidth()
             .bouncyClickable { expanded = true }
-            .padding(horizontal = 16.dp, vertical = 12.dp)
+            .padding(horizontal = WeBeepSpacing.md, vertical = WeBeepSpacing.sm)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(
@@ -403,7 +404,7 @@ private fun SyncFrequencyItem(
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            Spacer(modifier = Modifier.width(16.dp))
+            Spacer(modifier = Modifier.width(WeBeepSpacing.md))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = stringResource(R.string.update_frequency),
@@ -458,7 +459,7 @@ private fun LanguageSelectionRow() {
         modifier = Modifier
             .fillMaxWidth()
             .bouncyClickable { expanded = true }
-            .padding(horizontal = 16.dp, vertical = 12.dp)
+            .padding(horizontal = WeBeepSpacing.md, vertical = WeBeepSpacing.sm)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(
@@ -466,7 +467,7 @@ private fun LanguageSelectionRow() {
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            Spacer(modifier = Modifier.width(16.dp))
+            Spacer(modifier = Modifier.width(WeBeepSpacing.md))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = stringResource(R.string.settings_app_language),

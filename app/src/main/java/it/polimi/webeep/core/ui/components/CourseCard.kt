@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.StarOutline
@@ -38,7 +37,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -50,6 +48,7 @@ import coil.compose.AsyncImage
 import it.polimi.webeep.R
 import it.polimi.webeep.core.ui.theme.GradientDarkEnd
 import it.polimi.webeep.core.ui.theme.GradientDarkStart
+import it.polimi.webeep.core.ui.theme.WeBeepSpacing
 import it.polimi.webeep.core.ui.theme.WeBeepTheme
 import it.polimi.webeep.core.ui.util.bouncyClickable
 import it.polimi.webeep.core.ui.util.courseSharedBounds
@@ -75,13 +74,14 @@ fun CourseCard(
     onFavouriteClick: (() -> Unit)? = null,
 ) {
     val openLabel = stringResource(R.string.cd_open_course)
-    val cardShape = RoundedCornerShape(24.dp)
+    val cardShape = MaterialTheme.shapes.large
+    val weBeepColors = WeBeepTheme.colors
     Card(
         modifier = modifier
             .fillMaxWidth()
             .height(228.dp)
             .courseSharedBounds(course.id)
-            .shadow(8.dp, cardShape, clip = false, ambientColor = Color.Black.copy(alpha = 0.08f))
+            .shadow(8.dp, cardShape, clip = false, ambientColor = weBeepColors.mediaScrim.copy(alpha = 0.08f))
             .bouncyClickable(
                 role = Role.Button,
                 onClickLabel = openLabel
@@ -123,8 +123,8 @@ fun CourseCard(
                         .fillMaxSize()
                         .background(
                             Brush.verticalGradient(
-                                0f to Color.Black.copy(alpha = 0.08f),
-                                1f to Color.Black.copy(alpha = 0.28f)
+                                0f to weBeepColors.mediaScrim.copy(alpha = 0.08f),
+                                1f to weBeepColors.mediaScrim.copy(alpha = 0.28f)
                             )
                         )
                 )
@@ -132,7 +132,7 @@ fun CourseCard(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(8.dp),
+                        .padding(WeBeepSpacing.xs),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.Top,
                 ) {
@@ -150,7 +150,7 @@ fun CourseCard(
                             modifier = Modifier
                                 .size(32.dp)
                                 .clip(CircleShape)
-                                .background(Color.Black.copy(alpha = 0.3f)),
+                                .background(weBeepColors.mediaScrim.copy(alpha = 0.3f)),
                         ) {
                             Icon(
                                 imageVector = if (course.isFavourite) Icons.Filled.Star else Icons.Outlined.StarOutline,
@@ -159,7 +159,7 @@ fun CourseCard(
                                 } else {
                                     stringResource(R.string.cd_add_fav)
                                 },
-                                tint = if (course.isFavourite) Color(0xFFFFD700) else Color.White,
+                                tint = if (course.isFavourite) weBeepColors.favourite else weBeepColors.onMedia,
                                 modifier = Modifier.size(20.dp)
                             )
                         }
@@ -171,7 +171,7 @@ fun CourseCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(0.5f)
-                    .padding(horizontal = 16.dp, vertical = 14.dp),
+                    .padding(horizontal = WeBeepSpacing.md, vertical = 14.dp),
                 verticalArrangement = Arrangement.SpaceBetween,
             ) {
                 Column {
@@ -184,7 +184,7 @@ fun CourseCard(
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                     )
-                    Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(WeBeepSpacing.xxs))
                     Text(
                         text = course.shortname,
                         style = MaterialTheme.typography.bodySmall,
@@ -195,13 +195,13 @@ fun CourseCard(
                 }
 
                 if (course.progress != null) {
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(WeBeepSpacing.xs))
                     LinearProgressIndicator(
                         progress = { course.progress },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(6.dp)
-                            .clip(RoundedCornerShape(3.dp)),
+                            .clip(CircleShape),
                         color = MaterialTheme.colorScheme.secondary,
                         trackColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
                     )
@@ -218,14 +218,14 @@ private fun CategoryChip(
 ) {
     Box(
         modifier = modifier
-            .clip(RoundedCornerShape(16.dp))
-            .background(Color.Black.copy(alpha = 0.45f))
-            .padding(horizontal = 12.dp, vertical = 6.dp),
+            .clip(MaterialTheme.shapes.medium)
+            .background(WeBeepTheme.colors.mediaScrim.copy(alpha = 0.45f))
+            .padding(horizontal = WeBeepSpacing.sm, vertical = 6.dp),
     ) {
         Text(
             text = category,
             style = MaterialTheme.typography.labelSmall,
-            color = Color.White.copy(alpha = 0.9f),
+            color = WeBeepTheme.colors.onMedia.copy(alpha = 0.9f),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
@@ -238,7 +238,7 @@ private fun CategoryChip(
 @Composable
 private fun CourseCardWithImagePreview() {
     WeBeepTheme(darkTheme = false) {
-        Box(modifier = Modifier.padding(16.dp)) {
+        Box(modifier = Modifier.padding(WeBeepSpacing.md)) {
             CourseCard(
                 course = CourseUiModel(
                     id = 1,
@@ -260,7 +260,7 @@ private fun CourseCardWithImagePreview() {
 @Composable
 private fun CourseCardGradientPreview() {
     WeBeepTheme(darkTheme = false) {
-        Box(modifier = Modifier.padding(16.dp)) {
+        Box(modifier = Modifier.padding(WeBeepSpacing.md)) {
             CourseCard(
                 course = CourseUiModel(
                     id = 2,
@@ -278,11 +278,11 @@ private fun CourseCardGradientPreview() {
     }
 }
 
-@Preview(showBackground = true, backgroundColor = 0xFF0D1117, name = "CourseCard – Dark")
+@Preview(showBackground = true, backgroundColor = 0xFF000000, name = "CourseCard – Dark")
 @Composable
 private fun CourseCardDarkPreview() {
     WeBeepTheme(darkTheme = true) {
-        Box(modifier = Modifier.padding(16.dp)) {
+        Box(modifier = Modifier.padding(WeBeepSpacing.md)) {
             CourseCard(
                 course = CourseUiModel(
                     id = 3,
