@@ -12,7 +12,7 @@ plugins {
 
 android {
     namespace = "it.polimi.webeep"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "io.github.alethegoat.webeep"
