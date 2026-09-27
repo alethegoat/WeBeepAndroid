@@ -3,8 +3,14 @@ updates:
   - package-ecosystem: "gradle"
     directory: "/"
     schedule:
-      interval: "weekly"
+      interval: "monthly"
     open-pull-requests-limit: 10
+    ignore:
+      # Major upgrades need a dedicated migration.
+      - dependency-name: "com.squareup.okhttp3:*"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "io.coil-kt:*"
+        update-types: ["version-update:semver-major"]
     groups:
       androidx:
         patterns:
@@ -17,4 +23,4 @@ updates:
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "weekly"
+      interval: "monthly"

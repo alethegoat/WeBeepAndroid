@@ -362,6 +362,7 @@ private fun ExternalFileContent(
     title: String
 ) {
     val context = LocalContext.current
+    val chooserTitle = stringResource(R.string.file_viewer_open_with)
 
     val launchIntent = {
         try {
@@ -374,7 +375,7 @@ private fun ExternalFileContent(
                 setDataAndType(uri, mimeType)
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }
-            context.startActivity(Intent.createChooser(intent, context.getString(R.string.file_viewer_open_with)))
+            context.startActivity(Intent.createChooser(intent, chooserTitle))
         } catch (_: Exception) {
             // handled by empty state
         }
