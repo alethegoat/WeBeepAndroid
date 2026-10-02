@@ -6,7 +6,6 @@ import it.polimi.webeep.core.network.dto.ModuleContentDto
 import it.polimi.webeep.feature.course.data.CourseContentMapper
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class CourseContentMapperTest {
@@ -53,16 +52,6 @@ class CourseContentMapperTest {
         assertEquals(1, files.size)
         assertEquals("slides.pdf", files.single().filename)
         assertFalse(files.any { it.filename.equals("index.html", ignoreCase = true) })
-    }
-
-    @Test
-    fun `fileKey includes stripped url filename and timeModified`() {
-        val url = "https://webeep.polimi.it/pluginfile.php/1/a.pdf?token=secret"
-        val first = CourseContentMapper.fileKey(url, "a.pdf", 100L)
-        val updated = CourseContentMapper.fileKey(url, "a.pdf", 200L)
-        assertTrue(first.contains("a.pdf"))
-        assertFalse(first.contains("token="))
-        assertTrue(first != updated)
     }
 
     @Test

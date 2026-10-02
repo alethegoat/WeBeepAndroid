@@ -11,6 +11,7 @@ import coil.ImageLoaderFactory
 import coil.disk.DiskCache
 import coil.memory.MemoryCache
 import it.polimi.webeep.core.datastore.TokenProvider
+import it.polimi.webeep.feature.sync.SyncNotifier
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -33,6 +34,7 @@ class WeBeepApplication : Application(), Configuration.Provider, ImageLoaderFact
 
     override fun onCreate() {
         super.onCreate()
+        SyncNotifier.createChannel(this)
         // Warm up the Keystore-backed session off the main thread, before the first frame needs it.
         appScope.launch { runCatching { tokenProvider.ensureLoaded() } }
     }

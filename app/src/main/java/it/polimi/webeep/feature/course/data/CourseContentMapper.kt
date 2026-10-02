@@ -151,10 +151,6 @@ object CourseContentMapper {
         )
     }
 
-    fun fileKey(fileUrl: String, filename: String, timeModified: Long? = null): String {
-        return "${MoodleFileUrlBuilder.stripAuthFromUrl(fileUrl)}_${filename}_${timeModified ?: 0L}"
-    }
-
     private fun isPhantomIndex(content: it.polimi.webeep.core.network.dto.ModuleContentDto): Boolean {
         return content.filename.equals("index.html", ignoreCase = true) &&
             (content.filesize <= 0L || content.fileurl.isNullOrBlank())

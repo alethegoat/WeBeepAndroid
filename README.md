@@ -27,7 +27,7 @@ WeBeep Android is a native application designed to make it easier for Politecnic
 
 - **Offline Support**: Courses, folders, and already-downloaded files stay on device for offline access.
 - **Background Sync**: WorkManager periodically refreshes course contents (Wi-Fi-only by default; interval is in Settings). New files are indexed and notified, not auto-downloaded.
-- **Notifications**: Alerts you when new files appear. Tapping the notification opens the course.
+- **Notifications**: Alerts you only about files that were added or updated since the last sync (one notification per course, grouped). Files are notified even if you already opened the course in the app, and an unread notification accumulates new files instead of being replaced. Tapping the notification opens the course.
 - **In-app viewers**: PDF (`PdfRenderer`), video/audio (Media3), images, and code, plus open-with for other types.
 - **Search**: Filter courses on the dashboard and materials inside a course.
 - **Polimi SSO**: Login via Chrome Custom Tabs using the official Politecnico authentication system. The access token lives in EncryptedSharedPreferences.
@@ -92,7 +92,7 @@ WeBeep Android è un'app nativa che semplifica l'accesso ai corsi di WeBeep per 
 
 - **Supporto Offline**: Corsi, cartelle e file già scaricati restano sul telefono senza rete.
 - **Sync in Background**: WorkManager aggiorna periodicamente i contenuti dei corsi (di default solo Wi-Fi; frequenza nelle Impostazioni). I file nuovi vengono indicizzati e notificati, non scaricati in automatico.
-- **Notifiche**: Avviso quando compaiono file nuovi. Il tap apre il corso.
+- **Notifiche**: Avviso solo per i file aggiunti o aggiornati dall'ultima sincronizzazione (una notifica per corso, raggruppate). I file vengono notificati anche se hai già aperto il corso nell'app, e una notifica non ancora letta accumula i nuovi file invece di essere sostituita. Il tap apre il corso.
 - **Viewer in-app**: PDF (`PdfRenderer`), video/audio (Media3), immagini e codice; il resto si apre con un'app esterna.
 - **Ricerca**: Filtra i corsi in dashboard e i materiali dentro un corso.
 - **Login ufficiale**: SSO Politecnico via Chrome Custom Tabs. Il token di accesso sta in EncryptedSharedPreferences.
