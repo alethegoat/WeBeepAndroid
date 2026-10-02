@@ -7,8 +7,6 @@
     <string name="app_theme">Tema dell\'app</string>
     <string name="update_frequency">Frequenza aggiornamenti</string>
     <string name="open_in_browser">Apri nel Browser</string>
-    <string name="sync_completed">Sono stati caricati %1$d nuovi file in totale.</string>
-    <string name="sync_summary">%1$d nuovi file</string>
     <string name="sync_more_files">+ altri %1$d file</string>
     <string name="empty_state">Nessun elemento disponibile</string>
     <string name="close">Chiudi</string>
@@ -89,8 +87,19 @@
     <string name="cd_error_retry">Errore. Riprova</string>
     <string name="cd_pdf_page">Pagina PDF %1$d</string>
     <string name="sync_channel_name">Nuovi Documenti WeBeep</string>
-    <string name="sync_channel_desc">Notifiche per i nuovi materiali caricati nei corsi</string>
-    <string name="sync_completed_title">Sincronizzazione completata</string>
+    <string name="sync_channel_desc">Notifiche per i file nuovi o aggiornati nei corsi</string>
+    <string name="sync_completed_title">Nuovi materiali su WeBeep</string>
+    <string name="sync_line_added">Nuovo: %1$s</string>
+    <string name="sync_line_updated">Aggiornato: %1$s</string>
+    <string name="sync_summary_line">%1$s — %2$s</string>
+    <plurals name="sync_new_files">
+        <item quantity="one">%d nuovo file</item>
+        <item quantity="other">%d nuovi file</item>
+    </plurals>
+    <plurals name="sync_updated_files">
+        <item quantity="one">%d file aggiornato</item>
+        <item quantity="other">%d file aggiornati</item>
+    </plurals>
     
     <string name="filter_active">In corso</string>
     <string name="filter_past">Passati</string>
