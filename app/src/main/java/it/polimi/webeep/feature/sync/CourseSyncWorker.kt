@@ -10,6 +10,7 @@ import dagger.assisted.AssistedInject
 import it.polimi.webeep.core.database.dao.CourseDao
 import it.polimi.webeep.core.datastore.TokenProvider
 import it.polimi.webeep.feature.course.domain.CourseRepository
+import it.polimi.webeep.feature.course.domain.model.Section
 import it.polimi.webeep.feature.dashboard.domain.DashboardRepository
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.async
@@ -29,7 +30,8 @@ class CourseSyncWorker @AssistedInject constructor(
     private val courseDao: CourseDao,
     private val courseRepository: CourseRepository,
     private val dashboardRepository: DashboardRepository,
-    private val tokenProvider: TokenProvider
+    private val tokenProvider: TokenProvider,
+    private val syncStateStore: SyncStateStore
 ) : CoroutineWorker(appContext, workerParams) {
 
     override suspend fun doWork(): Result {
@@ -48,7 +50,7 @@ class CourseSyncWorker @AssistedInject constructor(
                 return Result.success()
             }
 
-            val courseChanges = mutableListOf<SyncNotifier.CourseChanges>()
+            val courseChanges = mutableListOf<CourseChanges>()
             val hasErrors = AtomicBoolean(false)
             val syncedCourses = AtomicInteger(0)
             val courseSyncSemaphore = Semaphore(MAX_CONCURRENT_COURSE_SYNCS)
@@ -58,14 +60,14 @@ class CourseSyncWorker @AssistedInject constructor(
                     async {
                         courseSyncSemaphore.withPermit {
                             try {
-                                val previous = courseRepository.getCachedCourseContents(course.id).first()
+                                val cached = courseRepository.getCachedCourseContents(course.id).first()
                                 val current = courseRepository.getCourseContents(course.id).getOrThrow()
                                 syncedCourses.incrementAndGet()
 
-                                val changes = FileChangeDetector.detect(previous, current)
+                                val changes = recordSnapshot(course.id, cached, current)
                                 if (changes.isNotEmpty()) {
                                     synchronized(courseChanges) {
-                                        courseChanges.add(SyncNotifier.CourseChanges(course.id, course.fullname, changes))
+                                        courseChanges.add(CourseChanges(course.id, course.fullname, changes))
                                     }
                                 }
                             } catch (e: Exception) {
@@ -79,7 +81,11 @@ class CourseSyncWorker @AssistedInject constructor(
                 jobs.awaitAll()
             }
 
-            SyncNotifier.notify(appContext, courseChanges.sortedBy { it.courseName })
+            val enrolledIds = courses.map { it.id }.toSet()
+            syncStateStore.update { state ->
+                state.copy(snapshots = state.snapshots.filterKeys { it in enrolledIds }) to Unit
+            }
+            SyncNotifier.notify(appContext, syncStateStore, courseChanges.sortedBy { it.courseName })
 
             // Avoid retry loops: partial success is enough since the next
             // periodic run will pick up the rest. Retry only when nothing synced.
@@ -88,6 +94,24 @@ class CourseSyncWorker @AssistedInject constructor(
             if (e is CancellationException) throw e
             Log.e("CourseSyncWorker", "Fatal worker error type=${e::class.simpleName}")
             return Result.retry()
+        }
+    }
+
+    /**
+     * Diffs against the snapshot of the previous background sync and stores the new one.
+     * The content cache is only a fallback for courses synced before snapshots existed.
+     */
+    private suspend fun recordSnapshot(
+        courseId: Int,
+        cached: List<Section>,
+        current: List<Section>
+    ): List<FileChangeDetector.FileChange> {
+        val snapshot = FileChangeDetector.snapshot(current)
+        return syncStateStore.update { state ->
+            val baseline = state.snapshots[courseId]
+                ?: cached.takeIf { it.isNotEmpty() }?.let(FileChangeDetector::snapshot)
+            val changes = FileChangeDetector.detect(baseline, snapshot)
+            state.copy(snapshots = state.snapshots + (courseId to snapshot)) to changes
         }
     }
 

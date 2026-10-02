@@ -20,6 +20,8 @@ import it.polimi.webeep.feature.sync.FileChangeDetector.FileChange
 
 /**
  * Posts "new / updated files" notifications, one per course plus a group summary.
+ * Changes the user has not dismissed yet are carried over, so a later sync adds to a
+ * course notification instead of replacing what it listed.
  */
 object SyncNotifier {
 
@@ -28,8 +30,6 @@ object SyncNotifier {
     private const val SUMMARY_NOTIFICATION_ID = Int.MAX_VALUE
     private const val SUMMARY_REQUEST_CODE = -1
     private const val MAX_INBOX_LINES = 5
-
-    data class CourseChanges(val courseId: Int, val courseName: String, val changes: List<FileChange>)
 
     /** Safe to call repeatedly; registering early lets users tune the channel before the first alert. */
     fun createChannel(context: Context) {
@@ -43,25 +43,48 @@ object SyncNotifier {
         NotificationManagerCompat.from(context).createNotificationChannel(channel)
     }
 
-    fun notify(context: Context, courses: List<CourseChanges>) {
-        val toNotify = courses.filter { it.changes.isNotEmpty() }
-        if (toNotify.isEmpty() || !canPostNotifications(context)) return
+    suspend fun notify(context: Context, stateStore: SyncStateStore, fresh: List<CourseChanges>) {
+        val freshIds = fresh.filter { it.changes.isNotEmpty() }.map { it.courseId }.toSet()
+        if (freshIds.isEmpty() || !canPostNotifications(context)) return
 
         createChannel(context)
+        val activeIds = activeNotificationIds(context)
+        val shown = stateStore.update { state ->
+            val merged = SyncStateStore.mergePending(state.pending, activeIds, fresh)
+            state.copy(pending = merged) to merged
+        }
+
         val manager = NotificationManagerCompat.from(context)
-        val hasSummary = toNotify.size > 1
+        val hasSummary = shown.size > 1
         try {
-            toNotify.forEach { course ->
+            // Courses without news keep their current notification untouched (and silent).
+            shown.filter { it.courseId in freshIds }.forEach { course ->
                 manager.notify(course.courseId, buildCourseNotification(context, course, hasSummary))
             }
             if (hasSummary) {
-                manager.notify(SUMMARY_NOTIFICATION_ID, buildSummaryNotification(context, toNotify))
+                manager.notify(SUMMARY_NOTIFICATION_ID, buildSummaryNotification(context, shown))
+            } else {
+                manager.cancel(SUMMARY_NOTIFICATION_ID)
             }
         } catch (e: SecurityException) {
             // Permission revoked between the check and the post.
             Log.w("SyncNotifier", "Notification permission revoked type=${e::class.simpleName}")
         }
     }
+
+    /** Removes every sync notification, e.g. on logout so no course or file name is left behind. */
+    fun cancelAll(context: Context) {
+        val manager = NotificationManagerCompat.from(context)
+        activeNotificationIds(context).forEach { manager.cancel(it) }
+    }
+
+    private fun activeNotificationIds(context: Context): Set<Int> =
+        context.getSystemService(NotificationManager::class.java)
+            ?.activeNotifications
+            ?.filter { it.notification.channelId == CHANNEL_ID }
+            ?.map { it.id }
+            ?.toSet()
+            .orEmpty()
 
     private fun canPostNotifications(context: Context): Boolean {
         val permissionGranted = Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||

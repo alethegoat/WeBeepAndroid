@@ -15,14 +15,14 @@ class FileChangeDetectorTest {
     fun `first sync of a course reports nothing`() {
         val current = course(module(10, "folder", file("a.pdf", rev = 1, time = 100)))
 
-        assertTrue(FileChangeDetector.detect(previous = emptyList(), current = current).isEmpty())
+        assertTrue(FileChangeDetector.detect(previous = null, current = snap(current)).isEmpty())
     }
 
     @Test
     fun `unchanged course reports nothing`() {
         val snapshot = course(module(10, "resource", file("a.pdf", rev = 1, time = 100)))
 
-        assertTrue(FileChangeDetector.detect(snapshot, snapshot).isEmpty())
+        assertTrue(FileChangeDetector.detect(snap(snapshot), snap(snapshot)).isEmpty())
     }
 
     @Test
@@ -38,8 +38,8 @@ class FileChangeDetectorTest {
         )
 
         assertEquals(
-            listOf(FileChange("b.pdf", ChangeType.ADDED)),
-            FileChangeDetector.detect(previous, current)
+            listOf(FileChange(10, "/", "b.pdf", ChangeType.ADDED)),
+            FileChangeDetector.detect(snap(previous), snap(current))
         )
     }
 
@@ -49,8 +49,8 @@ class FileChangeDetectorTest {
         val current = course(module(10, "resource", file("a.pdf", rev = 2, time = 300)))
 
         assertEquals(
-            listOf(FileChange("a.pdf", ChangeType.UPDATED)),
-            FileChangeDetector.detect(previous, current)
+            listOf(FileChange(10, "/", "a.pdf", ChangeType.UPDATED)),
+            FileChangeDetector.detect(snap(previous), snap(current))
         )
     }
 
@@ -60,8 +60,8 @@ class FileChangeDetectorTest {
         val current = course(module(10, "resource", file("a.pdf", rev = 1, time = 0, size = 20)))
 
         assertEquals(
-            listOf(FileChange("a.pdf", ChangeType.UPDATED)),
-            FileChangeDetector.detect(previous, current)
+            listOf(FileChange(10, "/", "a.pdf", ChangeType.UPDATED)),
+            FileChangeDetector.detect(snap(previous), snap(current))
         )
     }
 
@@ -71,8 +71,8 @@ class FileChangeDetectorTest {
         val current = course(module(11, "resource", file("new.pdf", rev = 1, time = 100)))
 
         assertEquals(
-            listOf(FileChange("new.pdf", ChangeType.ADDED)),
-            FileChangeDetector.detect(emptySection, current)
+            listOf(FileChange(11, "/", "new.pdf", ChangeType.ADDED)),
+            FileChangeDetector.detect(snap(emptySection), snap(current))
         )
     }
 
@@ -81,8 +81,31 @@ class FileChangeDetectorTest {
         val previous = course(module(10, "resource", file("old.pdf", rev = 1, time = 100)))
         val current = course(module(20, "url", file("Recording", rev = 1, time = 0)))
 
-        assertTrue(FileChangeDetector.detect(previous, current).isEmpty())
+        assertTrue(FileChangeDetector.detect(snap(previous), snap(current)).isEmpty())
     }
+
+    @Test
+    fun `merge keeps unseen changes and lists newest first`() {
+        val older = listOf(change("a.pdf", ChangeType.ADDED), change("b.pdf", ChangeType.UPDATED))
+        val newer = listOf(change("c.pdf", ChangeType.ADDED))
+
+        assertEquals(
+            listOf(change("c.pdf", ChangeType.ADDED), change("a.pdf", ChangeType.ADDED), change("b.pdf", ChangeType.UPDATED)),
+            FileChangeDetector.mergeChanges(older, newer)
+        )
+    }
+
+    @Test
+    fun `merge keeps a file new when it is updated before being seen`() {
+        val older = listOf(change("a.pdf", ChangeType.ADDED))
+        val newer = listOf(change("a.pdf", ChangeType.UPDATED))
+
+        assertEquals(listOf(change("a.pdf", ChangeType.ADDED)), FileChangeDetector.mergeChanges(older, newer))
+    }
+
+    private fun change(name: String, type: ChangeType) = FileChange(10, "/", name, type)
+
+    private fun snap(sections: List<Section>) = FileChangeDetector.snapshot(sections)
 
     private fun course(vararg modules: Module) =
         listOf(Section(id = 1, name = "General", summary = null, sectionNumber = 0, modules = modules.toList()))

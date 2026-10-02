@@ -11,7 +11,9 @@ import it.polimi.webeep.core.network.MoodleFileUrlBuilder
 import it.polimi.webeep.core.network.dto.SiteInfoDto
 import it.polimi.webeep.feature.auth.domain.AuthRepository
 import it.polimi.webeep.feature.auth.domain.UserSession
+import it.polimi.webeep.feature.sync.SyncNotifier
 import it.polimi.webeep.feature.sync.SyncScheduler
+import it.polimi.webeep.feature.sync.SyncStateStore
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.sync.Mutex
@@ -25,6 +27,7 @@ class AuthRepositoryImpl @Inject constructor(
     private val tokenProvider: TokenProvider,
     private val application: Application,
     private val syncScheduler: SyncScheduler,
+    private val syncStateStore: SyncStateStore,
     private val weBeepDatabase: it.polimi.webeep.core.database.WeBeepDatabase,
     private val downloadRepository: it.polimi.webeep.feature.download.domain.DownloadRepository,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
@@ -70,7 +73,9 @@ class AuthRepositoryImpl @Inject constructor(
         withContext(ioDispatcher) {
             runCatching { weBeepDatabase.clearAllTables() }
             runCatching { downloadRepository.clearAllDownloads() }
+            runCatching { syncStateStore.clear() }
         }
+        SyncNotifier.cancelAll(application)
         withContext(mainDispatcher) {
             CookieManager.getInstance().removeAllCookies(null)
             CookieManager.getInstance().flush()
