@@ -1,8 +1,11 @@
 package it.polimi.webeep.feature.sync
 
+import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequest
+import androidx.work.PeriodicWorkRequest
 import androidx.work.WorkManager
+import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
@@ -36,7 +39,7 @@ class SyncSchedulerTest {
         every { settingsManager.syncFrequency } returns flowOf(SyncFrequency.ONE_HOUR)
         every { settingsManager.wifiOnlySync } returns flowOf(false)
         tokenProvider = mockk(relaxed = true)
-        every { tokenProvider.getTokenSync() } returns "token"
+        coEvery { tokenProvider.getToken() } returns "token"
         scheduler = SyncScheduler(settingsManager, tokenProvider) { workManager }
     }
 
@@ -58,12 +61,40 @@ class SyncSchedulerTest {
 
     @Test
     fun `immediate sync is skipped without a session`() = runTest {
-        every { tokenProvider.getTokenSync() } returns null
+        coEvery { tokenProvider.getToken() } returns null
 
         scheduler.enqueueImmediate()
 
         verify(exactly = 0) {
             workManager.enqueueUniqueWork(any<String>(), any(), any<OneTimeWorkRequest>())
+        }
+    }
+
+    @Test
+    fun `periodic sync is kept when the session is persisted but not cached in memory yet`() = runTest {
+        // Cold start: the in-memory token is not loaded yet, the persisted one exists.
+        every { tokenProvider.getTokenSync() } returns null
+
+        scheduler.applyCurrentSettings(replaceExisting = false)
+
+        verify(exactly = 0) { workManager.cancelUniqueWork(SyncScheduler.UNIQUE_PERIODIC_WORK) }
+        verify {
+            workManager.enqueueUniquePeriodicWork(
+                SyncScheduler.UNIQUE_PERIODIC_WORK,
+                ExistingPeriodicWorkPolicy.KEEP,
+                any<PeriodicWorkRequest>()
+            )
+        }
+    }
+
+    @Test
+    fun `manual check runs even when background sync is disabled`() = runTest {
+        every { settingsManager.syncFrequency } returns flowOf(SyncFrequency.NEVER)
+
+        scheduler.enqueueImmediate(manual = true)
+
+        verify {
+            workManager.enqueueUniqueWork(SyncScheduler.UNIQUE_ONE_SHOT_WORK, ExistingWorkPolicy.KEEP, any<OneTimeWorkRequest>())
         }
     }
 

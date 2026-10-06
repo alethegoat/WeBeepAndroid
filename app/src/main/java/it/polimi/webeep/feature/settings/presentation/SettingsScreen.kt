@@ -1,5 +1,6 @@
 package it.polimi.webeep.feature.settings.presentation
 
+import android.text.format.DateUtils
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -27,6 +28,7 @@ import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.ColorLens
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Language
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material3.AlertDialog
@@ -78,6 +80,8 @@ fun SettingsScreen(
     onLogoutSuccess: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val lastCheckAt by viewModel.lastCheckAt.collectAsStateWithLifecycle()
+    val checkInProgress by viewModel.checkInProgress.collectAsStateWithLifecycle()
     val scrollState = rememberScrollState()
 
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(rememberTopAppBarState())
@@ -210,6 +214,12 @@ fun SettingsScreen(
                 SyncFrequencyItem(
                     selectedFrequency = uiState.syncFrequency,
                     onFrequencySelected = { viewModel.setSyncFrequency(it) }
+                )
+
+                LastCheckItem(
+                    lastCheckAt = lastCheckAt,
+                    checkInProgress = checkInProgress,
+                    onCheckNow = viewModel::checkNow
                 )
             }
 
@@ -433,6 +443,54 @@ private fun SyncFrequencyItem(
                     }
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun LastCheckItem(
+    lastCheckAt: Long?,
+    checkInProgress: Boolean,
+    onCheckNow: () -> Unit
+) {
+    val status = when {
+        checkInProgress -> stringResource(R.string.settings_check_started)
+        lastCheckAt != null -> stringResource(
+            R.string.settings_last_check_at,
+            DateUtils.getRelativeTimeSpanString(lastCheckAt, System.currentTimeMillis(), DateUtils.MINUTE_IN_MILLIS)
+        )
+        else -> stringResource(R.string.settings_last_check_never)
+    }
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = WeBeepSpacing.md, end = WeBeepSpacing.xs, top = WeBeepSpacing.xs, bottom = WeBeepSpacing.xs),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = Icons.Default.Notifications,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Spacer(modifier = Modifier.width(WeBeepSpacing.md))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = stringResource(R.string.settings_last_check_title),
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = status,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        TextButton(
+            onClick = onCheckNow,
+            enabled = !checkInProgress,
+            modifier = Modifier.heightIn(min = WeBeepSpacing.touchTarget)
+        ) {
+            Text(stringResource(R.string.settings_check_now))
         }
     }
 }

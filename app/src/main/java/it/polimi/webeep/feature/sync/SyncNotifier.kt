@@ -43,16 +43,21 @@ object SyncNotifier {
         NotificationManagerCompat.from(context).createNotificationChannel(channel)
     }
 
-    suspend fun notify(context: Context, stateStore: SyncStateStore, fresh: List<CourseChanges>) {
-        val freshIds = fresh.filter { it.changes.isNotEmpty() }.map { it.courseId }.toSet()
-        if (freshIds.isEmpty() || !canPostNotifications(context)) return
+    /**
+     * Posts every change the sync detected but has not notified yet. When notifications cannot
+     * be shown the changes stay stored and are delivered by a later call.
+     */
+    suspend fun deliverPending(context: Context, stateStore: SyncStateStore) {
+        if (!canPostNotifications(context)) return
 
         createChannel(context)
         val activeIds = activeNotificationIds(context)
-        val shown = stateStore.update { state ->
-            val merged = SyncStateStore.mergePending(state.pending, activeIds, fresh)
-            state.copy(pending = merged) to merged
+        val (shown, freshIds) = stateStore.update { state ->
+            if (state.undelivered.isEmpty()) return@update state to (emptyList<CourseChanges>() to emptySet<Int>())
+            val merged = SyncStateStore.mergePending(state.pending, activeIds, state.undelivered)
+            state.copy(pending = merged, undelivered = emptyList()) to (merged to state.undelivered.map { it.courseId }.toSet())
         }
+        if (freshIds.isEmpty()) return
 
         val manager = NotificationManagerCompat.from(context)
         val hasSummary = shown.size > 1

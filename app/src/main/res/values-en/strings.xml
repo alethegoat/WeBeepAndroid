@@ -86,6 +86,11 @@
     <string name="cd_open_file">Open file</string>
     <string name="cd_error_retry">Error. Retry</string>
     <string name="cd_pdf_page">PDF Page %1$d</string>
+    <string name="settings_last_check_title">New files check</string>
+    <string name="settings_last_check_at">Last check: %1$s</string>
+    <string name="settings_last_check_never">No check completed yet</string>
+    <string name="settings_check_started">Checking…</string>
+    <string name="settings_check_now">Check now</string>
     <string name="sync_channel_name">New WeBeep Documents</string>
     <string name="sync_channel_desc">Notifications for new or updated files in courses</string>
     <string name="sync_completed_title">New materials on WeBeep</string>
