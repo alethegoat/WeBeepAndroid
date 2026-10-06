@@ -34,7 +34,7 @@ class SyncScheduler internal constructor(
         get() = workManagerProvider()
 
     suspend fun applyCurrentSettings(replaceExisting: Boolean = true) {
-        if (tokenProvider.getTokenSync().isNullOrBlank()) {
+        if (!hasSession()) {
             cancelAll()
             return
         }
@@ -70,9 +70,12 @@ class SyncScheduler internal constructor(
         workManager.enqueueUniquePeriodicWork(UNIQUE_PERIODIC_WORK, policy, request)
     }
 
-    suspend fun enqueueImmediate() {
-        if (tokenProvider.getTokenSync().isNullOrBlank()) return
-        if (settingsManager.syncFrequency.first() == SyncFrequency.NEVER) return
+    /**
+     * @param manual the user asked for a check, so it runs even with background sync disabled.
+     */
+    suspend fun enqueueImmediate(manual: Boolean = false) {
+        if (!hasSession()) return
+        if (!manual && settingsManager.syncFrequency.first() == SyncFrequency.NEVER) return
 
         val request = OneTimeWorkRequestBuilder<CourseSyncWorker>()
             .setConstraints(networkConstraints())
@@ -94,6 +97,12 @@ class SyncScheduler internal constructor(
         workManager.cancelUniqueWork(UNIQUE_PERIODIC_WORK)
         workManager.cancelUniqueWork(UNIQUE_ONE_SHOT_WORK)
     }
+
+    /**
+     * Reads the persisted session, not the in-memory cache: right after a cold start the cache is
+     * still empty, and treating that as "logged out" used to cancel the periodic sync.
+     */
+    private suspend fun hasSession(): Boolean = !tokenProvider.getToken().isNullOrBlank()
 
     private suspend fun networkConstraints(): Constraints {
         val wifiOnly = settingsManager.wifiOnlySync.first()
