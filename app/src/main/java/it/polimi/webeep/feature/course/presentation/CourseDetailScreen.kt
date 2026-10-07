@@ -1,9 +1,11 @@
 package it.polimi.webeep.feature.course.presentation
 
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -67,6 +69,8 @@ fun CourseDetailScreen(
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val expandedFolders by viewModel.expandedFolders.collectAsStateWithLifecycle()
+    val reduceMotion = LocalReduceMotion.current
     val lazyListState = rememberLazyListState()
     val keyboard = LocalSoftwareKeyboardController.current
     var searchQuery by rememberSaveable { mutableStateOf("") }
@@ -98,7 +102,8 @@ fun CourseDetailScreen(
     val isSuccess = uiState is CourseDetailUiState.Success
 
     Scaffold(
-        modifier = modifier,
+        // One stable container for the card -> screen transform, whatever the state.
+        modifier = modifier.courseSharedBounds(viewModel.courseId),
         containerColor = Color.Transparent,
         topBar = {
             CourseTopBar(
@@ -109,14 +114,19 @@ fun CourseDetailScreen(
             )
         }
     ) { innerPadding ->
-        Box(modifier = Modifier.fillMaxSize()) {
-            when (val state = uiState) {
+        AnimatedContent(
+            targetState = uiState,
+            contentKey = { it::class },
+            transitionSpec = {
+                fadeIn(WeBeepMotion.enter(reduceMotion = reduceMotion)) togetherWith
+                    fadeOut(WeBeepMotion.exit(reduceMotion = reduceMotion))
+            },
+            label = "course_state",
+            modifier = Modifier.fillMaxSize()
+        ) { state ->
+            when (state) {
                 is CourseDetailUiState.Loading -> {
-                    Column(
-                        modifier = Modifier
-                            .padding(top = innerPadding.calculateTopPadding())
-                            .courseSharedBounds(viewModel.courseId)
-                    ) {
+                    Column(modifier = Modifier.padding(top = innerPadding.calculateTopPadding())) {
                         ShimmerCourseList()
                     }
                 }
@@ -127,14 +137,13 @@ fun CourseDetailScreen(
                             title = stringResource(R.string.course_empty_title),
                             subtitle = stringResource(R.string.course_empty_subtitle),
                             actionLabel = stringResource(R.string.refresh),
-                            onAction = { viewModel.loadContents() },
-                            modifier = Modifier.courseSharedBounds(viewModel.courseId)
+                            onAction = { viewModel.loadContents() }
                         )
                     } else {
                         CourseContentList(
                             state = state,
                             courseTitle = courseTitle,
-                            courseId = viewModel.courseId,
+                            expandedFolders = expandedFolders,
                             searchQuery = searchQuery,
                             onSearchQueryChange = { searchQuery = it },
                             lazyListState = lazyListState,
@@ -143,6 +152,7 @@ fun CourseDetailScreen(
                                 bottom = innerPadding.calculateBottomPadding() + WeBeepSpacing.lg
                             ),
                             onToggleSection = { viewModel.toggleSection(it) },
+                            onToggleFolder = viewModel::toggleFolder,
                             onPreviewFile = onPreviewFile,
                             onDownloadFile = { viewModel.downloadFile(it) },
                             onOpenFile = { viewModel.openFile(it) }
@@ -218,18 +228,23 @@ private fun CourseTopBar(
 private fun CourseContentList(
     state: CourseDetailUiState.Success,
     courseTitle: CourseTitle,
-    courseId: Int,
+    expandedFolders: Set<String>,
     searchQuery: String,
     onSearchQueryChange: (String) -> Unit,
     lazyListState: LazyListState,
     contentPadding: PaddingValues,
     onToggleSection: (Int) -> Unit,
+    onToggleFolder: (String) -> Unit,
     onPreviewFile: (FileUiModel) -> Unit,
     onDownloadFile: (FileUiModel) -> Unit,
     onOpenFile: (FileUiModel) -> Unit
 ) {
     val visibleSections = remember(state.sections, searchQuery) {
         filterSections(state.sections, searchQuery)
+    }
+    // While searching, folders leading to a match open on their own.
+    val openFolders = remember(visibleSections, expandedFolders, searchQuery) {
+        expandedFolders + foldersWithMatches(visibleSections, searchQuery)
     }
     Box(
         modifier = Modifier.fillMaxSize(),
@@ -249,7 +264,6 @@ private fun CourseContentList(
                     modifier = Modifier
                         .padding(horizontal = WeBeepSpacing.md)
                         .padding(top = WeBeepSpacing.xs)
-                        .courseSharedBounds(courseId)
                 )
             }
             item(key = "course_search", contentType = "course_search") {
@@ -284,7 +298,9 @@ private fun CourseContentList(
                 ) { section ->
                     SectionCard(
                         section = section,
+                        expandedFolders = openFolders,
                         onHeaderClick = { onToggleSection(section.id) },
+                        onToggleFolder = onToggleFolder,
                         onPreviewClick = onPreviewFile,
                         onDownloadClick = onDownloadFile,
                         onOpenClick = onOpenFile

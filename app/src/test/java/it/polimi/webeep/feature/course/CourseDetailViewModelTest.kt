@@ -165,6 +165,18 @@ class CourseDetailViewModelTest {
     }
 
     @Test
+    fun `toggleFolder opens and closes a folder and survives in saved state`() = runTest {
+        initViewModel()
+
+        viewModel.toggleFolder("101:")
+        assertEquals(setOf("101:"), viewModel.expandedFolders.value)
+        assertEquals(arrayListOf("101:"), savedStateHandle.get<ArrayList<String>>("expandedFolders"))
+
+        viewModel.toggleFolder("101:")
+        assertTrue(viewModel.expandedFolders.value.isEmpty())
+    }
+
+    @Test
     fun `file size formatting is correct`() = runTest {
         initViewModel()
 

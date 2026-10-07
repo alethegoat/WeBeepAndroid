@@ -15,12 +15,15 @@ sealed class Screen(val route: String) {
         fun createRoute(courseId: Int) = "course/$courseId"
     }
 
-    data object FileViewer : Screen("fileViewer?url={url}&title={title}&mimeType={mimeType}") {
+    data object FileViewer : Screen("fileViewer?url={url}&title={title}&mimeType={mimeType}&courseId={courseId}") {
         const val URL_ARG = "url"
         const val TITLE_ARG = "title"
         const val MIME_TYPE_ARG = "mimeType"
+        const val COURSE_ID_ARG = "courseId"
+        const val NO_COURSE = -1
 
-        fun createRoute(url: String, title: String, mimeType: String?) =
-            "fileViewer?url=${Uri.encode(url)}&title=${Uri.encode(title)}&mimeType=${Uri.encode(mimeType.orEmpty())}"
+        fun createRoute(url: String, title: String, mimeType: String?, courseId: Int = NO_COURSE) =
+            "fileViewer?url=${Uri.encode(url)}&title=${Uri.encode(title)}" +
+                "&mimeType=${Uri.encode(mimeType.orEmpty())}&courseId=$courseId"
     }
 }

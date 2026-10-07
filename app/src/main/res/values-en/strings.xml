@@ -51,6 +51,17 @@
     <string name="file_viewer_external_title">External File</string>
     <string name="file_viewer_external_subtitle">This file opens in an external application.</string>
     <string name="file_viewer_open_again">Open again</string>
+    <string name="file_viewer_download_progress">%1$s of %2$s</string>
+    <string name="file_viewer_position">%1$d of %2$d</string>
+    <string name="file_viewer_share">Share</string>
+    <string name="file_viewer_share_chooser">Share file</string>
+    <string name="file_viewer_download">Download</string>
+    <string name="file_viewer_downloaded">Downloaded</string>
+    <string name="file_viewer_more_options">More options</string>
+    <string name="file_viewer_go_to_page">Go to page</string>
+    <string name="file_viewer_page_hint">Page (1–%1$d)</string>
+    <string name="file_viewer_go">Go</string>
+    <string name="cancel">Cancel</string>
     
     <plurals name="downloaded_files_count">
         <item quantity="one">%d downloaded file</item>

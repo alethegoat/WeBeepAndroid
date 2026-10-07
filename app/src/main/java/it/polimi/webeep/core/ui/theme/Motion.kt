@@ -19,6 +19,12 @@ object WeBeepMotion {
     const val MediumMs = 280
     const val LongMs = 420
 
+    /** Material 3 shared-axis / fade-through: outgoing fades first, incoming follows. */
+    const val TransitionMs = 300
+    const val TransitionOutMs = 90
+    const val TransitionInMs = TransitionMs - TransitionOutMs
+    const val SharedAxisOffsetDp = 30
+
     fun duration(ms: Int, reduceMotion: Boolean): Int = if (reduceMotion) 0 else ms
 
     fun <T> enter(durationMs: Int = MediumMs, reduceMotion: Boolean = false) =

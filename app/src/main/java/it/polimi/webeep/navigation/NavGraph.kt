@@ -2,20 +2,22 @@
 
 package it.polimi.webeep.navigation
 
-import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.browser.customtabs.CustomTabsIntent
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionLayout
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import it.polimi.webeep.core.ui.theme.WeBeepMotion
 import it.polimi.webeep.core.ui.util.LocalNavAnimatedVisibilityScope
 import it.polimi.webeep.core.ui.util.LocalNavSharedTransitionScope
 import it.polimi.webeep.core.ui.util.LocalReduceMotion
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.dp
+import androidx.core.net.toUri
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -43,54 +45,27 @@ fun NavGraph(
     navController: NavHostController = rememberNavController()
 ) {
     val reduceMotion = LocalReduceMotion.current
+    val context = LocalContext.current
+    val sharedAxisOffsetPx = with(LocalDensity.current) { WeBeepMotion.SharedAxisOffsetDp.dp.roundToPx() }
+    val transitions = remember(sharedAxisOffsetPx, reduceMotion) {
+        NavTransitions(sharedAxisOffsetPx, reduceMotion)
+    }
     SharedTransitionLayout(modifier = modifier) {
         CompositionLocalProvider(LocalNavSharedTransitionScope provides this) {
     NavHost(
         navController = navController,
         startDestination = startDestination,
         enterTransition = {
-            when {
-                reduceMotion -> fadeIn(animationSpec = WeBeepMotion.enter(durationMs = 0, reduceMotion = true))
-                isCourseListTransform() -> fadeIn(animationSpec = WeBeepMotion.enter())
-                else -> slideIntoContainer(
-                    AnimatedContentTransitionScope.SlideDirection.Left,
-                    animationSpec = WeBeepMotion.enter(),
-                    initialOffset = { it / 6 }
-                ) + fadeIn(animationSpec = WeBeepMotion.enter())
-            }
+            transitions.enter(initialState.destination.route, targetState.destination.route, pop = false)
         },
         exitTransition = {
-            when {
-                reduceMotion -> fadeOut(animationSpec = WeBeepMotion.exit(durationMs = 0, reduceMotion = true))
-                isCourseListTransform() -> fadeOut(animationSpec = WeBeepMotion.exit())
-                else -> slideOutOfContainer(
-                    AnimatedContentTransitionScope.SlideDirection.Left,
-                    animationSpec = WeBeepMotion.exit(),
-                    targetOffset = { it / 10 }
-                ) + fadeOut(animationSpec = WeBeepMotion.exit())
-            }
+            transitions.exit(initialState.destination.route, targetState.destination.route, pop = false)
         },
         popEnterTransition = {
-            when {
-                reduceMotion -> fadeIn(animationSpec = WeBeepMotion.enter(durationMs = 0, reduceMotion = true))
-                isCourseListTransform() -> fadeIn(animationSpec = WeBeepMotion.enter())
-                else -> slideIntoContainer(
-                    AnimatedContentTransitionScope.SlideDirection.Right,
-                    animationSpec = WeBeepMotion.enter(),
-                    initialOffset = { it / 6 }
-                ) + fadeIn(animationSpec = WeBeepMotion.enter())
-            }
+            transitions.enter(initialState.destination.route, targetState.destination.route, pop = true)
         },
         popExitTransition = {
-            when {
-                reduceMotion -> fadeOut(animationSpec = WeBeepMotion.exit(durationMs = 0, reduceMotion = true))
-                isCourseListTransform() -> fadeOut(animationSpec = WeBeepMotion.exit())
-                else -> slideOutOfContainer(
-                    AnimatedContentTransitionScope.SlideDirection.Right,
-                    animationSpec = WeBeepMotion.exit(),
-                    targetOffset = { it / 10 }
-                ) + fadeOut(animationSpec = WeBeepMotion.exit())
-            }
+            transitions.exit(initialState.destination.route, targetState.destination.route, pop = true)
         }
     ) {
         composable(route = Screen.Login.route) {
@@ -134,13 +109,20 @@ fun NavGraph(
                 CourseDetailScreen(
                     viewModel = viewModel,
                     onPreviewFile = { file ->
-                        navController.navigate(
-                            Screen.FileViewer.createRoute(
-                                url = MoodleFileUrlBuilder.stripAuthFromUrl(file.fileUrl),
-                                title = file.filename,
-                                mimeType = file.mimeType
+                        val url = MoodleFileUrlBuilder.stripAuthFromUrl(file.fileUrl)
+                        if (MoodleFileUrlBuilder.isExternalWebLink(url)) {
+                            // Straight to the Custom Tab: no viewer flash on the way.
+                            CustomTabsIntent.Builder().build().launchUrl(context, url.toUri())
+                        } else {
+                            navController.navigate(
+                                Screen.FileViewer.createRoute(
+                                    url = url,
+                                    title = file.filename,
+                                    mimeType = file.mimeType,
+                                    courseId = viewModel.courseId
+                                )
                             )
-                        )
+                        }
                     },
                     onBackClick = {
                         navController.navigateUp()
@@ -164,6 +146,10 @@ fun NavGraph(
                     type = NavType.StringType
                     nullable = true
                     defaultValue = null
+                },
+                navArgument(Screen.FileViewer.COURSE_ID_ARG) {
+                    type = NavType.IntType
+                    defaultValue = Screen.FileViewer.NO_COURSE
                 }
             )
         ) {
@@ -176,13 +162,6 @@ fun NavGraph(
     }
         }
     }
-}
-
-private fun AnimatedContentTransitionScope<NavBackStackEntry>.isCourseListTransform(): Boolean {
-    val from = initialState.destination.route
-    val to = targetState.destination.route
-    return (from == Screen.Dashboard.route && to == Screen.CourseDetail.route) ||
-        (from == Screen.CourseDetail.route && to == Screen.Dashboard.route)
 }
 
 /**

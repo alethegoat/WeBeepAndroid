@@ -28,6 +28,13 @@ object MoodleFileUrlBuilder {
         return uri.scheme.equals("https", ignoreCase = true) && isTrustedHost(uri.host)
     }
 
+    /** http(s) link that is not a WeBeep pluginfile: opened in a Custom Tab, never in-app. */
+    fun isExternalWebLink(url: String): Boolean {
+        val lowerUrl = url.lowercase()
+        val isHttp = lowerUrl.startsWith("http://") || lowerUrl.startsWith("https://")
+        return isHttp && !lowerUrl.contains("pluginfile.php")
+    }
+
     fun buildAuthenticatedUrl(url: String, token: String): String {
         val normalizedUrl = normalizePluginFileUrl(url)
         if (AUTH_TOKEN_QUERY_REGEX.containsMatchIn(normalizedUrl)) {

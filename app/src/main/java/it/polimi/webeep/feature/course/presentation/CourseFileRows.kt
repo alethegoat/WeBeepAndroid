@@ -35,7 +35,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.snapshots.SnapshotStateMap
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -300,7 +299,9 @@ internal fun buildFolderTree(files: List<FileUiModel>): FolderNode {
 @Composable
 internal fun FolderTreeView(
     node: FolderNode,
-    expandedFolders: SnapshotStateMap<String, Boolean>,
+    moduleId: Int,
+    expandedFolders: Set<String>,
+    onToggleFolder: (String) -> Unit,
     depth: Int,
     onPreviewClick: (FileUiModel) -> Unit,
     onDownloadClick: (FileUiModel) -> Unit,
@@ -319,7 +320,9 @@ internal fun FolderTreeView(
     sortedSubfolders.forEach { subNode ->
         SubfolderItem(
             node = subNode,
+            moduleId = moduleId,
             expandedFolders = expandedFolders,
+            onToggleFolder = onToggleFolder,
             depth = depth,
             onPreviewClick = onPreviewClick,
             onDownloadClick = onDownloadClick,
@@ -331,19 +334,22 @@ internal fun FolderTreeView(
 @Composable
 private fun SubfolderItem(
     node: FolderNode,
-    expandedFolders: SnapshotStateMap<String, Boolean>,
+    moduleId: Int,
+    expandedFolders: Set<String>,
+    onToggleFolder: (String) -> Unit,
     depth: Int,
     onPreviewClick: (FileUiModel) -> Unit,
     onDownloadClick: (FileUiModel) -> Unit,
     onOpenClick: (FileUiModel) -> Unit
 ) {
     val reduceMotion = LocalReduceMotion.current
-    val isExpanded = expandedFolders[node.fullPath] ?: false
+    val key = folderKey(moduleId, node.fullPath)
+    val isExpanded = key in expandedFolders
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
-            .bouncyClickable { expandedFolders[node.fullPath] = !isExpanded }
+            .bouncyClickable { onToggleFolder(key) }
             .padding(
                 start = WeBeepSpacing.md + indentFor(depth),
                 end = WeBeepSpacing.xxs,
@@ -371,7 +377,9 @@ private fun SubfolderItem(
         Column(modifier = Modifier.fillMaxWidth()) {
             FolderTreeView(
                 node = node,
+                moduleId = moduleId,
                 expandedFolders = expandedFolders,
+                onToggleFolder = onToggleFolder,
                 depth = depth + 1,
                 onPreviewClick = onPreviewClick,
                 onDownloadClick = onDownloadClick,

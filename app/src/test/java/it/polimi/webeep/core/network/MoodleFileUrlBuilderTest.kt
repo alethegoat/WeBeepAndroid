@@ -92,4 +92,16 @@ class MoodleFileUrlBuilderTest {
         assertFalse(MoodleFileUrlBuilder.isTrustedHost("attackerpolimi.it"))
         assertFalse(MoodleFileUrlBuilder.isTrustedHost("evil.polimi.it"))
     }
+
+    @Test
+    fun `isExternalWebLink is true only for http links that are not trusted pluginfiles`() {
+        assertTrue(MoodleFileUrlBuilder.isExternalWebLink("https://example.com/slides"))
+        assertTrue(MoodleFileUrlBuilder.isExternalWebLink("https://webeep.polimi.it/mod/url/view.php?id=1"))
+        assertFalse(
+            MoodleFileUrlBuilder.isExternalWebLink(
+                "https://webeep.polimi.it/pluginfile.php/123/mod_resource/content/1/file.pdf"
+            )
+        )
+        assertFalse(MoodleFileUrlBuilder.isExternalWebLink("mailto:someone@polimi.it"))
+    }
 }

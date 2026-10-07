@@ -13,6 +13,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -44,7 +46,8 @@ import it.polimi.webeep.core.ui.theme.WeBeepTheme
 fun MediaViewer(
     url: String,
     callFactory: Call.Factory,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    isCurrentPage: Boolean = true
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -85,12 +88,19 @@ fun MediaViewer(
             }
     }
 
+    val isCurrent by rememberUpdatedState(isCurrentPage)
+
+    // Swiping to another file pauses playback right away.
+    LaunchedEffect(isCurrentPage) {
+        if (!isCurrentPage) exoPlayer.pause()
+    }
+
     DisposableEffect(lifecycleOwner, exoPlayer) {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
                 Lifecycle.Event.ON_PAUSE -> exoPlayer.pause()
                 Lifecycle.Event.ON_RESUME -> {
-                    if (!userPaused.get()) {
+                    if (!userPaused.get() && isCurrent) {
                         exoPlayer.play()
                     }
                 }
