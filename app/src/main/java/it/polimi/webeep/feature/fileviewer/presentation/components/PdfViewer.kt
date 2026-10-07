@@ -5,6 +5,29 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.pdf.PdfRenderer
 import android.os.ParcelFileDescriptor
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.ScrollableDefaults
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.TextButton
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
+import it.polimi.webeep.core.ui.theme.WeBeepMotion
+import it.polimi.webeep.core.ui.util.LocalReduceMotion
+import it.polimi.webeep.core.ui.util.rememberZoomState
+import it.polimi.webeep.core.ui.util.zoomable
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -78,8 +101,10 @@ fun PdfViewer(
     file: File,
     pageCount: Int,
     modifier: Modifier = Modifier,
+    contentPadding: PaddingValues = PaddingValues(),
     ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
-    onToggleFullScreen: () -> Unit = {}
+    onToggleFullScreen: () -> Unit = {},
+    onZoomedChange: (Boolean) -> Unit = {}
 ) {
     val pdfMutex = remember { Mutex() }
 
@@ -144,11 +169,18 @@ fun PdfViewer(
             pdfMutex = pdfMutex,
             ioDispatcher = ioDispatcher,
             onToggleFullScreen = onToggleFullScreen,
+            onZoomedChange = onZoomedChange,
+            contentPadding = contentPadding,
             modifier = modifier
         )
     }
 }
 
+/**
+ * Continuous page list. Pinch zooms around the fingers; while zoomed, vertical
+ * pan past the page edge keeps scrolling through pages. [contentPadding] keeps
+ * the first page clear of the overlaid top bar without moving when it hides.
+ */
 @Composable
 private fun PdfPages(
     pdfRenderer: PdfRenderer,
@@ -159,15 +191,19 @@ private fun PdfPages(
     pdfMutex: Mutex,
     ioDispatcher: CoroutineDispatcher,
     onToggleFullScreen: () -> Unit,
+    onZoomedChange: (Boolean) -> Unit,
+    contentPadding: PaddingValues,
     modifier: Modifier = Modifier
 ) {
-    var scale by remember { mutableStateOf(1f) }
-    var offsetX by remember { mutableStateOf(0f) }
-    var offsetY by remember { mutableStateOf(0f) }
-
     val coroutineScope = rememberCoroutineScope()
+    val reduceMotion = LocalReduceMotion.current
+    val zoomState = rememberZoomState()
 
+    // rememberLazyListState is saveable: the page survives rotation.
     val lazyListState = rememberLazyListState()
+    val flingBehavior = ScrollableDefaults.flingBehavior()
+
+    LaunchedEffect(zoomState.isZoomed) { onZoomedChange(zoomState.isZoomed) }
 
     val currentPage by remember {
         derivedStateOf {
@@ -186,16 +222,6 @@ private fun PdfPages(
         }
     }
 
-    var isIndicatorVisible by remember { mutableStateOf(false) }
-    LaunchedEffect(lazyListState.isScrollInProgress, currentPage) {
-        if (lazyListState.isScrollInProgress) {
-            isIndicatorVisible = true
-        } else {
-            kotlinx.coroutines.delay(1500)
-            isIndicatorVisible = false
-        }
-    }
-
     // Prefetch neighbours of the current page.
     LaunchedEffect(currentPage) {
         val pagesToFetch = listOf(currentPage + 1, currentPage - 1).filter { it in 0 until pageCount }
@@ -206,17 +232,7 @@ private fun PdfPages(
                     pdfMutex.withLock {
                         if (memoryCache.get(fastKey) != null || !isActive) return@withLock
                         try {
-                            val page = pdfRenderer.openPage(pageIndex)
-                            try {
-                                val renderScale = FAST_WIDTH.toFloat() / page.width.toFloat()
-                                val height = (page.height * renderScale).roundToInt().coerceAtLeast(1)
-                                val bmp = Bitmap.createBitmap(FAST_WIDTH, height, Bitmap.Config.ARGB_8888)
-                                bmp.eraseColor(Color.WHITE)
-                                page.render(bmp, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
-                                memoryCache.put(fastKey, bmp)
-                            } finally {
-                                page.close()
-                            }
+                            memoryCache.put(fastKey, renderPage(pdfRenderer, pageIndex, FAST_WIDTH).first)
                         } catch (e: Exception) {
                             if (e is CancellationException) throw e
                         }
@@ -226,36 +242,18 @@ private fun PdfPages(
         }
     }
 
+    var showGoToPage by remember { mutableStateOf(false) }
+
     Box(
         modifier = modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.surfaceContainerHighest)
-            .pointerInput(Unit) {
+            .pointerInput(zoomState) {
                 detectTapGestures(
                     onTap = { onToggleFullScreen() },
-                    onDoubleTap = { tapOffset ->
-                        val targetScale = if (scale > 1f) 1f else 3f
-                        val center = Offset(size.width / 2f, size.height / 2f)
-                        val relativeTap = tapOffset - center
-                        val maxX = (size.width * (targetScale - 1f)) / 2f
-                        val maxY = (size.height * (targetScale - 1f)) / 2f
-                        val targetOffsetX = if (targetScale == 1f) 0f else (-relativeTap.x * (targetScale - 1f)).coerceIn(-maxX, maxX)
-                        val targetOffsetY = if (targetScale == 1f) 0f else (-relativeTap.y * (targetScale - 1f)).coerceIn(-maxY, maxY)
-
+                    onDoubleTap = { tap ->
                         coroutineScope.launch {
-                            val startScale = scale
-                            val startOffsetX = offsetX
-                            val startOffsetY = offsetY
-
-                            animate(
-                                initialValue = 0f,
-                                targetValue = 1f,
-                                animationSpec = tween(durationMillis = 300)
-                            ) { progress, _ ->
-                                scale = startScale + (targetScale - startScale) * progress
-                                offsetX = startOffsetX + (targetOffsetX - startOffsetX) * progress
-                                offsetY = startOffsetY + (targetOffsetY - startOffsetY) * progress
-                            }
+                            zoomState.toggleZoom(tap, WeBeepMotion.smooth(reduceMotion = reduceMotion))
                         }
                     }
                 )
@@ -263,70 +261,32 @@ private fun PdfPages(
     ) {
         LazyColumn(
             state = lazyListState,
-            userScrollEnabled = scale <= 1f,
+            contentPadding = PaddingValues(
+                start = WeBeepSpacing.xs,
+                end = WeBeepSpacing.xs,
+                top = contentPadding.calculateTopPadding() + WeBeepSpacing.xs,
+                bottom = contentPadding.calculateBottomPadding() + PageIndicatorClearance
+            ),
+            verticalArrangement = Arrangement.spacedBy(WeBeepSpacing.xs),
             modifier = Modifier
                 .fillMaxSize()
-                // Multi-touch zooms/pans; single-finger drags fall through to the LazyColumn.
-                .pointerInput(Unit) {
-                    awaitEachGesture {
-                        awaitFirstDown(requireUnconsumed = false)
-
-                        do {
-                            val event = awaitPointerEvent()
-                            val pointers = event.changes.filter { it.pressed }
-
-                            if (pointers.size >= 2) {
-                                val zoom = event.calculateZoom()
-                                val pan = event.calculatePan()
-
-                                scale = (scale * zoom).coerceIn(1f, 5f)
-
-                                if (scale > 1f) {
-                                    val maxX = (size.width * (scale - 1)) / 2
-                                    val maxY = (size.height * (scale - 1)) / 2
-                                    offsetX = (offsetX + pan.x).coerceIn(-maxX.toFloat(), maxX.toFloat())
-                                    offsetY = (offsetY + pan.y).coerceIn(-maxY.toFloat(), maxY.toFloat())
-                                } else {
-                                    offsetX = 0f
-                                    offsetY = 0f
-                                }
-
-                                // Consume so the LazyColumn doesn't steal the gesture.
-                                event.changes.forEach { change ->
-                                    if (change.positionChanged()) {
-                                        change.consume()
-                                    }
-                                }
-                            } else if (pointers.size == 1 && scale > 1f) {
-                                // Pan the zoomed page with one finger.
-                                val pan = event.calculatePan()
-                                val maxX = (size.width * (scale - 1)) / 2
-                                val maxY = (size.height * (scale - 1)) / 2
-                                offsetX = (offsetX + pan.x).coerceIn(-maxX.toFloat(), maxX.toFloat())
-                                offsetY = (offsetY + pan.y).coerceIn(-maxY.toFloat(), maxY.toFloat())
-
-                                event.changes.forEach { change ->
-                                    if (change.positionChanged()) {
-                                        change.consume()
-                                    }
-                                }
+                .zoomable(
+                    state = zoomState,
+                    onVerticalOverflow = { dy -> lazyListState.dispatchRawDelta(-dy) },
+                    onVerticalFling = { velocityY ->
+                        coroutineScope.launch {
+                            lazyListState.scroll {
+                                with(flingBehavior) { performFling(-velocityY) }
                             }
-                            // At scale 1f consume nothing: the LazyColumn scrolls.
-                        } while (event.changes.any { it.pressed })
+                        }
                     }
-                }
-                .graphicsLayer(
-                    scaleX = scale,
-                    scaleY = scale,
-                    translationX = offsetX,
-                    translationY = offsetY
                 )
         ) {
-            itemsIndexed(
-                items = List(pageCount) { it },
-                key = { _, index -> index },
-                contentType = { _, _ -> "pdf_page" }
-            ) { _, pageIndex ->
+            items(
+                count = pageCount,
+                key = { index -> index },
+                contentType = { "pdf_page" }
+            ) { pageIndex ->
                 PdfPageItem(
                     pdfRenderer = pdfRenderer,
                     pageIndex = pageIndex,
@@ -339,28 +299,100 @@ private fun PdfPages(
             }
         }
 
-        AnimatedVisibility(
-            visible = isIndicatorVisible,
-            enter = fadeIn(animationSpec = tween(300)),
-            exit = fadeOut(animationSpec = tween(500)),
+        // Always visible (dimmed at rest) so it can be tapped to jump to a page.
+        val indicatorAlpha by animateFloatAsState(
+            targetValue = if (lazyListState.isScrollInProgress) 1f else IdleIndicatorAlpha,
+            animationSpec = WeBeepMotion.smooth(reduceMotion = reduceMotion),
+            label = "page_indicator_alpha"
+        )
+        Surface(
+            shape = CircleShape,
+            color = WeBeepTheme.colors.mediaScrim.copy(alpha = 0.65f),
+            contentColor = WeBeepTheme.colors.onMedia,
             modifier = Modifier
                 .align(Alignment.BottomEnd)
+                .navigationBarsPadding()
                 .padding(WeBeepSpacing.md)
+                .alpha(indicatorAlpha)
+                .clip(CircleShape)
+                .clickable(onClickLabel = stringResource(R.string.file_viewer_go_to_page)) { showGoToPage = true }
         ) {
-            Surface(
-                shape = CircleShape,
-                color = WeBeepTheme.colors.mediaScrim.copy(alpha = 0.65f),
-                contentColor = WeBeepTheme.colors.onMedia
-            ) {
-                Text(
-                    text = "${currentPage + 1} / $pageCount",
-                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                    modifier = Modifier.padding(horizontal = WeBeepSpacing.sm, vertical = WeBeepSpacing.xxs)
-                )
-            }
+            Text(
+                text = "${currentPage + 1} / $pageCount",
+                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+                modifier = Modifier.padding(horizontal = WeBeepSpacing.sm, vertical = WeBeepSpacing.xs)
+            )
         }
     }
+
+    if (showGoToPage) {
+        GoToPageDialog(
+            pageCount = pageCount,
+            onDismiss = { showGoToPage = false },
+            onGo = { page ->
+                showGoToPage = false
+                coroutineScope.launch {
+                    zoomState.reset()
+                    if (reduceMotion) lazyListState.scrollToItem(page) else lazyListState.animateScrollToItem(page)
+                }
+            }
+        )
+    }
 }
+
+@Composable
+private fun GoToPageDialog(
+    pageCount: Int,
+    onDismiss: () -> Unit,
+    onGo: (Int) -> Unit
+) {
+    var text by remember { mutableStateOf("") }
+    val page = text.toIntOrNull()?.takeIf { it in 1..pageCount }
+    val submit = { page?.let { onGo(it - 1) } }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.file_viewer_go_to_page)) },
+        text = {
+            OutlinedTextField(
+                value = text,
+                onValueChange = { value -> text = value.filter { it.isDigit() }.take(5) },
+                label = { Text(stringResource(R.string.file_viewer_page_hint, pageCount)) },
+                singleLine = true,
+                isError = text.isNotEmpty() && page == null,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Go),
+                keyboardActions = KeyboardActions(onGo = { submit() })
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = { submit() }, enabled = page != null) {
+                Text(stringResource(R.string.file_viewer_go))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
+        }
+    )
+}
+
+/** Renders [pageIndex] at [width] px on white; returns the bitmap and the page aspect ratio. */
+private fun renderPage(renderer: PdfRenderer, pageIndex: Int, width: Int): Pair<Bitmap, Float> {
+    val page = renderer.openPage(pageIndex)
+    try {
+        val ratio = page.width.toFloat() / page.height.toFloat()
+        val height = (width / ratio).roundToInt().coerceAtLeast(1)
+        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        bitmap.eraseColor(Color.WHITE)
+        page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
+        return bitmap to ratio
+    } finally {
+        page.close()
+    }
+}
+
+private val PageIndicatorClearance = 72.dp
+private val PageCornerRadius = 4.dp
+private val PageElevation = 2.dp
+private const val IdleIndicatorAlpha = 0.7f
 
 private class PdfSession(
     val descriptor: ParcelFileDescriptor,
@@ -451,26 +483,18 @@ private fun PdfPageItem(
             kotlinx.coroutines.delay(100)
             if (!isActive) return@withContext
 
-            var fastBitmap: Bitmap? = memoryCache.get(fastKey)
-            var currentAspectRatio = defaultAspectRatio
+            val cachedFast: Bitmap? = memoryCache.get(fastKey)
+            var fastBitmap: Bitmap? = cachedFast
+            var currentAspectRatio = cachedFast?.let { it.width.toFloat() / it.height.toFloat() } ?: defaultAspectRatio
 
             if (fastBitmap == null) {
                 pdfMutex.withLock {
                     if (!isActive) return@withContext
                     try {
-                        val page = pdfRenderer.openPage(pageIndex)
-                        try {
-                            currentAspectRatio = page.width.toFloat() / page.height.toFloat()
-                            val renderScale = FAST_WIDTH.toFloat() / page.width.toFloat()
-                            val height = (page.height * renderScale).roundToInt().coerceAtLeast(1)
-                            val rendered = Bitmap.createBitmap(FAST_WIDTH, height, Bitmap.Config.ARGB_8888)
-                            rendered.eraseColor(Color.WHITE)
-                            page.render(rendered, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
-                            fastBitmap = rendered
-                            memoryCache.put(fastKey, rendered)
-                        } finally {
-                            page.close()
-                        }
+                        val (rendered, ratio) = renderPage(pdfRenderer, pageIndex, FAST_WIDTH)
+                        currentAspectRatio = ratio
+                        fastBitmap = rendered
+                        memoryCache.put(fastKey, rendered)
                     } catch (e: Exception) {
                         if (e is CancellationException) throw e
                     }
@@ -493,18 +517,9 @@ private fun PdfPageItem(
                 pdfMutex.withLock {
                     if (!isActive) return@withContext
                     try {
-                        val page = pdfRenderer.openPage(pageIndex)
-                        try {
-                            val renderScale = highResWidth.toFloat() / page.width.toFloat()
-                            val height = (page.height * renderScale).roundToInt().coerceAtLeast(1)
-                            val rendered = Bitmap.createBitmap(highResWidth, height, Bitmap.Config.ARGB_8888)
-                            rendered.eraseColor(Color.WHITE)
-                            page.render(rendered, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
-                            highResBitmap = rendered
-                            memoryCache.put(highKey, rendered)
-                        } finally {
-                            page.close()
-                        }
+                        val (rendered, _) = renderPage(pdfRenderer, pageIndex, highResWidth)
+                        highResBitmap = rendered
+                        memoryCache.put(highKey, rendered)
                     } catch (e: Exception) {
                         if (e is CancellationException) throw e
                     }
@@ -517,23 +532,31 @@ private fun PdfPageItem(
         }
     }
 
+    val reduceMotion = LocalReduceMotion.current
+    val pageShape = RoundedCornerShape(PageCornerRadius)
+    val pageDescription = stringResource(R.string.cd_pdf_page, pageIndex + 1)
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .aspectRatio(pageResult.aspectRatio),
-        contentAlignment = Alignment.Center
+            .aspectRatio(pageResult.aspectRatio)
+            .shadow(PageElevation, pageShape)
+            .background(androidx.compose.ui.graphics.Color.White, pageShape)
     ) {
-        if (pageResult.fastBitmap == null) {
-            CircularProgressIndicator()
-        } else {
-            val bitmapToDraw = pageResult.highResBitmap ?: pageResult.fastBitmap
-            if (bitmapToDraw != null) {
-            Image(
-                bitmap = bitmapToDraw.asImageBitmap(),
-                contentDescription = androidx.compose.ui.res.stringResource(it.polimi.webeep.R.string.cd_pdf_page, pageIndex + 1),
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.FillWidth
-            )
+        // Blank page -> fast render -> HD: each step fades in instead of popping.
+        Crossfade(
+            targetState = pageResult.highResBitmap ?: pageResult.fastBitmap,
+            animationSpec = WeBeepMotion.smooth(durationMs = WeBeepMotion.ShortMs, reduceMotion = reduceMotion),
+            label = "pdf_page_bitmap"
+        ) { bitmap ->
+            if (bitmap != null) {
+                Image(
+                    bitmap = bitmap.asImageBitmap(),
+                    contentDescription = pageDescription,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.FillWidth
+                )
+            } else {
+                Box(Modifier.fillMaxSize())
             }
         }
     }

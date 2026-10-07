@@ -25,11 +25,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateMapOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -52,7 +48,9 @@ private val RowTextInset = WeBeepSpacing.md + FileIconContainerSize + WeBeepSpac
 @Composable
 internal fun SectionCard(
     section: SectionUiModel,
+    expandedFolders: Set<String>,
     onHeaderClick: () -> Unit,
+    onToggleFolder: (String) -> Unit,
     onPreviewClick: (FileUiModel) -> Unit,
     onDownloadClick: (FileUiModel) -> Unit,
     onOpenClick: (FileUiModel) -> Unit,
@@ -100,6 +98,8 @@ internal fun SectionCard(
                         }
                         ModuleRow(
                             module = module,
+                            expandedFolders = expandedFolders,
+                            onToggleFolder = onToggleFolder,
                             onPreviewClick = onPreviewClick,
                             onDownloadClick = onDownloadClick,
                             onOpenClick = onOpenClick
@@ -162,6 +162,8 @@ private fun SectionHeader(
 @Composable
 private fun ModuleRow(
     module: ModuleUiModel,
+    expandedFolders: Set<String>,
+    onToggleFolder: (String) -> Unit,
     onPreviewClick: (FileUiModel) -> Unit,
     onDownloadClick: (FileUiModel) -> Unit,
     onOpenClick: (FileUiModel) -> Unit,
@@ -182,7 +184,8 @@ private fun ModuleRow(
         else -> Icons.Default.Description to fileColors.fileGeneric
     }
 
-    var isFolderExpanded by remember { mutableStateOf(false) }
+    // Kept in the ViewModel: survives scrolling the row away and visiting a file.
+    val isFolderExpanded = folderRootKey(module.id) in expandedFolders
 
     Column(modifier = modifier.fillMaxWidth()) {
         Row(
@@ -191,7 +194,7 @@ private fun ModuleRow(
                 .fillMaxWidth()
                 .let { m ->
                     when {
-                        isFolder -> m.bouncyClickable { isFolderExpanded = !isFolderExpanded }
+                        isFolder -> m.bouncyClickable { onToggleFolder(folderRootKey(module.id)) }
                         isSingleFile -> m.bouncyClickable { onPreviewClick(module.files.first()) }
                         hasLinkPreview -> m.bouncyClickable { onPreviewClick(module.toLinkPreview()) }
                         else -> m
@@ -242,11 +245,12 @@ private fun ModuleRow(
                 fadeOut(WeBeepMotion.exit(reduceMotion = reduceMotion))
         ) {
             val rootNode = remember(module.files) { buildFolderTree(module.files) }
-            val expandedFolders = remember { mutableStateMapOf<String, Boolean>() }
             Column(modifier = Modifier.fillMaxWidth()) {
                 FolderTreeView(
                     node = rootNode,
+                    moduleId = module.id,
                     expandedFolders = expandedFolders,
+                    onToggleFolder = onToggleFolder,
                     depth = 1,
                     onPreviewClick = onPreviewClick,
                     onDownloadClick = onDownloadClick,

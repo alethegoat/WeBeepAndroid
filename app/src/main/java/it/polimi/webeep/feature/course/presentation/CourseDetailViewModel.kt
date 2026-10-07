@@ -19,7 +19,10 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.util.Locale
@@ -79,7 +82,7 @@ class CourseDetailViewModel @Inject constructor(
     private val downloadFileUseCase: DownloadFileUseCase,
     private val downloadRepository: DownloadRepository,
     private val courseRepository: CourseRepository,
-    savedStateHandle: SavedStateHandle,
+    private val savedStateHandle: SavedStateHandle,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher
 ) : ViewModel() {
 
@@ -89,6 +92,15 @@ class CourseDetailViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow<CourseDetailUiState>(CourseDetailUiState.Loading)
     val uiState: StateFlow<CourseDetailUiState> = _uiState.asStateFlow()
+
+    /**
+     * Open folders, keyed by [folderRootKey] / [folderKey]. Lives here (and in the
+     * saved state) so folders stay open when coming back from the file viewer.
+     */
+    val expandedFolders: StateFlow<Set<String>> = savedStateHandle
+        .getStateFlow(EXPANDED_FOLDERS_KEY, arrayListOf<String>())
+        .map { it.toSet() }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptySet())
 
     private var courseName: String = ""
     private var contentsJob: Job? = null
@@ -165,6 +177,12 @@ class CourseDetailViewModel @Inject constructor(
                 state
             }
         }
+    }
+
+    fun toggleFolder(key: String) {
+        val current = savedStateHandle.get<ArrayList<String>>(EXPANDED_FOLDERS_KEY).orEmpty()
+        val updated = if (key in current) current - key else current + key
+        savedStateHandle[EXPANDED_FOLDERS_KEY] = ArrayList(updated)
     }
 
     fun downloadFile(file: FileUiModel) {
@@ -301,6 +319,10 @@ class CourseDetailViewModel @Inject constructor(
     )
 
 
+
+    private companion object {
+        const val EXPANDED_FOLDERS_KEY = "expandedFolders"
+    }
 
     override fun onCleared() {
         super.onCleared()

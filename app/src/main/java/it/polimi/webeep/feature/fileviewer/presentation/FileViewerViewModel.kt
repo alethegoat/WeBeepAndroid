@@ -1,232 +1,200 @@
 package it.polimi.webeep.feature.fileviewer.presentation
 
-import android.app.Application
-import android.graphics.pdf.PdfRenderer
-import android.os.ParcelFileDescriptor
-import androidx.annotation.StringRes
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import it.polimi.webeep.R
-import it.polimi.webeep.core.datastore.TokenProvider
-import it.polimi.webeep.core.di.IoDispatcher
-import it.polimi.webeep.core.network.MoodleBinaryDownload
 import it.polimi.webeep.core.network.MoodleFileUrlBuilder
-import it.polimi.webeep.feature.download.data.executeCancellable
+import it.polimi.webeep.core.util.FileUtils
+import it.polimi.webeep.feature.course.domain.CourseRepository
+import it.polimi.webeep.feature.course.presentation.DownloadState
+import it.polimi.webeep.feature.download.domain.DownloadFileUseCase
+import it.polimi.webeep.feature.download.domain.DownloadRepository
+import it.polimi.webeep.feature.fileviewer.data.FileContentLoader
+import it.polimi.webeep.feature.fileviewer.data.FileContentState
+import it.polimi.webeep.feature.fileviewer.data.localFile
+import it.polimi.webeep.feature.fileviewer.domain.ViewerFile
+import it.polimi.webeep.feature.fileviewer.domain.findSiblings
+import it.polimi.webeep.navigation.Screen
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import okhttp3.Call
 import okhttp3.OkHttpClient
-import okhttp3.Request
 import java.io.File
-import java.io.IOException
 import javax.inject.Inject
 
-sealed interface FileViewerUiState {
-    data object Loading : FileViewerUiState
-    data class Image(val url: String) : FileViewerUiState
-    data class Pdf(val file: File, val pageCount: Int) : FileViewerUiState
-    data class Media(val url: String) : FileViewerUiState
-    data class Code(val content: String) : FileViewerUiState
-    data class CustomTab(val url: String) : FileViewerUiState
-    data class ExternalViewer(val file: File, val mimeType: String) : FileViewerUiState
-    data class Error(@StringRes val messageRes: Int) : FileViewerUiState
-}
+/** The files the pager can show and where it starts. */
+data class ViewerFiles(val files: List<ViewerFile>, val initialIndex: Int)
 
 /**
  * ViewModel for file preview. Auth tokens are added only by OkHttp interceptors
  * (pluginfile): no URL in the UI state carries a token.
+ *
+ * When opened from a course, the files next to the requested one (same folder,
+ * or single-file modules of the same section) can be swiped through; their
+ * contents load lazily and only the current page and its neighbours stay loaded.
  */
 @HiltViewModel
 class FileViewerViewModel @Inject constructor(
-    private val tokenProvider: TokenProvider,
+    private val loader: FileContentLoader,
+    private val courseRepository: CourseRepository,
+    private val downloadFileUseCase: DownloadFileUseCase,
+    private val downloadRepository: DownloadRepository,
     private val okHttpClient: OkHttpClient,
-    private val application: Application,
-    savedStateHandle: SavedStateHandle,
-    @IoDispatcher private val ioDispatcher: CoroutineDispatcher
+    savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
-    val title: String = savedStateHandle["title"] ?: "Preview"
-    private val url: String = MoodleFileUrlBuilder.stripAuthFromUrl(savedStateHandle["url"] ?: "")
-    private val mimeType: String = savedStateHandle["mimeType"] ?: ""
+    val initialFile = ViewerFile(
+        url = MoodleFileUrlBuilder.stripAuthFromUrl(savedStateHandle[Screen.FileViewer.URL_ARG] ?: ""),
+        title = savedStateHandle[Screen.FileViewer.TITLE_ARG] ?: "Preview",
+        mimeType = savedStateHandle[Screen.FileViewer.MIME_TYPE_ARG] ?: ""
+    )
+    private val courseId: Int = savedStateHandle[Screen.FileViewer.COURSE_ID_ARG] ?: Screen.FileViewer.NO_COURSE
 
-    private val _uiState = MutableStateFlow<FileViewerUiState>(FileViewerUiState.Loading)
-    val uiState: StateFlow<FileViewerUiState> = _uiState.asStateFlow()
+    private val _files = MutableStateFlow<ViewerFiles?>(null)
+    val files: StateFlow<ViewerFiles?> = _files.asStateFlow()
 
-    /**
-     * Shared authenticated client for streaming media (ExoPlayer).
-     */
+    private val contents = mutableMapOf<String, MutableStateFlow<FileContentState>>()
+    private val loadJobs = mutableMapOf<String, Job>()
+
+    private val _downloadStates = MutableStateFlow<Map<String, DownloadState>>(emptyMap())
+    val downloadStates: StateFlow<Map<String, DownloadState>> = _downloadStates.asStateFlow()
+
+    private val _preparingShare = MutableStateFlow(false)
+    val preparingShare: StateFlow<Boolean> = _preparingShare.asStateFlow()
+
+    private var autoLaunchConsumed = false
+
+    /** Shared authenticated client for streaming media (ExoPlayer). */
     val mediaCallFactory: Call.Factory
         get() = okHttpClient
 
     init {
-        load()
+        // Start the requested file right away; siblings resolve in parallel.
+        startLoading(initialFile)
+        viewModelScope.launch { _files.value = resolveFiles() }
     }
 
-    fun load() {
-        viewModelScope.launch(ioDispatcher) {
-            _uiState.value = FileViewerUiState.Loading
+    private suspend fun resolveFiles(): ViewerFiles {
+        if (courseId == Screen.FileViewer.NO_COURSE) return ViewerFiles(listOf(initialFile), 0)
+        val siblings = try {
+            findSiblings(courseRepository.getCachedCourseContents(courseId).first(), initialFile.url)
+        } catch (e: Exception) {
+            if (e is CancellationException) throw e
+            emptyList()
+        }
+        val index = siblings.indexOfFirst { it.url == initialFile.url }
+        return if (index < 0) {
+            ViewerFiles(listOf(initialFile), 0)
+        } else {
+            // Keep the title/mime the caller passed for the opened file.
+            ViewerFiles(siblings.toMutableList().also { it[index] = initialFile.copy(size = it[index].size) }, index)
+        }
+    }
+
+    /** Content of [file], loading it on first request. */
+    fun contentFor(file: ViewerFile): StateFlow<FileContentState> = startLoading(file)
+
+    fun retry(file: ViewerFile) {
+        loadJobs.remove(file.url)?.cancel()
+        contents.remove(file.url)
+        startLoading(file)
+    }
+
+    /**
+     * Keeps [index] and its neighbours, drops the rest, and preloads small
+     * neighbours so swiping lands on a ready page.
+     */
+    fun onPageSettled(index: Int) {
+        val list = _files.value?.files ?: return
+        val keep = ((index - 1)..(index + 1)).mapNotNull { list.getOrNull(it)?.url }.toSet()
+        (contents.keys - keep).forEach { url ->
+            loadJobs.remove(url)?.cancel()
+            contents.remove(url)
+        }
+        listOfNotNull(list.getOrNull(index + 1), list.getOrNull(index - 1))
+            .filter { it.size in 1..PRELOAD_MAX_BYTES }
+            .forEach { startLoading(it) }
+    }
+
+    /** True once, for the file the viewer was opened on: external files auto-open only then. */
+    fun consumeAutoLaunch(file: ViewerFile): Boolean {
+        if (autoLaunchConsumed || file.url != initialFile.url) return false
+        autoLaunchConsumed = true
+        return true
+    }
+
+    fun downloadStateFor(file: ViewerFile): DownloadState =
+        _downloadStates.value[file.url] ?: if (downloadRepository.isFileDownloaded(localName(file))) {
+            DownloadState.COMPLETED
+        } else {
+            DownloadState.NOT_STARTED
+        }
+
+    fun download(file: ViewerFile) {
+        if (_downloadStates.value[file.url] == DownloadState.DOWNLOADING) return
+        viewModelScope.launch {
+            setDownloadState(file, DownloadState.DOWNLOADING)
             try {
-                if (isExternalWebLink(url)) {
-                    _uiState.value = FileViewerUiState.CustomTab(url)
-                    return@launch
-                }
-
-                tokenProvider.getToken() ?: throw ViewerException(R.string.error_session_expired)
-
-                _uiState.value = when {
-                    mimeType.startsWith("image/") -> FileViewerUiState.Image(url)
-                    mimeType == "application/pdf" || title.endsWith(".pdf", ignoreCase = true) -> {
-                        val file = downloadToCache(url, "pdf")
-                        FileViewerUiState.Pdf(file = file, pageCount = readPdfPageCount(file))
-                    }
-                    mimeType.startsWith("video/") || mimeType.startsWith("audio/") || title.endsWith(".mp4", ignoreCase = true) -> {
-                        FileViewerUiState.Media(url = url)
-                    }
-                    isCodeFile(title, mimeType) -> {
-                        val file = downloadToCache(url, MoodleFileUrlBuilder.extractExtension(title) ?: "txt")
-                        if (file.length() > MAX_CODE_VIEW_BYTES) {
-                            val resolvedMimeType = if (mimeType.isBlank()) "text/plain" else mimeType
-                            FileViewerUiState.ExternalViewer(file = file, mimeType = resolvedMimeType)
-                        } else {
-                            FileViewerUiState.Code(content = file.readText())
-                        }
-                    }
-                    else -> {
-                        val ext = MoodleFileUrlBuilder.extractExtension(title) ?: "tmp"
-                        val file = downloadToCache(url, ext)
-                        val resolvedMimeType = if (
-                            mimeType.isBlank() ||
-                            mimeType == "application/octet-stream" ||
-                            mimeType == "application/forcedownload"
-                        ) {
-                            android.webkit.MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext.lowercase()) ?: "*/*"
-                        } else {
-                            mimeType
-                        }
-                        FileViewerUiState.ExternalViewer(file = file, mimeType = resolvedMimeType)
+                val id = downloadFileUseCase.execute(
+                    url = file.url,
+                    localFileName = localName(file),
+                    displayName = file.title,
+                    mimeType = file.mimeType.ifBlank { null }
+                )
+                downloadRepository.getDownloadProgress(id).collect { progress ->
+                    when (progress) {
+                        100 -> setDownloadState(file, DownloadState.COMPLETED)
+                        -1 -> setDownloadState(file, DownloadState.FAILED)
+                        else -> Unit
                     }
                 }
             } catch (e: Exception) {
                 if (e is CancellationException) throw e
-                ensureActive()
-                _uiState.value = FileViewerUiState.Error(errorMessageRes(e))
+                setDownloadState(file, DownloadState.FAILED)
             }
         }
     }
 
-    private fun isExternalWebLink(url: String): Boolean {
-        val lowerUrl = url.lowercase()
-        return (lowerUrl.startsWith("http://") || lowerUrl.startsWith("https://")) &&
-            !lowerUrl.contains("pluginfile.php")
-    }
-
-    private suspend fun downloadToCache(url: String, extension: String): File {
-        val localName = it.polimi.webeep.core.util.FileUtils.buildLocalFileName(title, url)
-        val downloadsDir = File(application.filesDir, DOWNLOADS_DIR)
-        val alreadyDownloaded = File(downloadsDir, localName)
-        if (alreadyDownloaded.exists() && alreadyDownloaded.length() > 0) {
-            return alreadyDownloaded
-        }
-
-        val cacheDir = File(application.cacheDir, CACHE_DIR).apply { mkdirs() }
-        val cacheKey = it.polimi.webeep.core.util.FileUtils.stableUrlHash(url)
-        val target = File(cacheDir, "$cacheKey.$extension")
-        if (target.exists() && target.length() > 0) {
-            return target
-        }
-
-        evictCacheIfNeeded(cacheDir)
-        val part = File(cacheDir, "$cacheKey.$extension.part")
-        if (part.exists()) {
-            part.delete()
-        }
-
-        val request = Request.Builder().url(url).build()
-        try {
-            okHttpClient.newCall(request).executeCancellable { response ->
-                val body = MoodleBinaryDownload.requireBinaryBody(response)
-                part.outputStream().use { output ->
-                    body.byteStream().use { input ->
-                        input.copyTo(output)
-                    }
-                }
-            }
-        } catch (e: Exception) {
-            part.delete()
-            throw e
-        }
-        if (target.exists()) {
-            target.delete()
-        }
-        if (!part.renameTo(target)) {
-            part.copyTo(target, overwrite = true)
-            part.delete()
-        }
-
-        return target
-    }
-
-    private fun readPdfPageCount(file: File): Int {
+    /** Local copy for share / open-with, reusing what the page already downloaded. */
+    suspend fun localFileFor(file: ViewerFile): File? {
+        contents[file.url]?.value?.localFile?.let { return it }
+        _preparingShare.value = true
         return try {
-            getPdfPageCount(file)
-        } catch (_: Exception) {
-            // A corrupted cached copy would otherwise fail on every retry.
-            if (file.parentFile?.name == CACHE_DIR) {
-                file.delete()
-            }
-            throw ViewerException(R.string.file_viewer_error_pdf)
+            loader.localCopy(file)
+        } catch (e: Exception) {
+            if (e is CancellationException) throw e
+            null
+        } finally {
+            _preparingShare.value = false
         }
     }
 
-    @StringRes
-    private fun errorMessageRes(e: Exception): Int = when (e) {
-        is ViewerException -> e.messageRes
-        is IOException -> R.string.file_viewer_error_network
-        else -> R.string.error_cannot_open_file
-    }
+    fun shareMimeType(file: ViewerFile): String = loader.resolveMimeType(file)
 
-    private class ViewerException(@StringRes val messageRes: Int) : Exception()
-
-    private fun evictCacheIfNeeded(cacheDir: File) {
-        val files = cacheDir.listFiles() ?: return
-        var total = files.sumOf { it.length() }
-        if (total <= MAX_CACHE_BYTES) return
-        files.sortedBy { it.lastModified() }.forEach { file ->
-            if (total <= MAX_CACHE_BYTES) return
-            val size = file.length()
-            if (file.delete()) {
-                total -= size
-            }
+    private fun startLoading(file: ViewerFile): StateFlow<FileContentState> {
+        contents[file.url]?.let { return it }
+        val state = MutableStateFlow<FileContentState>(FileContentState.Downloading(0L, null))
+        contents[file.url] = state
+        loadJobs[file.url] = viewModelScope.launch {
+            loader.load(file).collect { state.value = it }
         }
+        return state
     }
 
-    private fun getPdfPageCount(file: File): Int {
-        val descriptor = ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
-        descriptor.use { parcelFileDescriptor ->
-            PdfRenderer(parcelFileDescriptor).use { renderer ->
-                return renderer.pageCount
-            }
-        }
+    private fun setDownloadState(file: ViewerFile, state: DownloadState) {
+        _downloadStates.update { it + (file.url to state) }
     }
 
-    private fun isCodeFile(title: String, mimeType: String): Boolean {
-        if (mimeType.startsWith("text/")) return true
-        val ext = MoodleFileUrlBuilder.extractExtension(title) ?: return false
-        val codeExtensions = setOf("java", "kt", "c", "cpp", "py", "vhd", "js", "html", "css", "json", "xml", "md", "txt", "csv")
-        return ext in codeExtensions
-    }
+    private fun localName(file: ViewerFile) = FileUtils.buildLocalFileName(file.title, file.url)
 
     private companion object {
-        const val CACHE_DIR = "viewer"
-        const val DOWNLOADS_DIR = "downloads"
-        const val MAX_CACHE_BYTES = 80L * 1024L * 1024L
-        const val MAX_CODE_VIEW_BYTES = 1L * 1024L * 1024L
+        const val PRELOAD_MAX_BYTES = 5L * 1024L * 1024L
     }
 }
