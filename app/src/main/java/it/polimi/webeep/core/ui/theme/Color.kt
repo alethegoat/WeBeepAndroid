@@ -28,7 +28,8 @@ val OnErrorContainerLight = Color(0xFF4C0000)
 val OnErrorContainerDark = Color(0xFFFFE0E0)
 
 // ── light theme ──────────────────────────────────────────────────────
-val LightBackground = Color(0xFFF7F9FC)
+// A touch darker than white surfaces, so cards and grouped rows stand out.
+val LightBackground = Color(0xFFF1F4F8)
 val LightSurface = Color(0xFFFFFFFF)
 val LightSurfaceVariant = Color(0xFFEDF1F5)
 val LightOnBackground = Color(0xFF11141A)

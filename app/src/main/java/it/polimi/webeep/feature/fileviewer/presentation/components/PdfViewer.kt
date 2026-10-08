@@ -57,7 +57,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.rounded.Description
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -155,7 +155,7 @@ fun PdfViewer(
             CircularProgressIndicator()
         }
         PdfLoadState.Error -> EmptyStateView(
-            icon = Icons.Default.Description,
+            icon = Icons.Rounded.Description,
             title = stringResource(R.string.file_viewer_error_title),
             subtitle = stringResource(R.string.file_viewer_error_pdf),
             modifier = modifier.fillMaxSize()

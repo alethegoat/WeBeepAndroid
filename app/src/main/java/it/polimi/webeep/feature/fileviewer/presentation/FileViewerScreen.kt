@@ -32,14 +32,14 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.OpenInNew
-import androidx.compose.material.icons.filled.Description
-import androidx.compose.material.icons.filled.Download
-import androidx.compose.material.icons.filled.DownloadDone
-import androidx.compose.material.icons.filled.ErrorOutline
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.OpenInNew
+import androidx.compose.material.icons.rounded.Description
+import androidx.compose.material.icons.rounded.Download
+import androidx.compose.material.icons.rounded.DownloadDone
+import androidx.compose.material.icons.rounded.ErrorOutline
+import androidx.compose.material.icons.rounded.MoreVert
+import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material.icons.outlined.BrokenImage
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
@@ -243,7 +243,7 @@ private fun ViewerTopBar(
             navigationIcon = {
                 IconButton(onClick = onBackClick) {
                     Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
                         contentDescription = stringResource(R.string.cd_back)
                     )
                 }
@@ -290,7 +290,7 @@ private fun FileActions(file: ViewerFile, viewModel: FileViewerViewModel) {
         if (preparingShare) {
             CircularProgressIndicator(modifier = Modifier.size(ActionProgressSize), strokeWidth = ActionProgressStroke)
         } else {
-            Icon(Icons.Default.Share, contentDescription = stringResource(R.string.file_viewer_share))
+            Icon(Icons.Rounded.Share, contentDescription = stringResource(R.string.file_viewer_share))
         }
     }
 
@@ -300,14 +300,14 @@ private fun FileActions(file: ViewerFile, viewModel: FileViewerViewModel) {
         }
         DownloadState.COMPLETED -> Box(Modifier.size(WeBeepSpacing.touchTarget), contentAlignment = Alignment.Center) {
             Icon(
-                Icons.Default.DownloadDone,
+                Icons.Rounded.DownloadDone,
                 contentDescription = stringResource(R.string.file_viewer_downloaded),
                 tint = MaterialTheme.colorScheme.primary
             )
         }
         DownloadState.NOT_STARTED, DownloadState.FAILED -> IconButton(onClick = { viewModel.download(file) }) {
             Icon(
-                imageVector = if (downloadState == DownloadState.FAILED) Icons.Default.ErrorOutline else Icons.Default.Download,
+                imageVector = if (downloadState == DownloadState.FAILED) Icons.Rounded.ErrorOutline else Icons.Rounded.Download,
                 contentDescription = stringResource(R.string.file_viewer_download)
             )
         }
@@ -315,12 +315,12 @@ private fun FileActions(file: ViewerFile, viewModel: FileViewerViewModel) {
 
     Box {
         IconButton(onClick = { menuOpen = true }) {
-            Icon(Icons.Default.MoreVert, contentDescription = stringResource(R.string.file_viewer_more_options))
+            Icon(Icons.Rounded.MoreVert, contentDescription = stringResource(R.string.file_viewer_more_options))
         }
         DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
             DropdownMenuItem(
                 text = { Text(stringResource(R.string.file_viewer_open_with)) },
-                leadingIcon = { Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = null) },
+                leadingIcon = { Icon(Icons.AutoMirrored.Rounded.OpenInNew, contentDescription = null) },
                 onClick = {
                     menuOpen = false
                     withLocalFile { local ->
@@ -389,7 +389,7 @@ private fun FileViewerPage(
                 autoLaunch = remember(file) { viewModel.consumeAutoLaunch(file) }
             )
             is FileContentState.Error -> EmptyStateView(
-                icon = Icons.Default.Description,
+                icon = Icons.Rounded.Description,
                 title = stringResource(R.string.file_viewer_error_title),
                 subtitle = stringResource(state.messageRes),
                 actionLabel = stringResource(R.string.retry),
@@ -577,7 +577,7 @@ private fun ExternalFileContent(
     }
 
     EmptyStateView(
-        icon = Icons.Default.Description,
+        icon = Icons.Rounded.Description,
         title = stringResource(R.string.file_viewer_external_title),
         subtitle = stringResource(R.string.file_viewer_external_subtitle, title),
         actionLabel = stringResource(R.string.file_viewer_open_again),

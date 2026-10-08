@@ -9,9 +9,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.DateRange
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Tag
+import androidx.compose.material.icons.rounded.DateRange
+import androidx.compose.material.icons.rounded.Person
+import androidx.compose.material.icons.rounded.Tag
 import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -61,21 +61,21 @@ internal fun CourseHeader(
             ) {
                 title.code?.let { code ->
                     MetaLabel(
-                        icon = Icons.Default.Tag,
+                        icon = Icons.Rounded.Tag,
                         text = code,
                         description = stringResource(R.string.course_meta_code, code)
                     )
                 }
                 title.teacher?.let { teacher ->
                     MetaLabel(
-                        icon = Icons.Default.Person,
+                        icon = Icons.Rounded.Person,
                         text = teacher,
                         description = stringResource(R.string.course_meta_teacher, teacher)
                     )
                 }
                 title.academicYear?.let { year ->
                     MetaLabel(
-                        icon = Icons.Default.DateRange,
+                        icon = Icons.Rounded.DateRange,
                         text = year,
                         description = stringResource(R.string.course_meta_year, year)
                     )

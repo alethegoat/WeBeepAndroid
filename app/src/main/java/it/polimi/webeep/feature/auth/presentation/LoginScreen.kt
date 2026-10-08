@@ -18,7 +18,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Login
+import androidx.compose.material.icons.automirrored.rounded.Login
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -228,7 +228,7 @@ fun LoginScreen(
                                         horizontalArrangement = Arrangement.Center
                                     ) {
                                         Icon(
-                                            imageVector = Icons.AutoMirrored.Filled.Login,
+                                            imageVector = Icons.AutoMirrored.Rounded.Login,
                                             contentDescription = null,
                                             modifier = Modifier.padding(end = WeBeepSpacing.xs),
                                             tint = MaterialTheme.colorScheme.onPrimary

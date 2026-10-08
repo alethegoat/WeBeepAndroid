@@ -6,8 +6,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -49,14 +49,14 @@ fun WeBeepSearchField(
             Text(
                 text = placeholder,
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         },
         leadingIcon = {
             Icon(
-                imageVector = Icons.Default.Search,
+                imageVector = Icons.Rounded.Search,
                 contentDescription = searchCd,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.height(20.dp)
             )
         },
@@ -64,9 +64,9 @@ fun WeBeepSearchField(
             if (value.isNotEmpty()) {
                 IconButton(onClick = { onValueChange("") }) {
                     Icon(
-                        imageVector = Icons.Default.Close,
+                        imageVector = Icons.Rounded.Close,
                         contentDescription = clearCd,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
@@ -85,9 +85,10 @@ fun WeBeepSearchField(
         keyboardActions = KeyboardActions(
             onSearch = { keyboard?.hide() }
         ),
+        // Opaque, like a Material 3 search bar: screens no longer sit on a backdrop.
         colors = TextFieldDefaults.colors(
-            focusedContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.72f),
-            unfocusedContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f),
+            focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
             focusedIndicatorColor = Color.Transparent,
             unfocusedIndicatorColor = Color.Transparent,
             disabledIndicatorColor = Color.Transparent
