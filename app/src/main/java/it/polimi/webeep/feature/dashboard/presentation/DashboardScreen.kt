@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyGridState
@@ -92,6 +93,9 @@ import it.polimi.webeep.core.ui.util.staggeredEntrance
 
 /** Minimum card width: one column on phones, more on tablets / landscape. */
 private val CourseGridMinCellWidth = 320.dp
+
+/** Search and filters never stretch wider than this. */
+private val DashboardHeaderMaxWidth = 600.dp
 
 /** Cards that take part in the first-load entrance (about one screenful). */
 private const val EntranceItemCount = 8
@@ -398,7 +402,8 @@ private fun DashboardListHeader(
     courseFilter: CourseFilter,
     onFilterChange: (CourseFilter) -> Unit
 ) {
-    Column {
+    // Spans the whole grid row, but search and filters stay compact on tablets.
+    Column(modifier = Modifier.widthIn(max = DashboardHeaderMaxWidth)) {
         AnimatedVisibility(
             visible = !isOnline,
             enter = expandVertically() + fadeIn(),
