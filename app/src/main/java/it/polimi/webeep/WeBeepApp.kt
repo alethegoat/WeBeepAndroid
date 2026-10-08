@@ -1,10 +1,12 @@
 package it.polimi.webeep
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -14,15 +16,16 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalFontFamilyResolver
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
-import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import it.polimi.webeep.core.datastore.SettingsManager
 import it.polimi.webeep.core.datastore.ThemePreference
 import it.polimi.webeep.core.datastore.TokenProvider
 import it.polimi.webeep.core.session.SessionExpiryHandler
-import it.polimi.webeep.core.ui.components.AuroraBackground
+import it.polimi.webeep.core.ui.theme.InterFamily
+import it.polimi.webeep.core.ui.theme.OutfitFamily
 import it.polimi.webeep.core.ui.theme.WeBeepTheme
 import it.polimi.webeep.navigation.NavGraph
 import it.polimi.webeep.navigation.Screen
@@ -68,37 +71,42 @@ fun WeBeepApp(
         dynamicColor = dynamicColor
     ) {
         val navController = rememberNavController()
-        val backStackEntry by navController.currentBackStackEntryAsState()
-        // Animated aurora only behind the login screen; a calm static backdrop elsewhere.
-        val isOnLogin = backStackEntry?.destination?.route == Screen.Login.route
-        AuroraBackground(animated = isOnLogin) {
-            when (val destination = startDestination) {
-                null -> {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        CircularProgressIndicator(
-                            strokeWidth = 2.5.dp,
-                            modifier = Modifier.size(28.dp)
-                        )
-                    }
-                }
-                else -> {
-                    LaunchedEffect(navController) {
-                        onNavControllerReady(navController)
-                    }
-                    LaunchedEffect(navController, sessionExpiryHandler) {
-                        sessionExpiryHandler.sessionLost.collect {
-                            navController.navigateToLogin()
-                        }
-                    }
-                    NavGraph(
-                        startDestination = destination,
-                        navController = navController,
-                        modifier = Modifier.fillMaxSize()
+        val fontResolver = LocalFontFamilyResolver.current
+        LaunchedEffect(fontResolver) {
+            // Warms every typeface instance up front, so the first screen that uses a
+            // new weight (often mid-transition) does not stall on font loading.
+            fontResolver.preload(OutfitFamily)
+            fontResolver.preload(InterFamily)
+        }
+        // Each screen paints its own background (the login one its animated aurora).
+        when (val destination = startDestination) {
+            null -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.background),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(
+                        strokeWidth = 2.5.dp,
+                        modifier = Modifier.size(28.dp)
                     )
                 }
+            }
+            else -> {
+                LaunchedEffect(navController) {
+                    onNavControllerReady(navController)
+                }
+                LaunchedEffect(navController, sessionExpiryHandler) {
+                    sessionExpiryHandler.sessionLost.collect {
+                        navController.navigateToLogin()
+                    }
+                }
+                NavGraph(
+                    startDestination = destination,
+                    navController = navController,
+                    modifier = Modifier.fillMaxSize()
+                )
             }
         }
     }

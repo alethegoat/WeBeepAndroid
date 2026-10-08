@@ -47,6 +47,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import it.polimi.webeep.R
+import it.polimi.webeep.core.ui.components.AuroraBackground
 import it.polimi.webeep.core.ui.components.WeBeepSnackbarHost
 import it.polimi.webeep.core.ui.components.showErrorSnackbar
 import it.polimi.webeep.core.ui.theme.WeBeepMotion
@@ -97,11 +98,11 @@ fun LoginScreen(
         }
     }
 
-    Scaffold(
-        modifier = modifier,
-        containerColor = Color.Transparent,
-        snackbarHost = { WeBeepSnackbarHost(hostState = snackbarHostState) }
-    ) { innerPadding ->
+    AuroraBackground(modifier = modifier, animated = true) {
+        Scaffold(
+            containerColor = Color.Transparent,
+            snackbarHost = { WeBeepSnackbarHost(hostState = snackbarHostState) }
+        ) { innerPadding ->
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center,
@@ -260,4 +261,5 @@ fun LoginScreen(
                 }
             }
         }
+    }
 }

@@ -91,7 +91,7 @@ fun CourseCard(
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .courseSharedBounds(course.id)
+            .courseSharedBounds(course.id, isScreen = false)
             .bouncyClickable(
                 role = Role.Button,
                 onClickLabel = openLabel

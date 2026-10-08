@@ -15,7 +15,10 @@ import it.polimi.webeep.feature.course.domain.GetCourseContentsUseCase
 import it.polimi.webeep.feature.course.domain.model.FileResource
 import it.polimi.webeep.feature.course.domain.model.Module
 import it.polimi.webeep.feature.course.domain.model.Section
+import it.polimi.webeep.core.ui.components.GroupPosition
 import it.polimi.webeep.feature.course.presentation.CourseDetailUiState
+import it.polimi.webeep.feature.course.presentation.CourseListItem
+import it.polimi.webeep.feature.course.presentation.ModuleKind
 import it.polimi.webeep.feature.course.presentation.CourseDetailViewModel
 import it.polimi.webeep.feature.course.presentation.DownloadState
 import it.polimi.webeep.feature.dashboard.MainDispatcherRule
@@ -106,6 +109,7 @@ class CourseDetailViewModelTest {
             downloadRepository,
             courseRepository,
             savedStateHandle,
+            kotlinx.coroutines.test.UnconfinedTestDispatcher(),
             kotlinx.coroutines.test.UnconfinedTestDispatcher()
         )
     }
@@ -174,6 +178,70 @@ class CourseDetailViewModelTest {
 
         viewModel.toggleFolder("101:")
         assertTrue(viewModel.expandedFolders.value.isEmpty())
+    }
+
+    @Test
+    fun `listContent flattens the expanded first section into rows`() = runTest {
+        initViewModel()
+
+        viewModel.listContent.test {
+            var content = awaitItem()
+            while (content == null) {
+                content = awaitItem()
+            }
+            val header = content.items.first() as CourseListItem.SectionHeader
+            assertEquals("General", header.name)
+            assertEquals("Summary", header.summary)
+            val module = content.items[1] as CourseListItem.Module
+            assertEquals(ModuleKind.SingleFile, module.kind)
+            assertEquals(GroupPosition.Bottom, module.position)
+        }
+    }
+
+    @Test
+    fun `search query filters the rows and survives in saved state`() = runTest {
+        initViewModel()
+
+        viewModel.listContent.test {
+            var content = awaitItem()
+            while (content == null) {
+                content = awaitItem()
+            }
+
+            viewModel.setSearchQuery("nothing matches this")
+            assertEquals("nothing matches this", savedStateHandle.get<String>("searchQuery"))
+            var filtered = awaitItem()
+            while (filtered?.noMatches != true) {
+                filtered = awaitItem()
+            }
+            assertTrue(filtered.items.isEmpty())
+        }
+    }
+
+    @Test
+    fun `module description HTML is cleaned before reaching the UI`() = runTest {
+        coEvery { getCourseContentsUseCase(5) } returns flowOf(
+            Resource.Success(
+                sampleSections.map { section ->
+                    section.copy(
+                        summary = "<p></p>",
+                        modules = section.modules.map { it.copy(description = "<b>Read</b> &amp; sign") }
+                    )
+                }
+            )
+        )
+
+        initViewModel()
+
+        viewModel.uiState.test {
+            var state = awaitItem()
+            while (state !is CourseDetailUiState.Success) {
+                state = awaitItem()
+            }
+            val section = (state as CourseDetailUiState.Success).sections.first()
+            assertEquals(null, section.summary)
+            assertEquals("Read & sign", section.modules.first().description)
+        }
     }
 
     @Test

@@ -1,13 +1,8 @@
 package it.polimi.webeep.feature.course.presentation
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -34,7 +29,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -42,18 +36,19 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import it.polimi.webeep.R
+import it.polimi.webeep.core.ui.components.GroupedListItem
 import it.polimi.webeep.core.ui.theme.WeBeepColors
 import it.polimi.webeep.core.ui.theme.WeBeepMotion
 import it.polimi.webeep.core.ui.theme.WeBeepSpacing
 import it.polimi.webeep.core.ui.theme.WeBeepTheme
 import it.polimi.webeep.core.ui.util.LocalReduceMotion
-import it.polimi.webeep.core.ui.util.bouncyClickable
 
 /** Size of the tinted square that hosts a file-type icon. */
 internal val FileIconContainerSize = 40.dp
@@ -136,7 +131,11 @@ internal fun ExpandChevron(
     }
 }
 
-/** Compact download / open action: 48dp touch target, 24dp icon, no filled circle. */
+/**
+ * Compact download / open action: 48dp touch target, 24dp icon, no filled circle.
+ * A plain switch, not a crossfade: every visible file row has one, and the state
+ * changes rarely.
+ */
 @Composable
 internal fun FileActionButton(
     state: DownloadState,
@@ -144,48 +143,43 @@ internal fun FileActionButton(
     onOpenClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val reduceMotion = LocalReduceMotion.current
-    Crossfade(
-        targetState = state,
-        animationSpec = WeBeepMotion.smooth(reduceMotion = reduceMotion),
-        label = "file_action_crossfade",
-        modifier = modifier
-    ) { downloadState ->
-        when (downloadState) {
-            DownloadState.NOT_STARTED -> FileActionIcon(
-                icon = Icons.Default.Download,
-                tint = MaterialTheme.colorScheme.primary,
-                contentDescription = stringResource(R.string.cd_download_resource),
-                onClick = onDownloadClick
-            )
-            DownloadState.DOWNLOADING -> {
-                val description = stringResource(R.string.cd_downloading)
-                Box(
-                    modifier = Modifier
-                        .size(WeBeepSpacing.touchTarget)
-                        .semantics { contentDescription = description },
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator(
-                        color = MaterialTheme.colorScheme.primary,
-                        strokeWidth = ProgressStrokeWidth,
-                        modifier = Modifier.size(RowIconSize - WeBeepSpacing.xxs)
-                    )
-                }
+    when (state) {
+        DownloadState.NOT_STARTED -> FileActionIcon(
+            icon = Icons.Default.Download,
+            tint = MaterialTheme.colorScheme.primary,
+            contentDescription = stringResource(R.string.cd_download_resource),
+            onClick = onDownloadClick,
+            modifier = modifier
+        )
+        DownloadState.DOWNLOADING -> {
+            val description = stringResource(R.string.cd_downloading)
+            Box(
+                modifier = modifier
+                    .size(WeBeepSpacing.touchTarget)
+                    .semantics { contentDescription = description },
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator(
+                    color = MaterialTheme.colorScheme.primary,
+                    strokeWidth = ProgressStrokeWidth,
+                    modifier = Modifier.size(RowIconSize - WeBeepSpacing.xxs)
+                )
             }
-            DownloadState.COMPLETED -> FileActionIcon(
-                icon = Icons.Default.CheckCircle,
-                tint = WeBeepTheme.colors.success,
-                contentDescription = stringResource(R.string.cd_open_file),
-                onClick = onOpenClick
-            )
-            DownloadState.FAILED -> FileActionIcon(
-                icon = Icons.Default.ErrorOutline,
-                tint = MaterialTheme.colorScheme.error,
-                contentDescription = stringResource(R.string.cd_error_retry),
-                onClick = onDownloadClick
-            )
         }
+        DownloadState.COMPLETED -> FileActionIcon(
+            icon = Icons.Default.CheckCircle,
+            tint = WeBeepTheme.colors.success,
+            contentDescription = stringResource(R.string.cd_open_file),
+            onClick = onOpenClick,
+            modifier = modifier
+        )
+        DownloadState.FAILED -> FileActionIcon(
+            icon = Icons.Default.ErrorOutline,
+            tint = MaterialTheme.colorScheme.error,
+            contentDescription = stringResource(R.string.cd_error_retry),
+            onClick = onDownloadClick,
+            modifier = modifier
+        )
     }
 }
 
@@ -194,9 +188,10 @@ private fun FileActionIcon(
     icon: ImageVector,
     tint: Color,
     contentDescription: String,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
-    IconButton(onClick = onClick) {
+    IconButton(onClick = onClick, modifier = modifier) {
         Icon(
             imageVector = icon,
             contentDescription = contentDescription,
@@ -233,40 +228,76 @@ internal fun RowLabels(
     }
 }
 
+/** A file inside a multi-file module or a folder, indented by its [CourseListItem.File.depth]. */
 @Composable
-internal fun FileRow(
-    file: FileUiModel,
-    depth: Int,
+internal fun FileItemRow(
+    item: CourseListItem.File,
     onPreviewClick: (FileUiModel) -> Unit,
     onDownloadClick: (FileUiModel) -> Unit,
     onOpenClick: (FileUiModel) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val file = item.file
     val (fileIcon, fileColor) = fileIconAndColor(file.filename, WeBeepTheme.colors)
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = modifier
-            .fillMaxWidth()
-            .bouncyClickable { onPreviewClick(file) }
-            .padding(
-                start = WeBeepSpacing.md + indentFor(depth),
-                end = WeBeepSpacing.xxs,
-                top = WeBeepSpacing.xxs,
-                bottom = WeBeepSpacing.xxs
+    GroupedListItem(position = item.position, modifier = modifier) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(role = Role.Button) { onPreviewClick(file) }
+                .padding(
+                    start = WeBeepSpacing.md + indentFor(item.depth),
+                    end = WeBeepSpacing.xxs,
+                    top = WeBeepSpacing.xxs,
+                    bottom = WeBeepSpacing.xxs
+                )
+        ) {
+            FileTypeIcon(icon = fileIcon, tint = fileColor)
+            Spacer(modifier = Modifier.width(WeBeepSpacing.sm))
+            RowLabels(
+                title = file.filename,
+                meta = file.formattedSize,
+                modifier = Modifier.weight(1f)
             )
-    ) {
-        FileTypeIcon(icon = fileIcon, tint = fileColor)
-        Spacer(modifier = Modifier.width(WeBeepSpacing.sm))
-        RowLabels(
-            title = file.filename,
-            meta = file.formattedSize,
-            modifier = Modifier.weight(1f)
-        )
-        FileActionButton(
-            state = file.downloadState,
-            onDownloadClick = { onDownloadClick(file) },
-            onOpenClick = { onOpenClick(file) }
-        )
+            FileActionButton(
+                state = file.downloadState,
+                onDownloadClick = { onDownloadClick(file) },
+                onOpenClick = { onOpenClick(file) }
+            )
+        }
+    }
+}
+
+/** A sub-folder of a folder module; its content rows follow it when expanded. */
+@Composable
+internal fun SubfolderItemRow(
+    item: CourseListItem.Subfolder,
+    onToggleFolder: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    GroupedListItem(position = item.position, modifier = modifier) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(role = Role.Button) { onToggleFolder(item.folderKey) }
+                .padding(
+                    start = WeBeepSpacing.md + indentFor(item.depth),
+                    end = WeBeepSpacing.xxs,
+                    top = WeBeepSpacing.xxs,
+                    bottom = WeBeepSpacing.xxs
+                )
+        ) {
+            FileTypeIcon(icon = Icons.Default.Folder, tint = WeBeepTheme.colors.fileFolder)
+            Spacer(modifier = Modifier.width(WeBeepSpacing.sm))
+            RowLabels(title = item.name, meta = null, modifier = Modifier.weight(1f))
+            ExpandChevron(
+                expanded = item.isExpanded,
+                contentDescription = stringResource(
+                    if (item.isExpanded) R.string.cd_collapse_folder else R.string.cd_expand_folder
+                )
+            )
+        }
     }
 }
 
@@ -290,101 +321,4 @@ internal fun buildFolderTree(files: List<FileUiModel>): FolderNode {
         current.files.add(file)
     }
     return root
-}
-
-/**
- * Flat, background-free rendering of a module's file tree. [depth] is the
- * nesting level of the node's children; indentation is capped by [indentFor].
- */
-@Composable
-internal fun FolderTreeView(
-    node: FolderNode,
-    moduleId: Int,
-    expandedFolders: Set<String>,
-    onToggleFolder: (String) -> Unit,
-    depth: Int,
-    onPreviewClick: (FileUiModel) -> Unit,
-    onDownloadClick: (FileUiModel) -> Unit,
-    onOpenClick: (FileUiModel) -> Unit
-) {
-    node.files.forEach { file ->
-        FileRow(
-            file = file,
-            depth = depth,
-            onPreviewClick = onPreviewClick,
-            onDownloadClick = onDownloadClick,
-            onOpenClick = onOpenClick
-        )
-    }
-    val sortedSubfolders = remember(node) { node.subfolders.values.sortedBy { it.name } }
-    sortedSubfolders.forEach { subNode ->
-        SubfolderItem(
-            node = subNode,
-            moduleId = moduleId,
-            expandedFolders = expandedFolders,
-            onToggleFolder = onToggleFolder,
-            depth = depth,
-            onPreviewClick = onPreviewClick,
-            onDownloadClick = onDownloadClick,
-            onOpenClick = onOpenClick
-        )
-    }
-}
-
-@Composable
-private fun SubfolderItem(
-    node: FolderNode,
-    moduleId: Int,
-    expandedFolders: Set<String>,
-    onToggleFolder: (String) -> Unit,
-    depth: Int,
-    onPreviewClick: (FileUiModel) -> Unit,
-    onDownloadClick: (FileUiModel) -> Unit,
-    onOpenClick: (FileUiModel) -> Unit
-) {
-    val reduceMotion = LocalReduceMotion.current
-    val key = folderKey(moduleId, node.fullPath)
-    val isExpanded = key in expandedFolders
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier
-            .fillMaxWidth()
-            .bouncyClickable { onToggleFolder(key) }
-            .padding(
-                start = WeBeepSpacing.md + indentFor(depth),
-                end = WeBeepSpacing.xxs,
-                top = WeBeepSpacing.xxs,
-                bottom = WeBeepSpacing.xxs
-            )
-    ) {
-        FileTypeIcon(icon = Icons.Default.Folder, tint = WeBeepTheme.colors.fileFolder)
-        Spacer(modifier = Modifier.width(WeBeepSpacing.sm))
-        RowLabels(title = node.name, meta = null, modifier = Modifier.weight(1f))
-        ExpandChevron(
-            expanded = isExpanded,
-            contentDescription = stringResource(
-                if (isExpanded) R.string.cd_collapse_folder else R.string.cd_expand_folder
-            )
-        )
-    }
-    AnimatedVisibility(
-        visible = isExpanded,
-        enter = expandVertically(animationSpec = WeBeepMotion.enter(reduceMotion = reduceMotion)) +
-            fadeIn(WeBeepMotion.enter(reduceMotion = reduceMotion)),
-        exit = shrinkVertically(animationSpec = WeBeepMotion.exit(reduceMotion = reduceMotion)) +
-            fadeOut(WeBeepMotion.exit(reduceMotion = reduceMotion))
-    ) {
-        Column(modifier = Modifier.fillMaxWidth()) {
-            FolderTreeView(
-                node = node,
-                moduleId = moduleId,
-                expandedFolders = expandedFolders,
-                onToggleFolder = onToggleFolder,
-                depth = depth + 1,
-                onPreviewClick = onPreviewClick,
-                onDownloadClick = onDownloadClick,
-                onOpenClick = onOpenClick
-            )
-        }
-    }
 }

@@ -25,6 +25,12 @@ object WeBeepMotion {
     const val TransitionInMs = TransitionMs - TransitionOutMs
     const val SharedAxisOffsetDp = 30
 
+    /** Card -> course container transform; navigation fades last exactly as long. */
+    const val ContainerTransformMs = 350
+
+    /** Scale the leaving screen reaches at the end of a predictive back gesture. */
+    const val PredictiveBackScale = 0.9f
+
     fun duration(ms: Int, reduceMotion: Boolean): Int = if (reduceMotion) 0 else ms
 
     fun <T> enter(durationMs: Int = MediumMs, reduceMotion: Boolean = false) =
@@ -35,6 +41,19 @@ object WeBeepMotion {
 
     fun <T> smooth(durationMs: Int = MediumMs, reduceMotion: Boolean = false) =
         tween<T>(durationMillis = duration(durationMs, reduceMotion), easing = Standard)
+
+    /**
+     * Critically damped spring for movement (slides, scales, bounds). Unlike a delayed
+     * tween it stays smooth when interrupted, e.g. a quick back right after a push.
+     */
+    fun <T> spatialSpring(reduceMotion: Boolean = false) = if (reduceMotion) {
+        tween<T>(durationMillis = 0)
+    } else {
+        spring<T>(
+            dampingRatio = Spring.DampingRatioNoBouncy,
+            stiffness = Spring.StiffnessMediumLow
+        )
+    }
 
     fun <T> softSpring(reduceMotion: Boolean = false) = if (reduceMotion) {
         tween<T>(durationMillis = 0)

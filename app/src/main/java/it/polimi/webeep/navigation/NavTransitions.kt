@@ -1,20 +1,26 @@
 package it.polimi.webeep.navigation
 
+import androidx.activity.BackEventCompat
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import it.polimi.webeep.core.ui.theme.WeBeepMotion
+
+private const val FadeThroughInitialScale = 0.94f
 
 /**
  * Picks the Material 3 transition pattern for a route pair:
  * - Login <-> Dashboard: fade-through (unrelated top-level destinations)
  * - Dashboard <-> CourseDetail: plain fade; the card container transform carries the motion
  * - everything else: shared-axis X, direction follows push/pop
+ *
+ * Movement uses springs and fades have no start delay, so a transition interrupted
+ * by a quick back (or driven by the predictive back gesture) never stalls or jumps.
  */
 internal class NavTransitions(
     private val sharedAxisOffsetPx: Int,
@@ -23,26 +29,55 @@ internal class NavTransitions(
     private enum class Pattern { FadeThrough, ContainerTransform, SharedAxisX }
 
     fun enter(from: String?, to: String?, pop: Boolean): EnterTransition {
-        if (reduceMotion) return fadeIn(tween(0))
+        if (reduceMotion) return EnterTransition.None
         return when (patternFor(from, to)) {
-            Pattern.FadeThrough -> fadeIn(incomingSpec()) +
-                scaleIn(incomingSpec(), initialScale = 0.92f)
-            // Same length as the shared-bounds animation so it is not cut short.
-            Pattern.ContainerTransform -> fadeIn(WeBeepMotion.enter(WeBeepMotion.LongMs))
-            Pattern.SharedAxisX -> fadeIn(incomingSpec()) + slideInHorizontally(
-                animationSpec = WeBeepMotion.enter(WeBeepMotion.TransitionMs)
+            Pattern.FadeThrough -> fadeIn(incomingFade()) +
+                scaleIn(WeBeepMotion.spatialSpring(), initialScale = FadeThroughInitialScale)
+            // As long as the shared-bounds animation, or that would be cut short.
+            Pattern.ContainerTransform -> fadeIn(WeBeepMotion.enter(WeBeepMotion.ContainerTransformMs))
+            Pattern.SharedAxisX -> fadeIn(incomingFade()) + slideInHorizontally(
+                animationSpec = WeBeepMotion.spatialSpring()
             ) { if (pop) -sharedAxisOffsetPx else sharedAxisOffsetPx }
         }
     }
 
     fun exit(from: String?, to: String?, pop: Boolean): ExitTransition {
-        if (reduceMotion) return fadeOut(tween(0))
+        if (reduceMotion) return ExitTransition.None
         return when (patternFor(from, to)) {
-            Pattern.FadeThrough -> fadeOut(outgoingSpec())
-            Pattern.ContainerTransform -> fadeOut(WeBeepMotion.exit(WeBeepMotion.LongMs))
-            Pattern.SharedAxisX -> fadeOut(outgoingSpec()) + slideOutHorizontally(
-                animationSpec = WeBeepMotion.enter(WeBeepMotion.TransitionMs)
+            Pattern.FadeThrough -> fadeOut(outgoingFade())
+            Pattern.ContainerTransform -> fadeOut(WeBeepMotion.exit(WeBeepMotion.ContainerTransformMs))
+            Pattern.SharedAxisX -> fadeOut(outgoingFade()) + slideOutHorizontally(
+                animationSpec = WeBeepMotion.spatialSpring()
             ) { if (pop) sharedAxisOffsetPx else -sharedAxisOffsetPx }
+        }
+    }
+
+    /**
+     * Screen revealed by the predictive back gesture. The container transform keeps
+     * its regular pop, so the course shrinks back into its card with the finger.
+     */
+    fun predictivePopEnter(from: String?, to: String?): EnterTransition {
+        if (reduceMotion) return EnterTransition.None
+        return when (patternFor(from, to)) {
+            Pattern.ContainerTransform -> enter(from, to, pop = true)
+            else -> fadeIn(WeBeepMotion.smooth(WeBeepMotion.TransitionMs))
+        }
+    }
+
+    /** Screen being dismissed by the predictive back gesture: shrinks and follows the swipe. */
+    fun predictivePopExit(from: String?, to: String?, swipeEdge: Int): ExitTransition {
+        if (reduceMotion) return ExitTransition.None
+        return when (patternFor(from, to)) {
+            Pattern.ContainerTransform -> exit(from, to, pop = true)
+            else -> {
+                val towardsRight = swipeEdge == BackEventCompat.EDGE_LEFT
+                scaleOut(
+                    animationSpec = WeBeepMotion.smooth(WeBeepMotion.TransitionMs),
+                    targetScale = WeBeepMotion.PredictiveBackScale
+                ) + slideOutHorizontally(WeBeepMotion.smooth(WeBeepMotion.TransitionMs)) {
+                    if (towardsRight) sharedAxisOffsetPx else -sharedAxisOffsetPx
+                } + fadeOut(WeBeepMotion.exit(WeBeepMotion.TransitionMs))
+            }
         }
     }
 
@@ -55,14 +90,7 @@ internal class NavTransitions(
         }
     }
 
-    private fun <T> incomingSpec() = tween<T>(
-        durationMillis = WeBeepMotion.TransitionInMs,
-        delayMillis = WeBeepMotion.TransitionOutMs,
-        easing = WeBeepMotion.EmphasizedDecelerate
-    )
+    private fun <T> incomingFade() = WeBeepMotion.enter<T>(WeBeepMotion.TransitionInMs)
 
-    private fun <T> outgoingSpec() = tween<T>(
-        durationMillis = WeBeepMotion.TransitionOutMs,
-        easing = WeBeepMotion.EmphasizedAccelerate
-    )
+    private fun <T> outgoingFade() = WeBeepMotion.exit<T>(WeBeepMotion.TransitionOutMs)
 }
