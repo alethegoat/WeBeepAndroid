@@ -14,8 +14,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
@@ -29,7 +27,6 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import it.polimi.webeep.core.network.MoodleFileUrlBuilder
-import it.polimi.webeep.core.ui.theme.WeBeepMotion
 import it.polimi.webeep.core.ui.util.LocalNavAnimatedVisibilityScope
 import it.polimi.webeep.core.ui.util.LocalNavSharedTransitionScope
 import it.polimi.webeep.core.ui.util.LocalReduceMotion
@@ -57,10 +54,7 @@ fun NavGraph(
     navController: NavHostController = rememberNavController()
 ) {
     val reduceMotion = LocalReduceMotion.current
-    val sharedAxisOffsetPx = with(LocalDensity.current) { WeBeepMotion.SharedAxisOffsetDp.dp.roundToPx() }
-    val transitions = remember(sharedAxisOffsetPx, reduceMotion) {
-        NavTransitions(sharedAxisOffsetPx, reduceMotion)
-    }
+    val transitions = remember(reduceMotion) { NavTransitions(reduceMotion) }
     // Opaque base: screens fading in/out never show the window behind them.
     SharedTransitionLayout(modifier = modifier.background(MaterialTheme.colorScheme.background)) {
         CompositionLocalProvider(LocalNavSharedTransitionScope provides this) {

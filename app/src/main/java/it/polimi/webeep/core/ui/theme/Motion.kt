@@ -19,11 +19,13 @@ object WeBeepMotion {
     const val MediumMs = 280
     const val LongMs = 420
 
-    /** Material 3 shared-axis / fade-through: outgoing fades first, incoming follows. */
+    /** Material 3 fade-through: outgoing fades first, incoming follows. */
     const val TransitionMs = 300
     const val TransitionOutMs = 90
     const val TransitionInMs = TransitionMs - TransitionOutMs
-    const val SharedAxisOffsetDp = 30
+
+    /** Detail screens sliding in and out (file viewer, settings). */
+    const val SlideMs = 350
 
     /** Card -> course container transform; navigation fades last exactly as long. */
     const val ContainerTransformMs = 350
