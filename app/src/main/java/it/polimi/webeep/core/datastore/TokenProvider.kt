@@ -24,4 +24,7 @@ interface TokenProvider {
 
     /** Loads the persisted session off the main thread. No-op for in-memory fakes. */
     suspend fun ensureLoaded() {}
+
+    /** True once [ensureLoaded] has completed in this process. */
+    val isLoaded: Boolean get() = true
 }

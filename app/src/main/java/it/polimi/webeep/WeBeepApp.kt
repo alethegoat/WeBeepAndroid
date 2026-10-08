@@ -13,6 +13,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -47,15 +48,22 @@ fun WeBeepApp(
         initialValue = false
     )
 
-    var startDestination by remember { mutableStateOf<String?>(null) }
+    // Saved, and the token store outlives the Activity: rotating or switching the
+    // language recreates the screen in place instead of flashing the spinner. Only a
+    // cold start (or process death) waits for the store to open.
+    var startDestination by rememberSaveable { mutableStateOf<String?>(null) }
+    var storeReady by remember { mutableStateOf(tokenProvider.isLoaded) }
 
     LaunchedEffect(Unit) {
         // Keystore-backed prefs are opened on IO here, not on the main thread.
         tokenProvider.ensureLoaded()
-        startDestination = when {
-            startAtLogin -> Screen.Login.route
-            tokenProvider.isLoggedIn.first() -> Screen.Dashboard.route
-            else -> Screen.Login.route
+        storeReady = true
+        if (startDestination == null) {
+            startDestination = when {
+                startAtLogin -> Screen.Login.route
+                tokenProvider.isLoggedIn.first() -> Screen.Dashboard.route
+                else -> Screen.Login.route
+            }
         }
         sessionExpiryHandler.wipeStaleDataIfLoggedOut()
     }
@@ -79,7 +87,7 @@ fun WeBeepApp(
             fontResolver.preload(InterFamily)
         }
         // Each screen paints its own background (the login one its animated aurora).
-        when (val destination = startDestination) {
+        when (val destination = startDestination?.takeIf { storeReady }) {
             null -> {
                 Box(
                     modifier = Modifier

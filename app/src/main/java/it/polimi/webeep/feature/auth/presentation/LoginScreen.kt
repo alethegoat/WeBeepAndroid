@@ -9,14 +9,19 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Login
 import androidx.compose.material3.CircularProgressIndicator
@@ -30,6 +35,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -55,8 +61,20 @@ import it.polimi.webeep.core.ui.theme.WeBeepSpacing
 import it.polimi.webeep.core.ui.theme.WeBeepTheme
 import it.polimi.webeep.core.ui.util.LocalReduceMotion
 import it.polimi.webeep.core.ui.util.bouncyClickable
+import it.polimi.webeep.core.ui.util.currentWindowSize
 import kotlinx.coroutines.delay
 
+/** The login card never stretches past this, even on tablets. */
+private val LoginCardMaxWidth = 480.dp
+
+private val LogoSize = 96.dp
+private val LoginButtonHeight = 56.dp
+
+/**
+ * Brand on top and the SSO card below; on wide landscape windows (phones turned
+ * sideways, tablets) they sit side by side. The content scrolls when the window
+ * is too short for it and stays centered otherwise.
+ */
 @Composable
 fun LoginScreen(
     viewModel: LoginViewModel,
@@ -69,8 +87,9 @@ fun LoginScreen(
     val retryLabel = stringResource(R.string.retry)
 
     val reduceMotion = LocalReduceMotion.current
-    var logoVisible by remember { mutableStateOf(reduceMotion) }
-    var cardVisible by remember { mutableStateOf(reduceMotion) }
+    // Saved: the entrance plays once, not again on rotation or language change.
+    var logoVisible by rememberSaveable { mutableStateOf(reduceMotion) }
+    var cardVisible by rememberSaveable { mutableStateOf(reduceMotion) }
 
     LaunchedEffect(reduceMotion) {
         if (reduceMotion) {
@@ -98,166 +117,218 @@ fun LoginScreen(
         }
     }
 
+    val isLoading = uiState is LoginUiState.Loading
+    val onLoginClick = { SsoBrowser.open(context, viewModel.generateSsoUrl()) }
+    val wideLandscape = currentWindowSize().isWideLandscape
+
     AuroraBackground(modifier = modifier, animated = true) {
         Scaffold(
             containerColor = Color.Transparent,
             snackbarHost = { WeBeepSnackbarHost(hostState = snackbarHostState) }
         ) { innerPadding ->
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center,
+            BoxWithConstraints(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(innerPadding)
-                    .padding(horizontal = WeBeepSpacing.lg)
             ) {
-                AnimatedVisibility(
-                    visible = logoVisible,
-                    enter = fadeIn(WeBeepMotion.enter(WeBeepMotion.LongMs)) +
-                        slideInVertically(WeBeepMotion.enter(WeBeepMotion.LongMs)) { -36 }
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Image(
-                            painter = painterResource(R.drawable.ic_webeep_mark),
-                            contentDescription = stringResource(R.string.app_name),
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier
-                                .size(96.dp)
-                                .shadow(18.dp, MaterialTheme.shapes.large, clip = false)
-                                .clip(MaterialTheme.shapes.large)
-                        )
-                        Spacer(modifier = Modifier.height(20.dp))
-                        Text(
-                            text = stringResource(R.string.app_name),
-                            style = MaterialTheme.typography.displaySmall.copy(
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onBackground
-                            )
-                        )
-                        Text(
-                            text = stringResource(R.string.politecnico_milano),
-                            style = MaterialTheme.typography.titleSmall.copy(
-                                color = MaterialTheme.colorScheme.primary,
-                                fontWeight = FontWeight.SemiBold
-                            ),
-                            modifier = Modifier.padding(top = 6.dp)
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(40.dp))
-
-                AnimatedVisibility(
-                    visible = cardVisible,
-                    enter = fadeIn(WeBeepMotion.enter(WeBeepMotion.LongMs)) +
-                        slideInVertically(WeBeepMotion.enter(WeBeepMotion.LongMs)) { 40 }
-                ) {
-                    val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
-                    val cardShape = MaterialTheme.shapes.extraLarge
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(
-                                color = MaterialTheme.colorScheme.surface.copy(
-                                    alpha = if (isDark) 0.28f else 0.72f
-                                ),
-                                shape = cardShape
-                            )
-                            .border(
-                                width = 1.dp,
-                                brush = Brush.linearGradient(
-                                    listOf(
-                                        WeBeepTheme.colors.glassHighlight.copy(alpha = if (isDark) 0.28f else 0.78f),
-                                        WeBeepTheme.colors.glassHighlight.copy(alpha = 0.06f)
-                                    )
-                                ),
-                                shape = cardShape
-                            )
-                            .padding(horizontal = WeBeepSpacing.lg, vertical = WeBeepSpacing.lg),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(
-                            text = stringResource(R.string.login_subtitle),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.padding(bottom = WeBeepSpacing.lg)
-                        )
-
-                        val isLoading = uiState is LoginUiState.Loading
-                        val buttonShape = MaterialTheme.shapes.medium
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(56.dp)
-                                .shadow(
-                                    elevation = if (isLoading) 0.dp else 10.dp,
-                                    shape = buttonShape,
-                                    clip = false,
-                                    ambientColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.35f),
-                                    spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
-                                )
-                                .clip(buttonShape)
-                                .background(
-                                    brush = Brush.horizontalGradient(
-                                        listOf(
-                                            MaterialTheme.colorScheme.primary,
-                                            MaterialTheme.colorScheme.secondary
-                                        )
-                                    )
-                                )
-                                .bouncyClickable(enabled = !isLoading) {
-                                    SsoBrowser.open(context, viewModel.generateSsoUrl())
-                                },
-                            contentAlignment = Alignment.Center
+                // At least as tall as the window, so short content can still center.
+                val contentModifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = maxHeight)
+                    .padding(horizontal = WeBeepSpacing.lg, vertical = WeBeepSpacing.lg)
+                Box(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                    if (wideLandscape) {
+                        Row(
+                            modifier = contentModifier,
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(WeBeepSpacing.xl, Alignment.CenterHorizontally)
                         ) {
-                            Crossfade(
-                                targetState = isLoading,
-                                animationSpec = WeBeepMotion.smooth(WeBeepMotion.ShortMs),
-                                label = "login_cta"
-                            ) { loading ->
-                                if (loading) {
-                                    CircularProgressIndicator(
-                                        color = MaterialTheme.colorScheme.onPrimary,
-                                        strokeWidth = 2.5.dp,
-                                        modifier = Modifier.size(26.dp)
-                                    )
-                                } else {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.Center
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.AutoMirrored.Rounded.Login,
-                                            contentDescription = null,
-                                            modifier = Modifier.padding(end = WeBeepSpacing.xs),
-                                            tint = MaterialTheme.colorScheme.onPrimary
-                                        )
-                                        Text(
-                                            text = stringResource(R.string.login_sso_button),
-                                            style = MaterialTheme.typography.titleMedium.copy(
-                                                fontWeight = FontWeight.Bold,
-                                                color = MaterialTheme.colorScheme.onPrimary
-                                            )
-                                        )
-                                    }
-                                }
-                            }
+                            BrandHeader(visible = logoVisible, modifier = Modifier.weight(1f, fill = false))
+                            LoginPanel(
+                                visible = cardVisible,
+                                isLoading = isLoading,
+                                onLoginClick = onLoginClick,
+                                modifier = Modifier.weight(1f, fill = false)
+                            )
+                        }
+                    } else {
+                        Column(
+                            modifier = contentModifier,
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            BrandHeader(visible = logoVisible)
+                            Spacer(modifier = Modifier.height(WeBeepSpacing.xl))
+                            LoginPanel(visible = cardVisible, isLoading = isLoading, onLoginClick = onLoginClick)
                         }
                     }
                 }
+            }
+        }
+    }
+}
 
-                AnimatedVisibility(
-                    visible = cardVisible,
-                    enter = fadeIn(WeBeepMotion.enter(WeBeepMotion.LongMs))
-                ) {
-                    Text(
-                        text = stringResource(R.string.login_disclaimer),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.padding(top = WeBeepSpacing.md)
+@Composable
+private fun BrandHeader(visible: Boolean, modifier: Modifier = Modifier) {
+    AnimatedVisibility(
+        visible = visible,
+        enter = fadeIn(WeBeepMotion.enter(WeBeepMotion.LongMs)) +
+            slideInVertically(WeBeepMotion.enter(WeBeepMotion.LongMs)) { -36 },
+        modifier = modifier
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Image(
+                painter = painterResource(R.drawable.ic_webeep_mark),
+                contentDescription = stringResource(R.string.app_name),
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .size(LogoSize)
+                    .shadow(18.dp, MaterialTheme.shapes.large, clip = false)
+                    .clip(MaterialTheme.shapes.large)
+            )
+            Spacer(modifier = Modifier.height(WeBeepSpacing.lg))
+            Text(
+                text = stringResource(R.string.app_name),
+                style = MaterialTheme.typography.displaySmall.copy(
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+            )
+            Text(
+                text = stringResource(R.string.politecnico_milano),
+                style = MaterialTheme.typography.titleSmall.copy(
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.SemiBold
+                ),
+                modifier = Modifier.padding(top = WeBeepSpacing.xxs)
+            )
+        }
+    }
+}
+
+/** Glass card with the SSO button, plus the "unofficial app" disclaimer under it. */
+@Composable
+private fun LoginPanel(
+    visible: Boolean,
+    isLoading: Boolean,
+    onLoginClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier.widthIn(max = LoginCardMaxWidth),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        AnimatedVisibility(
+            visible = visible,
+            enter = fadeIn(WeBeepMotion.enter(WeBeepMotion.LongMs)) +
+                slideInVertically(WeBeepMotion.enter(WeBeepMotion.LongMs)) { 40 }
+        ) {
+            LoginCard(isLoading = isLoading, onLoginClick = onLoginClick)
+        }
+
+        AnimatedVisibility(
+            visible = visible,
+            enter = fadeIn(WeBeepMotion.enter(WeBeepMotion.LongMs))
+        ) {
+            Text(
+                text = stringResource(R.string.login_disclaimer),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(top = WeBeepSpacing.md)
+            )
+        }
+    }
+}
+
+@Composable
+private fun LoginCard(isLoading: Boolean, onLoginClick: () -> Unit) {
+    val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
+    val cardShape = MaterialTheme.shapes.extraLarge
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(
+                color = MaterialTheme.colorScheme.surface.copy(
+                    alpha = if (isDark) 0.28f else 0.72f
+                ),
+                shape = cardShape
+            )
+            .border(
+                width = 1.dp,
+                brush = Brush.linearGradient(
+                    listOf(
+                        WeBeepTheme.colors.glassHighlight.copy(alpha = if (isDark) 0.28f else 0.78f),
+                        WeBeepTheme.colors.glassHighlight.copy(alpha = 0.06f)
                     )
+                ),
+                shape = cardShape
+            )
+            .padding(WeBeepSpacing.lg),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = stringResource(R.string.login_subtitle),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(bottom = WeBeepSpacing.lg)
+        )
+
+        val buttonShape = MaterialTheme.shapes.medium
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(LoginButtonHeight)
+                .shadow(
+                    elevation = if (isLoading) 0.dp else 10.dp,
+                    shape = buttonShape,
+                    clip = false,
+                    ambientColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.35f),
+                    spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
+                )
+                .clip(buttonShape)
+                .background(
+                    brush = Brush.horizontalGradient(
+                        listOf(
+                            MaterialTheme.colorScheme.primary,
+                            MaterialTheme.colorScheme.secondary
+                        )
+                    )
+                )
+                .bouncyClickable(enabled = !isLoading, onClick = onLoginClick),
+            contentAlignment = Alignment.Center
+        ) {
+            Crossfade(
+                targetState = isLoading,
+                animationSpec = WeBeepMotion.smooth(WeBeepMotion.ShortMs),
+                label = "login_cta"
+            ) { loading ->
+                if (loading) {
+                    CircularProgressIndicator(
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        strokeWidth = 2.5.dp,
+                        modifier = Modifier.size(26.dp)
+                    )
+                } else {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Rounded.Login,
+                            contentDescription = null,
+                            modifier = Modifier.padding(end = WeBeepSpacing.xs),
+                            tint = MaterialTheme.colorScheme.onPrimary
+                        )
+                        Text(
+                            text = stringResource(R.string.login_sso_button),
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onPrimary
+                            )
+                        )
+                    }
                 }
             }
         }

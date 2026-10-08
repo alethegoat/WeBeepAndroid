@@ -47,6 +47,8 @@ class TokenManager @Inject constructor(
     // In-memory copy of the persisted data, guarded by [clearLock]. Valid once [loaded] is true.
     private var record = AuthRecord.EMPTY
 
+    override val isLoaded: Boolean get() = loaded.get()
+
     override suspend fun ensureLoaded() {
         if (loaded.get()) return
         withContext(ioDispatcher) { loadIfNeeded() }

@@ -26,6 +26,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import it.polimi.webeep.core.ui.theme.WeBeepMotion
 import it.polimi.webeep.core.ui.util.LocalReduceMotion
+import it.polimi.webeep.core.ui.util.currentWindowSize
 import it.polimi.webeep.core.ui.util.rememberZoomState
 import it.polimi.webeep.core.ui.util.zoomable
 import androidx.compose.animation.AnimatedVisibility
@@ -47,6 +48,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -75,7 +77,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChanged
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -94,6 +95,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.io.File
 import kotlin.math.min
+import androidx.compose.ui.unit.min
 import kotlin.math.roundToInt
 
 @Composable
@@ -123,8 +125,10 @@ fun PdfViewer(
     }
 
     // HD pages never exceed the screen width: a full 1800 px ARGB page is ~18 MB.
-    val screenWidthPx = with(LocalDensity.current) { LocalConfiguration.current.screenWidthDp.dp.roundToPx() }
-    val highResWidth = remember(screenWidthPx) { min(MAX_HIGH_RES_WIDTH, screenWidthPx) }
+    // Pages never grow past MaxPageWidth (tablets), so neither does their HD render.
+    val windowWidth = currentWindowSize().width
+    val pageWidthPx = with(LocalDensity.current) { min(windowWidth, MaxPageWidth).roundToPx() }
+    val highResWidth = remember(pageWidthPx) { min(MAX_HIGH_RES_WIDTH, pageWidthPx) }
 
     val loadState by produceState<PdfLoadState>(PdfLoadState.Loading, file) {
         value = PdfLoadState.Loading
@@ -268,6 +272,7 @@ private fun PdfPages(
                 bottom = contentPadding.calculateBottomPadding() + PageIndicatorClearance
             ),
             verticalArrangement = Arrangement.spacedBy(WeBeepSpacing.xs),
+            horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
                 .fillMaxSize()
                 .zoomable(
@@ -441,6 +446,9 @@ private fun openPdfSession(file: File): OpenedPdf? {
 }
 
 private const val MAX_HIGH_RES_WIDTH = 1800
+
+/** Readable page width on tablets and landscape; phones stay edge to edge. */
+private val MaxPageWidth = 900.dp
 private const val FAST_WIDTH = 800
 private const val DEFAULT_ASPECT_RATIO = 1f / 1.414f
 
@@ -537,6 +545,7 @@ private fun PdfPageItem(
     val pageDescription = stringResource(R.string.cd_pdf_page, pageIndex + 1)
     Box(
         modifier = Modifier
+            .widthIn(max = MaxPageWidth)
             .fillMaxWidth()
             .aspectRatio(pageResult.aspectRatio)
             .shadow(PageElevation, pageShape)

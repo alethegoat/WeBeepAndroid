@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
@@ -62,6 +63,7 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
 import androidx.core.os.LocaleListCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import it.polimi.webeep.R
@@ -145,71 +147,81 @@ fun SettingsScreen(
             )
         }
     ) { innerPadding ->
-        Column(
+        // The scroll area spans the window; the groups stay readable on wide screens.
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(scrollState)
-                .padding(innerPadding)
-                .padding(horizontal = WeBeepSpacing.md),
-            verticalArrangement = Arrangement.spacedBy(GroupedListGap)
+                .padding(innerPadding),
+            contentAlignment = Alignment.TopCenter
         ) {
-            SettingsSectionTitle(stringResource(R.string.settings_section_appearance))
-            GroupedListItem(position = GroupPosition.Top) {
-                ThemeSelectionRow(
-                    selectedTheme = uiState.themePreference,
-                    onThemeSelected = { viewModel.setThemePreference(it) }
-                )
-            }
-            GroupedListItem(position = GroupPosition.Middle) {
-                SettingsSwitchItem(
-                    icon = Icons.Rounded.ColorLens,
-                    title = stringResource(R.string.settings_dynamic_colors_title),
-                    subtitle = stringResource(R.string.settings_dynamic_colors_subtitle),
-                    checked = uiState.dynamicColorPreference,
-                    onCheckedChange = { viewModel.setDynamicColorPreference(it) }
-                )
-            }
-            GroupedListItem(position = GroupPosition.Bottom) {
-                LanguageSelectionRow()
-            }
+            Column(
+                modifier = Modifier
+                    .widthIn(max = SettingsMaxWidth)
+                    .fillMaxWidth()
+                    .padding(horizontal = WeBeepSpacing.md),
+                verticalArrangement = Arrangement.spacedBy(GroupedListGap)
+            ) {
+                SettingsSectionTitle(stringResource(R.string.settings_section_appearance))
+                GroupedListItem(position = GroupPosition.Top) {
+                    ThemeSelectionRow(
+                        selectedTheme = uiState.themePreference,
+                        onThemeSelected = { viewModel.setThemePreference(it) }
+                    )
+                }
+                GroupedListItem(position = GroupPosition.Middle) {
+                    SettingsSwitchItem(
+                        icon = Icons.Rounded.ColorLens,
+                        title = stringResource(R.string.settings_dynamic_colors_title),
+                        subtitle = stringResource(R.string.settings_dynamic_colors_subtitle),
+                        checked = uiState.dynamicColorPreference,
+                        onCheckedChange = { viewModel.setDynamicColorPreference(it) }
+                    )
+                }
+                GroupedListItem(position = GroupPosition.Bottom) {
+                    LanguageSelectionRow()
+                }
 
-            SettingsSectionTitle(stringResource(R.string.settings_section_sync))
-            GroupedListItem(position = GroupPosition.Top) {
-                SettingsSwitchItem(
-                    icon = Icons.Rounded.Wifi,
-                    title = stringResource(R.string.settings_wifi_only_title),
-                    subtitle = stringResource(R.string.settings_wifi_only_subtitle),
-                    checked = uiState.wifiOnlySync,
-                    onCheckedChange = { viewModel.setWifiOnlySync(it) }
-                )
-            }
-            GroupedListItem(position = GroupPosition.Middle) {
-                SyncFrequencyItem(
-                    selectedFrequency = uiState.syncFrequency,
-                    onFrequencySelected = { viewModel.setSyncFrequency(it) }
-                )
-            }
-            GroupedListItem(position = GroupPosition.Bottom) {
-                LastCheckItem(
-                    lastCheckAt = lastCheckAt,
-                    checkInProgress = checkInProgress,
-                    onCheckNow = viewModel::checkNow
-                )
-            }
+                SettingsSectionTitle(stringResource(R.string.settings_section_sync))
+                GroupedListItem(position = GroupPosition.Top) {
+                    SettingsSwitchItem(
+                        icon = Icons.Rounded.Wifi,
+                        title = stringResource(R.string.settings_wifi_only_title),
+                        subtitle = stringResource(R.string.settings_wifi_only_subtitle),
+                        checked = uiState.wifiOnlySync,
+                        onCheckedChange = { viewModel.setWifiOnlySync(it) }
+                    )
+                }
+                GroupedListItem(position = GroupPosition.Middle) {
+                    SyncFrequencyItem(
+                        selectedFrequency = uiState.syncFrequency,
+                        onFrequencySelected = { viewModel.setSyncFrequency(it) }
+                    )
+                }
+                GroupedListItem(position = GroupPosition.Bottom) {
+                    LastCheckItem(
+                        lastCheckAt = lastCheckAt,
+                        checkInProgress = checkInProgress,
+                        onCheckNow = viewModel::checkNow
+                    )
+                }
 
-            SettingsSectionTitle(stringResource(R.string.settings_section_account))
-            GroupedListItem(position = GroupPosition.Single) {
-                SettingsRow(
-                    icon = Icons.AutoMirrored.Rounded.Logout,
-                    title = stringResource(R.string.logout),
-                    accent = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.clickable(role = Role.Button) { showLogoutDialog = true }
-                )
+                SettingsSectionTitle(stringResource(R.string.settings_section_account))
+                GroupedListItem(position = GroupPosition.Single) {
+                    SettingsRow(
+                        icon = Icons.AutoMirrored.Rounded.Logout,
+                        title = stringResource(R.string.logout),
+                        accent = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.clickable(role = Role.Button) { showLogoutDialog = true }
+                    )
+                }
+                Spacer(modifier = Modifier.height(WeBeepSpacing.xl))
             }
-            Spacer(modifier = Modifier.height(WeBeepSpacing.xl))
         }
     }
 }
+
+private val SettingsMaxWidth = 640.dp
 
 @Composable
 private fun SettingsSectionTitle(title: String) {
