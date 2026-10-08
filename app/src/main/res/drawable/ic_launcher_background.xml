@@ -1,22 +1,39 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Sfondo icona adattiva: gradiente navy Polimi (canvas 108dp). -->
+<!-- Sfondo icona adattiva: navy profondo con bagliore azzurro in alto a sinistra (icona "vetro a strati"). -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:aapt="http://schemas.android.com/aapt"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <path android:pathData="M0,0h108v108h-108z">
-        <aapt:attr name="android:fillColor">
-            <gradient
-                android:type="linear"
-                android:startX="0"
-                android:startY="0"
-                android:endX="108"
-                android:endY="108"
-                android:startColor="@color/webeep_brand_navy_light"
-                android:centerColor="@color/webeep_brand_navy"
-                android:endColor="@color/webeep_brand_navy_dark" />
-        </aapt:attr>
-    </path>
+    <!-- Il sistema mostra solo i 72 centrali su 108: il disegno da 108 viene scalato a 2/3. -->
+    <group
+        android:pivotX="54"
+        android:pivotY="54"
+        android:scaleX="0.6667"
+        android:scaleY="0.6667">
+        <path android:pathData="M-27,-27h162v162h-162z">
+            <aapt:attr name="android:fillColor">
+                <gradient
+                    android:type="linear"
+                    android:startX="0"
+                    android:startY="0"
+                    android:endX="108"
+                    android:endY="108"
+                    android:startColor="@color/webeep_icon_bg_top"
+                    android:endColor="@color/webeep_icon_bg_bottom" />
+            </aapt:attr>
+        </path>
+        <path android:pathData="M-27,-27h162v162h-162z">
+            <aapt:attr name="android:fillColor">
+                <gradient
+                    android:type="radial"
+                    android:centerX="21.6"
+                    android:centerY="16.2"
+                    android:gradientRadius="75.6"
+                    android:startColor="@color/webeep_icon_glow"
+                    android:endColor="@color/webeep_icon_glow_clear" />
+            </aapt:attr>
+        </path>
+    </group>
 </vector>

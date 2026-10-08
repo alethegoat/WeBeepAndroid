@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Marchio per l'app (login) e per l'export del README: il disegno a tutto campo,
+     ritagliato a quadrato arrotondato da chi lo usa. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+        <path android:pathData="M0,0h108v108h-108z">
+            <aapt:attr name="android:fillColor">
+                <gradient
+                    android:type="linear"
+                    android:startX="0"
+                    android:startY="0"
+                    android:endX="108"
+                    android:endY="108"
+                    android:startColor="@color/webeep_icon_bg_top"
+                    android:endColor="@color/webeep_icon_bg_bottom" />
+            </aapt:attr>
+        </path>
+        <path android:pathData="M0,0h108v108h-108z">
+            <aapt:attr name="android:fillColor">
+                <gradient
+                    android:type="radial"
+                    android:centerX="21.6"
+                    android:centerY="16.2"
+                    android:gradientRadius="75.6"
+                    android:startColor="@color/webeep_icon_glow"
+                    android:endColor="@color/webeep_icon_glow_clear" />
+            </aapt:attr>
+        </path>
+        <path
+            android:pathData="M33,43 L44,73 L57,51 L70,73 L81,43"
+            android:fillColor="#00000000"
+            android:strokeColor="@color/webeep_icon_shadow"
+            android:strokeWidth="13"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round" />
+        <path
+            android:pathData="M29,38 L40,68 L53,46 L66,68 L77,38"
+            android:fillColor="#00000000"
+            android:strokeWidth="10"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round">
+            <aapt:attr name="android:strokeColor">
+                <gradient
+                    android:type="linear"
+                    android:startX="53"
+                    android:startY="38"
+                    android:endX="53"
+                    android:endY="68"
+                    android:startColor="@color/webeep_icon_mark_top"
+                    android:endColor="@color/webeep_icon_mark_bottom" />
+            </aapt:attr>
+        </path>
+        <path
+            android:pathData="M27.4,35.6 L38.4,65.6 L51.4,43.6 L64.4,65.6 L75.4,35.6"
+            android:fillColor="#00000000"
+            android:strokeColor="@color/webeep_icon_highlight"
+            android:strokeWidth="2"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round" />
+</vector>

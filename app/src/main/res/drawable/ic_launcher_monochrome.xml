@@ -1,15 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Icona tematica (Android 13+): stessa "W" a tinta unica, il sistema usa solo l'alfa. -->
+<!-- Icona tematica (Android 13+): solo la "W", il sistema ne usa l'alfa. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <path
-        android:pathData="M31,40 L41,70 L54,48 L67,70 L77,40"
-        android:fillColor="#00000000"
-        android:strokeColor="@color/webeep_brand_mark"
-        android:strokeWidth="8"
-        android:strokeLineCap="round"
-        android:strokeLineJoin="round" />
+    <!-- Il sistema mostra solo i 72 centrali su 108: il disegno da 108 viene scalato a 2/3. -->
+    <group
+        android:pivotX="54"
+        android:pivotY="54"
+        android:scaleX="0.6667"
+        android:scaleY="0.6667">
+        <path
+            android:pathData="M29,38 L40,68 L53,46 L66,68 L77,38"
+            android:fillColor="#00000000"
+            android:strokeColor="#FFFFFFFF"
+            android:strokeWidth="10"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round" />
+    </group>
 </vector>
