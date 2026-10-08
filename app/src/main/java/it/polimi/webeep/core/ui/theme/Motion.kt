@@ -28,9 +28,6 @@ object WeBeepMotion {
     /** Card -> course container transform; navigation fades last exactly as long. */
     const val ContainerTransformMs = 350
 
-    /** Scale the leaving screen reaches at the end of a predictive back gesture. */
-    const val PredictiveBackScale = 0.9f
-
     fun duration(ms: Int, reduceMotion: Boolean): Int = if (reduceMotion) 0 else ms
 
     fun <T> enter(durationMs: Int = MediumMs, reduceMotion: Boolean = false) =

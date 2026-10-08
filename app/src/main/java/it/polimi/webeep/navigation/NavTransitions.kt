@@ -1,12 +1,10 @@
 package it.polimi.webeep.navigation
 
-import androidx.activity.BackEventCompat
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import it.polimi.webeep.core.ui.theme.WeBeepMotion
@@ -20,7 +18,8 @@ private const val FadeThroughInitialScale = 0.94f
  * - everything else: shared-axis X, direction follows push/pop
  *
  * Movement uses springs and fades have no start delay, so a transition interrupted
- * by a quick back (or driven by the predictive back gesture) never stalls or jumps.
+ * by a quick back never stalls or jumps. The system back gesture plays the same pop
+ * transition as the in-app back arrow, just driven by the finger.
  */
 internal class NavTransitions(
     private val sharedAxisOffsetPx: Int,
@@ -49,35 +48,6 @@ internal class NavTransitions(
             Pattern.SharedAxisX -> fadeOut(outgoingFade()) + slideOutHorizontally(
                 animationSpec = WeBeepMotion.spatialSpring()
             ) { if (pop) sharedAxisOffsetPx else -sharedAxisOffsetPx }
-        }
-    }
-
-    /**
-     * Screen revealed by the predictive back gesture. The container transform keeps
-     * its regular pop, so the course shrinks back into its card with the finger.
-     */
-    fun predictivePopEnter(from: String?, to: String?): EnterTransition {
-        if (reduceMotion) return EnterTransition.None
-        return when (patternFor(from, to)) {
-            Pattern.ContainerTransform -> enter(from, to, pop = true)
-            else -> fadeIn(WeBeepMotion.smooth(WeBeepMotion.TransitionMs))
-        }
-    }
-
-    /** Screen being dismissed by the predictive back gesture: shrinks and follows the swipe. */
-    fun predictivePopExit(from: String?, to: String?, swipeEdge: Int): ExitTransition {
-        if (reduceMotion) return ExitTransition.None
-        return when (patternFor(from, to)) {
-            Pattern.ContainerTransform -> exit(from, to, pop = true)
-            else -> {
-                val towardsRight = swipeEdge == BackEventCompat.EDGE_LEFT
-                scaleOut(
-                    animationSpec = WeBeepMotion.smooth(WeBeepMotion.TransitionMs),
-                    targetScale = WeBeepMotion.PredictiveBackScale
-                ) + slideOutHorizontally(WeBeepMotion.smooth(WeBeepMotion.TransitionMs)) {
-                    if (towardsRight) sharedAxisOffsetPx else -sharedAxisOffsetPx
-                } + fadeOut(WeBeepMotion.exit(WeBeepMotion.TransitionMs))
-            }
         }
     }
 
