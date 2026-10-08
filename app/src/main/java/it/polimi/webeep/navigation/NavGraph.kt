@@ -70,9 +70,16 @@ fun NavGraph(
                 popEnterTransition = {
                     transitions.enter(initialState.destination.route, targetState.destination.route, pop = true)
                 },
-                // No dedicated predictive-back transitions: the gesture scrubs these same
-                // pop transitions, so it looks exactly like the in-app back arrow.
                 popExitTransition = {
+                    transitions.exit(initialState.destination.route, targetState.destination.route, pop = true)
+                },
+                // Passed explicitly: Navigation's defaults would shrink the leaving screen
+                // (scaleOut to 0.7). The gesture scrubs the same pop transitions instead, so
+                // it looks exactly like the in-app back arrow.
+                predictivePopEnterTransition = {
+                    transitions.enter(initialState.destination.route, targetState.destination.route, pop = true)
+                },
+                predictivePopExitTransition = {
                     transitions.exit(initialState.destination.route, targetState.destination.route, pop = true)
                 }
             ) {
