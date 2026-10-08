@@ -19,11 +19,16 @@ object WeBeepMotion {
     const val MediumMs = 280
     const val LongMs = 420
 
-    /** Material 3 shared-axis / fade-through: outgoing fades first, incoming follows. */
+    /** Material 3 fade-through: outgoing fades first, incoming follows. */
     const val TransitionMs = 300
     const val TransitionOutMs = 90
     const val TransitionInMs = TransitionMs - TransitionOutMs
-    const val SharedAxisOffsetDp = 30
+
+    /** Detail screens sliding in and out (file viewer, settings). */
+    const val SlideMs = 350
+
+    /** Card -> course container transform; navigation fades last exactly as long. */
+    const val ContainerTransformMs = 350
 
     fun duration(ms: Int, reduceMotion: Boolean): Int = if (reduceMotion) 0 else ms
 
@@ -35,6 +40,19 @@ object WeBeepMotion {
 
     fun <T> smooth(durationMs: Int = MediumMs, reduceMotion: Boolean = false) =
         tween<T>(durationMillis = duration(durationMs, reduceMotion), easing = Standard)
+
+    /**
+     * Critically damped spring for movement (slides, scales, bounds). Unlike a delayed
+     * tween it stays smooth when interrupted, e.g. a quick back right after a push.
+     */
+    fun <T> spatialSpring(reduceMotion: Boolean = false) = if (reduceMotion) {
+        tween<T>(durationMillis = 0)
+    } else {
+        spring<T>(
+            dampingRatio = Spring.DampingRatioNoBouncy,
+            stiffness = Spring.StiffnessMediumLow
+        )
+    }
 
     fun <T> softSpring(reduceMotion: Boolean = false) = if (reduceMotion) {
         tween<T>(durationMillis = 0)

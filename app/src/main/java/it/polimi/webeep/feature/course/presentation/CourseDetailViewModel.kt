@@ -21,6 +21,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -28,10 +30,12 @@ import kotlinx.coroutines.launch
 import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
+import it.polimi.webeep.core.di.DefaultDispatcher
 import it.polimi.webeep.core.di.IoDispatcher
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CancellationException
 import it.polimi.webeep.core.util.FileUtils
+import it.polimi.webeep.core.util.MoodleText
 
 sealed interface CourseDetailUiState {
     data object Loading : CourseDetailUiState
@@ -83,7 +87,8 @@ class CourseDetailViewModel @Inject constructor(
     private val downloadRepository: DownloadRepository,
     private val courseRepository: CourseRepository,
     private val savedStateHandle: SavedStateHandle,
-    @IoDispatcher private val ioDispatcher: CoroutineDispatcher
+    @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
+    @DefaultDispatcher private val defaultDispatcher: CoroutineDispatcher
 ) : ViewModel() {
 
     val courseId: Int = checkNotNull(savedStateHandle["courseId"]) {
@@ -101,6 +106,26 @@ class CourseDetailViewModel @Inject constructor(
         .getStateFlow(EXPANDED_FOLDERS_KEY, arrayListOf<String>())
         .map { it.toSet() }
         .stateIn(viewModelScope, SharingStarted.Eagerly, emptySet())
+
+    /**
+     * Current search. The text field keeps its own state (typing stays synchronous)
+     * and mirrors every change here; saved state restores both after process death.
+     */
+    val searchQuery: StateFlow<String> = savedStateHandle.getStateFlow(SEARCH_QUERY_KEY, "")
+
+    /**
+     * The flattened rows to show, rebuilt off the main thread whenever contents,
+     * open folders or the search change. Null until built for the first content.
+     */
+    val listContent: StateFlow<CourseListContent?> = combine(
+        _uiState,
+        expandedFolders,
+        searchQuery
+    ) { state, folders, query ->
+        (state as? CourseDetailUiState.Success)?.let { buildCourseListItems(it.sections, folders, query) }
+    }
+        .flowOn(defaultDispatcher)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), null)
 
     private var courseName: String = ""
     private var contentsJob: Job? = null
@@ -177,6 +202,10 @@ class CourseDetailViewModel @Inject constructor(
                 state
             }
         }
+    }
+
+    fun setSearchQuery(query: String) {
+        savedStateHandle[SEARCH_QUERY_KEY] = query
     }
 
     fun toggleFolder(key: String) {
@@ -285,10 +314,11 @@ class CourseDetailViewModel @Inject constructor(
         }
     }
 
+    // HTML is cleaned here, off the main thread, never while rows compose.
     private fun Section.toUiModel(isExpanded: Boolean) = SectionUiModel(
         id = id,
         name = name,
-        summary = summary,
+        summary = MoodleText.cleanHtml(summary).takeIf { it.isNotBlank() },
         modules = modules.map { it.toUiModel() },
         isExpanded = isExpanded
     )
@@ -298,7 +328,7 @@ class CourseDetailViewModel @Inject constructor(
         name = name,
         type = modName,
         iconUrl = iconUrl,
-        description = description,
+        description = MoodleText.cleanHtml(description).takeIf { it.isNotBlank() },
         url = url,
         files = files.map { it.toUiModel() }
     )
@@ -318,10 +348,10 @@ class CourseDetailViewModel @Inject constructor(
         }
     )
 
-
-
     private companion object {
         const val EXPANDED_FOLDERS_KEY = "expandedFolders"
+        const val SEARCH_QUERY_KEY = "searchQuery"
+        const val STOP_TIMEOUT_MS = 5_000L
     }
 
     override fun onCleared() {

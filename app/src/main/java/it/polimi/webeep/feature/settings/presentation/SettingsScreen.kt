@@ -48,6 +48,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -85,6 +86,8 @@ fun SettingsScreen(
     val scrollState = rememberScrollState()
 
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(rememberTopAppBarState())
+    // Derived: the bar recomposes when the title toggles, not on every scroll frame.
+    val showTitle by remember { derivedStateOf { scrollBehavior.state.overlappedFraction > 0.5f } }
     var showLogoutDialog by remember { mutableStateOf(false) }
 
     if (showLogoutDialog) {
@@ -119,12 +122,12 @@ fun SettingsScreen(
 
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-        containerColor = Color.Transparent,
+        containerColor = MaterialTheme.colorScheme.background,
             topBar = {
                 TopAppBar(
                     title = {
                         AnimatedVisibility(
-                            visible = scrollBehavior.state.overlappedFraction > 0.5f,
+                            visible = showTitle,
                             enter = fadeIn(),
                             exit = fadeOut()
                         ) {

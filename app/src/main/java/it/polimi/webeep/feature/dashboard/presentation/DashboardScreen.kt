@@ -52,6 +52,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -70,7 +71,9 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
+import kotlinx.coroutines.flow.filter
 import it.polimi.webeep.R
+import it.polimi.webeep.core.ui.components.AuroraBackground
 import it.polimi.webeep.core.ui.components.CourseCard
 import it.polimi.webeep.core.ui.components.CourseUiModel
 import it.polimi.webeep.core.ui.components.EmptyStateView
@@ -98,51 +101,57 @@ fun DashboardScreen(
     val lazyGridState = rememberLazyGridState()
     val keyboard = LocalSoftwareKeyboardController.current
 
-    LaunchedEffect(lazyGridState.isScrollInProgress) {
-        if (lazyGridState.isScrollInProgress) keyboard?.hide()
+    // Collected, not read in composition: scrolling never recomposes the screen.
+    LaunchedEffect(lazyGridState, keyboard) {
+        snapshotFlow { lazyGridState.isScrollInProgress }
+            .filter { it }
+            .collect { keyboard?.hide() }
     }
 
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(rememberTopAppBarState())
     val success = uiState as? DashboardUiState.Success
 
-    Scaffold(
-        modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-        containerColor = Color.Transparent,
-        topBar = {
-            DashboardTopBar(
-                userName = success?.userName,
-                avatarUrl = success?.userAvatar.orEmpty(),
-                scrollBehavior = scrollBehavior,
-                onSettingsClick = onSettingsClick
-            )
-        }
-    ) { innerPadding ->
-        Box(modifier = Modifier.fillMaxSize()) {
-            when (val state = uiState) {
-                is DashboardUiState.Loading -> {
-                    ShimmerCourseList(
-                        modifier = Modifier.padding(top = innerPadding.calculateTopPadding())
-                    )
-                }
-                is DashboardUiState.Success -> {
-                    DashboardCourseGrid(
-                        state = state,
-                        isOnline = isOnline,
-                        gridState = lazyGridState,
-                        contentPadding = innerPadding,
-                        onRefresh = viewModel::refresh,
-                        onCourseClick = onCourseClick
-                    )
-                }
-                is DashboardUiState.Error -> {
-                    EmptyStateView(
-                        icon = Icons.Default.Warning,
-                        title = stringResource(R.string.dashboard_error_title),
-                        subtitle = stringResource(state.messageRes),
-                        actionLabel = stringResource(R.string.retry),
-                        onAction = { viewModel.loadCourses() },
-                        modifier = Modifier.padding(innerPadding)
-                    )
+    // Opaque, calm backdrop: the course screen grows over it without ghosting.
+    AuroraBackground(modifier = modifier, animated = false) {
+        Scaffold(
+            modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+            containerColor = Color.Transparent,
+            topBar = {
+                DashboardTopBar(
+                    userName = success?.userName,
+                    avatarUrl = success?.userAvatar.orEmpty(),
+                    scrollBehavior = scrollBehavior,
+                    onSettingsClick = onSettingsClick
+                )
+            }
+        ) { innerPadding ->
+            Box(modifier = Modifier.fillMaxSize()) {
+                when (val state = uiState) {
+                    is DashboardUiState.Loading -> {
+                        ShimmerCourseList(
+                            modifier = Modifier.padding(top = innerPadding.calculateTopPadding())
+                        )
+                    }
+                    is DashboardUiState.Success -> {
+                        DashboardCourseGrid(
+                            state = state,
+                            isOnline = isOnline,
+                            gridState = lazyGridState,
+                            contentPadding = innerPadding,
+                            onRefresh = viewModel::refresh,
+                            onCourseClick = onCourseClick
+                        )
+                    }
+                    is DashboardUiState.Error -> {
+                        EmptyStateView(
+                            icon = Icons.Default.Warning,
+                            title = stringResource(R.string.dashboard_error_title),
+                            subtitle = stringResource(state.messageRes),
+                            actionLabel = stringResource(R.string.retry),
+                            onAction = { viewModel.loadCourses() },
+                            modifier = Modifier.padding(innerPadding)
+                        )
+                    }
                 }
             }
         }
