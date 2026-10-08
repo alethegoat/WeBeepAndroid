@@ -76,18 +76,10 @@ fun NavGraph(
                 popEnterTransition = {
                     transitions.enter(initialState.destination.route, targetState.destination.route, pop = true)
                 },
+                // No dedicated predictive-back transitions: the gesture scrubs these same
+                // pop transitions, so it looks exactly like the in-app back arrow.
                 popExitTransition = {
                     transitions.exit(initialState.destination.route, targetState.destination.route, pop = true)
-                },
-                predictivePopEnterTransition = {
-                    transitions.predictivePopEnter(initialState.destination.route, targetState.destination.route)
-                },
-                predictivePopExitTransition = { swipeEdge ->
-                    transitions.predictivePopExit(
-                        initialState.destination.route,
-                        targetState.destination.route,
-                        swipeEdge
-                    )
                 }
             ) {
                 composable(route = Screen.Login.route) {
