@@ -1,27 +1,47 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Primo piano icona adattiva: "W" stilizzata centrata nella safe zone da 66dp
-     (canvas 108dp, contenuto tra 27 e 81). -->
+<!-- Primo piano icona adattiva: la "W" di vetro sopra la sua ombra colorata, con riflesso sul bordo. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:aapt="http://schemas.android.com/aapt"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <path
-        android:pathData="M31,40 L41,70 L54,48 L67,70 L77,40"
-        android:fillColor="#00000000"
-        android:strokeWidth="8"
-        android:strokeLineCap="round"
-        android:strokeLineJoin="round">
-        <aapt:attr name="android:strokeColor">
-            <gradient
-                android:type="linear"
-                android:startX="54"
-                android:startY="36"
-                android:endX="54"
-                android:endY="74"
-                android:startColor="@color/webeep_brand_mark"
-                android:endColor="@color/webeep_brand_mark_accent" />
-        </aapt:attr>
-    </path>
+    <!-- Il sistema mostra solo i 72 centrali su 108: il disegno da 108 viene scalato a 2/3. -->
+    <group
+        android:pivotX="54"
+        android:pivotY="54"
+        android:scaleX="0.6667"
+        android:scaleY="0.6667">
+        <path
+            android:pathData="M33,43 L44,73 L57,51 L70,73 L81,43"
+            android:fillColor="#00000000"
+            android:strokeColor="@color/webeep_icon_shadow"
+            android:strokeWidth="13"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round" />
+        <path
+            android:pathData="M29,38 L40,68 L53,46 L66,68 L77,38"
+            android:fillColor="#00000000"
+            android:strokeWidth="10"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round">
+            <aapt:attr name="android:strokeColor">
+                <gradient
+                    android:type="linear"
+                    android:startX="53"
+                    android:startY="38"
+                    android:endX="53"
+                    android:endY="68"
+                    android:startColor="@color/webeep_icon_mark_top"
+                    android:endColor="@color/webeep_icon_mark_bottom" />
+            </aapt:attr>
+        </path>
+        <path
+            android:pathData="M27.4,35.6 L38.4,65.6 L51.4,43.6 L64.4,65.6 L75.4,35.6"
+            android:fillColor="#00000000"
+            android:strokeColor="@color/webeep_icon_highlight"
+            android:strokeWidth="2"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round" />
+    </group>
 </vector>

@@ -1,13 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Allineati a core/ui/theme/Color.kt (LightBackground / PoliMiNavy*). -->
+    <!-- Allineati a core/ui/theme/Color.kt (LightBackground). -->
     <color name="webeep_window_background">#FFF1F4F8</color>
     <color name="webeep_splash_background">#FFF1F4F8</color>
 
-    <!-- Marchio "W": sfondo navy Polimi e tratto chiaro con riflesso azzurro. -->
-    <color name="webeep_brand_navy">#FF0A3366</color>
-    <color name="webeep_brand_navy_light">#FF164B8E</color>
-    <color name="webeep_brand_navy_dark">#FF041C3D</color>
-    <color name="webeep_brand_mark">#FFFFFFFF</color>
-    <color name="webeep_brand_mark_accent">#FF9FE3FF</color>
+    <!-- Icona "vetro a strati": un solo disegno per launcher, splash, login, notifiche e README.
+         Sfondo navy profondo con un bagliore azzurro in alto a sinistra; la "W" e' una lastra
+         chiara traslucida sopra la sua ombra colorata. -->
+    <color name="webeep_icon_bg_top">#FF1A4C8F</color>
+    <color name="webeep_icon_bg_bottom">#FF06152E</color>
+    <color name="webeep_icon_glow">#8C36C8FF</color>
+    <color name="webeep_icon_glow_clear">#0036C8FF</color>
+    <color name="webeep_icon_shadow">#7300C2FF</color>
+    <color name="webeep_icon_mark_top">#EBFFFFFF</color>
+    <color name="webeep_icon_mark_bottom">#EBA8E8FF</color>
+    <color name="webeep_icon_highlight">#73FFFFFF</color>
 </resources>
