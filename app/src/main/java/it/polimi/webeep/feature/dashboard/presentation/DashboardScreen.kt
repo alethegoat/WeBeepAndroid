@@ -1,5 +1,6 @@
 package it.polimi.webeep.feature.dashboard.presentation
 
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
@@ -7,6 +8,7 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -26,14 +28,14 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Book
-import androidx.compose.material.icons.filled.CloudOff
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.rounded.Book
+import androidx.compose.material.icons.rounded.CloudOff
+import androidx.compose.material.icons.rounded.Settings
+import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -57,8 +59,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -71,21 +75,29 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.filter
 import it.polimi.webeep.R
 import it.polimi.webeep.core.ui.components.AuroraBackground
 import it.polimi.webeep.core.ui.components.CourseCard
-import it.polimi.webeep.core.ui.components.CourseUiModel
 import it.polimi.webeep.core.ui.components.EmptyStateView
 import it.polimi.webeep.core.ui.components.ShimmerCourseList
 import it.polimi.webeep.core.ui.components.WeBeepSearchField
 import it.polimi.webeep.core.ui.theme.WeBeepMotion
 import it.polimi.webeep.core.ui.theme.WeBeepSpacing
 import it.polimi.webeep.core.ui.util.LocalReduceMotion
+import it.polimi.webeep.core.ui.util.StaggerStepMs
 import it.polimi.webeep.core.ui.util.bouncyClickable
+import it.polimi.webeep.core.ui.util.staggeredEntrance
 
 /** Minimum card width: one column on phones, more on tablets / landscape. */
 private val CourseGridMinCellWidth = 320.dp
+
+/** Cards that take part in the first-load entrance (about one screenful). */
+private const val EntranceItemCount = 8
+
+/** Long enough for the last staggered card to settle. */
+private const val EntranceDurationMs = EntranceItemCount * StaggerStepMs + WeBeepMotion.MediumMs + 100L
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -110,6 +122,17 @@ fun DashboardScreen(
 
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(rememberTopAppBarState())
     val success = uiState as? DashboardUiState.Success
+    val reduceMotion = LocalReduceMotion.current
+
+    // Cards rise in one after another on the first load only: saved, so coming
+    // back from a course (or rotating) shows them in place.
+    var entrancePlayed by rememberSaveable { mutableStateOf(reduceMotion) }
+    LaunchedEffect(success != null) {
+        if (success != null && !entrancePlayed) {
+            delay(EntranceDurationMs)
+            entrancePlayed = true
+        }
+    }
 
     // Opaque, calm backdrop: the course screen grows over it without ghosting.
     AuroraBackground(modifier = modifier, animated = false) {
@@ -125,8 +148,17 @@ fun DashboardScreen(
                 )
             }
         ) { innerPadding ->
-            Box(modifier = Modifier.fillMaxSize()) {
-                when (val state = uiState) {
+            AnimatedContent(
+                targetState = uiState,
+                contentKey = { it::class },
+                transitionSpec = {
+                    fadeIn(WeBeepMotion.enter(reduceMotion = reduceMotion)) togetherWith
+                        fadeOut(WeBeepMotion.exit(reduceMotion = reduceMotion))
+                },
+                label = "dashboard_state",
+                modifier = Modifier.fillMaxSize()
+            ) { state ->
+                when (state) {
                     is DashboardUiState.Loading -> {
                         ShimmerCourseList(
                             modifier = Modifier.padding(top = innerPadding.calculateTopPadding())
@@ -139,12 +171,13 @@ fun DashboardScreen(
                             gridState = lazyGridState,
                             contentPadding = innerPadding,
                             onRefresh = viewModel::refresh,
-                            onCourseClick = onCourseClick
+                            onCourseClick = onCourseClick,
+                            playEntrance = !entrancePlayed
                         )
                     }
                     is DashboardUiState.Error -> {
                         EmptyStateView(
-                            icon = Icons.Default.Warning,
+                            icon = Icons.Rounded.Warning,
                             title = stringResource(R.string.dashboard_error_title),
                             subtitle = stringResource(state.messageRes),
                             actionLabel = stringResource(R.string.retry),
@@ -188,7 +221,7 @@ private fun DashboardTopBar(
         actions = {
             IconButton(onClick = onSettingsClick) {
                 Icon(
-                    imageVector = Icons.Default.Settings,
+                    imageVector = Icons.Rounded.Settings,
                     contentDescription = stringResource(R.string.cd_settings)
                 )
             }
@@ -261,7 +294,8 @@ private fun DashboardCourseGrid(
     gridState: LazyGridState,
     contentPadding: PaddingValues,
     onRefresh: () -> Unit,
-    onCourseClick: (courseId: Int) -> Unit
+    onCourseClick: (courseId: Int) -> Unit,
+    playEntrance: Boolean
 ) {
     val reduceMotion = LocalReduceMotion.current
     var searchQuery by rememberSaveable { mutableStateOf("") }
@@ -308,7 +342,7 @@ private fun DashboardCourseGrid(
             if (filteredCourses.isEmpty()) {
                 item(span = { GridItemSpan(maxLineSpan) }, contentType = "empty") {
                     EmptyStateView(
-                        icon = Icons.Default.Book,
+                        icon = Icons.Rounded.Book,
                         title = stringResource(R.string.no_courses_found),
                         subtitle = stringResource(
                             if (filtersActive) R.string.try_changing_filters else R.string.no_courses_enrolled
@@ -327,19 +361,27 @@ private fun DashboardCourseGrid(
                     )
                 }
             } else {
-                items(
+                itemsIndexed(
                     items = filteredCourses,
-                    key = CourseUiModel::id,
-                    contentType = { "course_card" }
-                ) { course ->
+                    key = { _, course -> course.id },
+                    contentType = { _, _ -> "course_card" }
+                ) { index, course ->
                     CourseCard(
                         course = course,
                         onClick = { onCourseClick(course.id) },
-                        modifier = Modifier.animateItem(
-                            fadeInSpec = WeBeepMotion.enter(reduceMotion = reduceMotion),
-                            fadeOutSpec = WeBeepMotion.exit(reduceMotion = reduceMotion),
-                            placementSpec = WeBeepMotion.softSpring(reduceMotion)
-                        )
+                        modifier = Modifier
+                            .animateItem(
+                                fadeInSpec = WeBeepMotion.enter(reduceMotion = reduceMotion),
+                                fadeOutSpec = WeBeepMotion.exit(reduceMotion = reduceMotion),
+                                placementSpec = WeBeepMotion.softSpring(reduceMotion)
+                            )
+                            .then(
+                                if (playEntrance && index < EntranceItemCount) {
+                                    Modifier.staggeredEntrance(index)
+                                } else {
+                                    Modifier
+                                }
+                            )
                     )
                 }
             }
@@ -393,7 +435,7 @@ private fun OfflineBanner(isCacheAvailable: Boolean) {
             .padding(vertical = WeBeepSpacing.sm, horizontal = WeBeepSpacing.md)
     ) {
         Icon(
-            imageVector = Icons.Default.CloudOff,
+            imageVector = Icons.Rounded.CloudOff,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.onErrorContainer,
             modifier = Modifier.size(16.dp)
@@ -417,6 +459,7 @@ private fun CourseFilterBar(
     modifier: Modifier = Modifier
 ) {
     val reduceMotion = LocalReduceMotion.current
+    val haptics = LocalHapticFeedback.current
     val filters = listOf(
         CourseFilter.Active to stringResource(R.string.filter_active),
         CourseFilter.Past to stringResource(R.string.filter_past),
@@ -469,7 +512,12 @@ private fun CourseFilterBar(
                         .bouncyClickable(
                             role = Role.Tab,
                             onClickLabel = label
-                        ) { onSelect(filter) },
+                        ) {
+                            if (!isSelected) {
+                                haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
+                                onSelect(filter)
+                            }
+                        },
                     contentAlignment = Alignment.Center
                 ) {
                     Text(

@@ -21,9 +21,9 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Book
-import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.Book
+import androidx.compose.material.icons.rounded.Description
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -170,7 +170,7 @@ fun CourseDetailScreen(
                 is CourseDetailUiState.Success -> {
                     if (state.sections.isEmpty()) {
                         EmptyStateView(
-                            icon = Icons.Default.Book,
+                            icon = Icons.Rounded.Book,
                             title = stringResource(R.string.course_empty_title),
                             subtitle = stringResource(R.string.course_empty_subtitle),
                             actionLabel = stringResource(R.string.refresh),
@@ -197,7 +197,7 @@ fun CourseDetailScreen(
                 }
                 is CourseDetailUiState.Error -> {
                     EmptyStateView(
-                        icon = Icons.Default.Description,
+                        icon = Icons.Rounded.Description,
                         title = stringResource(R.string.sync_error_title),
                         subtitle = stringResource(state.messageRes),
                         actionLabel = stringResource(R.string.retry),
@@ -246,7 +246,7 @@ private fun CourseTopBar(
         navigationIcon = {
             IconButton(onClick = onBackClick) {
                 Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
                     contentDescription = stringResource(R.string.cd_back)
                 )
             }
@@ -311,7 +311,7 @@ private fun CourseContentList(
             if (content.noMatches) {
                 item(key = "course_no_results", contentType = "course_no_results") {
                     EmptyStateView(
-                        icon = Icons.Default.Description,
+                        icon = Icons.Rounded.Description,
                         title = stringResource(R.string.no_materials_found),
                         subtitle = stringResource(R.string.try_changing_filters),
                         actionLabel = stringResource(R.string.reset_filters),

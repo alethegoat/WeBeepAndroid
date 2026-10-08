@@ -1,6 +1,5 @@
 package it.polimi.webeep.core.ui.components
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,7 +12,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material.icons.outlined.School
 import androidx.compose.material.icons.outlined.StarOutline
 import androidx.compose.foundation.shape.CircleShape
@@ -97,12 +96,9 @@ fun CourseCard(
                 onClickLabel = openLabel
             ) { onClick() },
         shape = MaterialTheme.shapes.large,
-        border = BorderStroke(
-            width = 1.dp,
-            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
-        ),
+        // Tonal only (no outline): same surface as the grouped lists elsewhere.
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+            containerColor = groupedListContainerColor(),
             contentColor = MaterialTheme.colorScheme.onSurface,
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
@@ -296,7 +292,7 @@ private fun FavouriteButton(
         ),
     ) {
         Icon(
-            imageVector = if (isFavourite) Icons.Filled.Star else Icons.Outlined.StarOutline,
+            imageVector = if (isFavourite) Icons.Rounded.Star else Icons.Outlined.StarOutline,
             contentDescription = if (isFavourite) {
                 stringResource(R.string.cd_remove_fav)
             } else {

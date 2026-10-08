@@ -1,36 +1,33 @@
 package it.polimi.webeep.feature.settings.presentation
 
 import android.text.format.DateUtils
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
+import androidx.appcompat.app.AppCompatDelegate
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.ExitToApp
-import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material.icons.filled.ColorLens
-import androidx.compose.material.icons.filled.DarkMode
-import androidx.compose.material.icons.filled.Language
-import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.Sync
-import androidx.compose.material.icons.filled.Wifi
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.Logout
+import androidx.compose.material.icons.rounded.ColorLens
+import androidx.compose.material.icons.rounded.DarkMode
+import androidx.compose.material.icons.rounded.ExpandMore
+import androidx.compose.material.icons.rounded.Language
+import androidx.compose.material.icons.rounded.Notifications
+import androidx.compose.material.icons.rounded.Sync
+import androidx.compose.material.icons.rounded.Wifi
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
@@ -38,41 +35,47 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.derivedStateOf
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
+import androidx.core.os.LocaleListCompat
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import it.polimi.webeep.R
 import it.polimi.webeep.core.datastore.SyncFrequency
 import it.polimi.webeep.core.datastore.ThemePreference
+import it.polimi.webeep.core.ui.components.GroupPosition
+import it.polimi.webeep.core.ui.components.GroupedListGap
+import it.polimi.webeep.core.ui.components.GroupedListItem
 import it.polimi.webeep.core.ui.theme.WeBeepSpacing
-import it.polimi.webeep.core.ui.util.bouncyClickable
-import androidx.compose.material3.rememberTopAppBarState
-import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.res.stringResource
-import androidx.appcompat.app.AppCompatDelegate
-import androidx.core.os.LocaleListCompat
-import it.polimi.webeep.R
 
+/**
+ * Settings as grouped lists (same language as the course content) under a large
+ * title that collapses into the app bar while scrolling.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
@@ -85,9 +88,7 @@ fun SettingsScreen(
     val checkInProgress by viewModel.checkInProgress.collectAsStateWithLifecycle()
     val scrollState = rememberScrollState()
 
-    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(rememberTopAppBarState())
-    // Derived: the bar recomposes when the title toggles, not on every scroll frame.
-    val showTitle by remember { derivedStateOf { scrollBehavior.state.overlappedFraction > 0.5f } }
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
     var showLogoutDialog by remember { mutableStateOf(false) }
 
     if (showLogoutDialog) {
@@ -95,7 +96,7 @@ fun SettingsScreen(
             onDismissRequest = { showLogoutDialog = false },
             icon = {
                 Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ExitToApp,
+                    imageVector = Icons.AutoMirrored.Rounded.Logout,
                     contentDescription = null
                 )
             },
@@ -123,102 +124,72 @@ fun SettingsScreen(
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         containerColor = MaterialTheme.colorScheme.background,
-            topBar = {
-                TopAppBar(
-                    title = {
-                        AnimatedVisibility(
-                            visible = showTitle,
-                            enter = fadeIn(),
-                            exit = fadeOut()
-                        ) {
-                            Text(
-                                text = stringResource(R.string.settings),
-                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
-                            )
-                        }
-                    },
-                    navigationIcon = {
-                        IconButton(onClick = onBackClick) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = stringResource(R.string.go_back)
-                            )
-                        }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = Color.Transparent,
-                        scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainer,
-                        navigationIconContentColor = MaterialTheme.colorScheme.onBackground,
-                        titleContentColor = MaterialTheme.colorScheme.onBackground
-                    ),
-                    scrollBehavior = scrollBehavior
-                )
-            }
-        ) { innerPadding ->
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(scrollState)
-            ) {
-            Spacer(modifier = Modifier.height(innerPadding.calculateTopPadding()))
-            Text(
-                text = stringResource(R.string.settings),
-                style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold),
-                color = MaterialTheme.colorScheme.onBackground,
-                modifier = Modifier.padding(horizontal = WeBeepSpacing.md, vertical = WeBeepSpacing.xs)
+        topBar = {
+            LargeTopAppBar(
+                title = { Text(text = stringResource(R.string.settings)) },
+                navigationIcon = {
+                    IconButton(onClick = onBackClick) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
+                            contentDescription = stringResource(R.string.go_back)
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background,
+                    scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onBackground,
+                    titleContentColor = MaterialTheme.colorScheme.onBackground
+                ),
+                scrollBehavior = scrollBehavior
             )
-
-            Spacer(modifier = Modifier.height(WeBeepSpacing.md))
-
+        }
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(scrollState)
+                .padding(innerPadding)
+                .padding(horizontal = WeBeepSpacing.md),
+            verticalArrangement = Arrangement.spacedBy(GroupedListGap)
+        ) {
             SettingsSectionTitle(stringResource(R.string.settings_section_appearance))
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = WeBeepSpacing.md)
-                    .clip(MaterialTheme.shapes.large)
-                    .background(MaterialTheme.colorScheme.surfaceContainerLow)
-                    .padding(vertical = WeBeepSpacing.xs)
-            ) {
+            GroupedListItem(position = GroupPosition.Top) {
                 ThemeSelectionRow(
                     selectedTheme = uiState.themePreference,
                     onThemeSelected = { viewModel.setThemePreference(it) }
                 )
-
+            }
+            GroupedListItem(position = GroupPosition.Middle) {
                 SettingsSwitchItem(
-                    icon = Icons.Default.ColorLens,
+                    icon = Icons.Rounded.ColorLens,
                     title = stringResource(R.string.settings_dynamic_colors_title),
                     subtitle = stringResource(R.string.settings_dynamic_colors_subtitle),
                     checked = uiState.dynamicColorPreference,
                     onCheckedChange = { viewModel.setDynamicColorPreference(it) }
                 )
-                
+            }
+            GroupedListItem(position = GroupPosition.Bottom) {
                 LanguageSelectionRow()
             }
 
-            Spacer(modifier = Modifier.height(WeBeepSpacing.lg))
-
             SettingsSectionTitle(stringResource(R.string.settings_section_sync))
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = WeBeepSpacing.md)
-                    .clip(MaterialTheme.shapes.large)
-                    .background(MaterialTheme.colorScheme.surfaceContainerLow)
-                    .padding(vertical = WeBeepSpacing.xs)
-            ) {
+            GroupedListItem(position = GroupPosition.Top) {
                 SettingsSwitchItem(
-                    icon = Icons.Default.Wifi,
+                    icon = Icons.Rounded.Wifi,
                     title = stringResource(R.string.settings_wifi_only_title),
                     subtitle = stringResource(R.string.settings_wifi_only_subtitle),
                     checked = uiState.wifiOnlySync,
                     onCheckedChange = { viewModel.setWifiOnlySync(it) }
                 )
-
+            }
+            GroupedListItem(position = GroupPosition.Middle) {
                 SyncFrequencyItem(
                     selectedFrequency = uiState.syncFrequency,
                     onFrequencySelected = { viewModel.setSyncFrequency(it) }
                 )
-
+            }
+            GroupedListItem(position = GroupPosition.Bottom) {
                 LastCheckItem(
                     lastCheckAt = lastCheckAt,
                     checkInProgress = checkInProgress,
@@ -226,32 +197,13 @@ fun SettingsScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(WeBeepSpacing.lg))
-
             SettingsSectionTitle(stringResource(R.string.settings_section_account))
-
-            Spacer(modifier = Modifier.height(WeBeepSpacing.xs))
-
-            OutlinedButton(
-                onClick = { showLogoutDialog = true },
-                colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = MaterialTheme.colorScheme.error
-                ),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.error),
-                contentPadding = ButtonDefaults.ButtonWithIconContentPadding,
-                modifier = Modifier
-                    .padding(horizontal = WeBeepSpacing.md)
-                    .heightIn(min = WeBeepSpacing.touchTarget)
-            ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ExitToApp,
-                    contentDescription = null,
-                    modifier = Modifier.size(ButtonDefaults.IconSize)
-                )
-                Spacer(modifier = Modifier.width(ButtonDefaults.IconSpacing))
-                Text(
-                    text = stringResource(R.string.logout),
-                    style = MaterialTheme.typography.labelLarge
+            GroupedListItem(position = GroupPosition.Single) {
+                SettingsRow(
+                    icon = Icons.AutoMirrored.Rounded.Logout,
+                    title = stringResource(R.string.logout),
+                    accent = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.clickable(role = Role.Button) { showLogoutDialog = true }
                 )
             }
             Spacer(modifier = Modifier.height(WeBeepSpacing.xl))
@@ -263,70 +215,94 @@ fun SettingsScreen(
 private fun SettingsSectionTitle(title: String) {
     Text(
         text = title,
-        style = MaterialTheme.typography.titleSmall.copy(
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary
-        ),
-        modifier = Modifier.padding(horizontal = WeBeepSpacing.md, vertical = WeBeepSpacing.xs)
+        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+        color = MaterialTheme.colorScheme.primary,
+        modifier = Modifier.padding(
+            start = WeBeepSpacing.md,
+            end = WeBeepSpacing.md,
+            top = WeBeepSpacing.lg,
+            bottom = WeBeepSpacing.xs
+        )
     )
 }
 
+/**
+ * Icon, title and optional subtitle, with [trailing] content at the end. [accent]
+ * colors both icon and title, e.g. error for destructive actions.
+ */
+@Composable
+private fun SettingsRow(
+    icon: ImageVector,
+    title: String,
+    modifier: Modifier = Modifier,
+    subtitle: String? = null,
+    accent: Color? = null,
+    trailing: @Composable RowScope.() -> Unit = {}
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .heightIn(min = SettingsRowMinHeight)
+            .padding(horizontal = WeBeepSpacing.md, vertical = WeBeepSpacing.sm),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = accent ?: MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Spacer(modifier = Modifier.width(WeBeepSpacing.md))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyLarge,
+                color = accent ?: MaterialTheme.colorScheme.onSurface
+            )
+            if (subtitle != null) {
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+        trailing()
+    }
+}
+
+private val SettingsRowMinHeight = WeBeepSpacing.touchTarget + WeBeepSpacing.xs
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ThemeSelectionRow(
     selectedTheme: ThemePreference,
     onThemeSelected: (ThemePreference) -> Unit
 ) {
-    Column(modifier = Modifier.padding(horizontal = WeBeepSpacing.md, vertical = WeBeepSpacing.xs)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                imageVector = Icons.Default.DarkMode,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(modifier = Modifier.width(WeBeepSpacing.md))
-            Text(
-                text = stringResource(R.string.app_theme),
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-        }
-
-        Spacer(modifier = Modifier.height(WeBeepSpacing.sm))
-
-        Row(
+    val haptics = LocalHapticFeedback.current
+    Column(modifier = Modifier.padding(bottom = WeBeepSpacing.md)) {
+        SettingsRow(icon = Icons.Rounded.DarkMode, title = stringResource(R.string.app_theme))
+        val options = listOf(
+            ThemePreference.SYSTEM_DEFAULT to stringResource(R.string.settings_theme_system),
+            ThemePreference.LIGHT to stringResource(R.string.settings_theme_light),
+            ThemePreference.DARK to stringResource(R.string.settings_theme_dark)
+        )
+        SingleChoiceSegmentedButtonRow(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(MaterialTheme.shapes.small)
-                .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-                .padding(WeBeepSpacing.xxs),
-            horizontalArrangement = Arrangement.spacedBy(WeBeepSpacing.xxs)
+                .padding(horizontal = WeBeepSpacing.md)
         ) {
-            val options = listOf(
-                ThemePreference.SYSTEM_DEFAULT to stringResource(R.string.settings_theme_system),
-                ThemePreference.LIGHT to stringResource(R.string.settings_theme_light),
-                ThemePreference.DARK to stringResource(R.string.settings_theme_dark)
-            )
-            options.forEach { (theme, label) ->
-                val isSelected = selectedTheme == theme
-                val background = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent
-                val contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
-
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .clip(MaterialTheme.shapes.extraSmall)
-                        .background(background)
-                        .bouncyClickable { onThemeSelected(theme) }
-                        .padding(vertical = WeBeepSpacing.sm),
-                    contentAlignment = Alignment.Center
+            options.forEachIndexed { index, (theme, label) ->
+                SegmentedButton(
+                    selected = selectedTheme == theme,
+                    onClick = {
+                        if (selectedTheme != theme) {
+                            haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
+                            onThemeSelected(theme)
+                        }
+                    },
+                    shape = SegmentedButtonDefaults.itemShape(index = index, count = options.size)
                 ) {
-                    Text(
-                        text = label,
-                        style = MaterialTheme.typography.bodyMedium.copy(
-                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
-                        ),
-                        color = contentColor
-                    )
+                    Text(text = label, maxLines = 1)
                 }
             }
         }
@@ -341,35 +317,16 @@ private fun SettingsSwitchItem(
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit
 ) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .toggleable(
-                value = checked,
-                role = Role.Switch,
-                onValueChange = onCheckedChange
-            )
-            .padding(horizontal = WeBeepSpacing.md, vertical = WeBeepSpacing.sm),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant
+    SettingsRow(
+        icon = icon,
+        title = title,
+        subtitle = subtitle,
+        modifier = Modifier.toggleable(
+            value = checked,
+            role = Role.Switch,
+            onValueChange = onCheckedChange
         )
-        Spacer(modifier = Modifier.width(WeBeepSpacing.md))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            Text(
-                text = subtitle,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
+    ) {
         Spacer(modifier = Modifier.width(WeBeepSpacing.sm))
         // Row owns the toggle semantics; unchecked thumb/border use onSurfaceVariant
         // so the "off" state stays readable on dark containers.
@@ -385,69 +342,66 @@ private fun SettingsSwitchItem(
     }
 }
 
+/** A row that opens a dropdown of [options]; [selected] is shown as its subtitle. */
+@Composable
+private fun <T> SettingsDropdownRow(
+    icon: ImageVector,
+    title: String,
+    options: List<Pair<T, String>>,
+    selected: String,
+    onSelect: (T) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+    Box {
+        SettingsRow(
+            icon = icon,
+            title = title,
+            subtitle = selected,
+            modifier = Modifier.clickable(role = Role.DropdownList) { expanded = true }
+        ) {
+            Icon(
+                imageVector = Icons.Rounded.ExpandMore,
+                contentDescription = stringResource(R.string.settings_cd_expand),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+            shape = MaterialTheme.shapes.medium
+        ) {
+            options.forEach { (value, label) ->
+                DropdownMenuItem(
+                    text = { Text(label) },
+                    onClick = {
+                        expanded = false
+                        onSelect(value)
+                    }
+                )
+            }
+        }
+    }
+}
+
 @Composable
 private fun SyncFrequencyItem(
     selectedFrequency: SyncFrequency,
     onFrequencySelected: (SyncFrequency) -> Unit
 ) {
-    var expanded by remember { mutableStateOf(false) }
-
-    val labels = mapOf(
+    val options = listOf(
         SyncFrequency.FIFTEEN_MINUTES to stringResource(R.string.settings_sync_freq_15m),
         SyncFrequency.ONE_HOUR to stringResource(R.string.settings_sync_freq_1h),
         SyncFrequency.TWELVE_HOURS to stringResource(R.string.settings_sync_freq_12h),
         SyncFrequency.DAILY to stringResource(R.string.settings_sync_freq_daily),
         SyncFrequency.NEVER to stringResource(R.string.settings_sync_freq_never)
     )
-
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .bouncyClickable { expanded = true }
-            .padding(horizontal = WeBeepSpacing.md, vertical = WeBeepSpacing.sm)
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                imageVector = Icons.Default.Sync,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(modifier = Modifier.width(WeBeepSpacing.md))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = stringResource(R.string.update_frequency),
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    text = labels[selectedFrequency] ?: "",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            Icon(
-                imageVector = Icons.Default.ArrowDropDown,
-                contentDescription = stringResource(R.string.settings_cd_expand),
-                tint = MaterialTheme.colorScheme.onSurface
-            )
-        }
-
-        DropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false },
-            modifier = Modifier.fillMaxWidth(0.8f)
-        ) {
-            SyncFrequency.entries.forEach { frequency ->
-                DropdownMenuItem(
-                    text = { Text(labels[frequency] ?: "") },
-                    onClick = {
-                        onFrequencySelected(frequency)
-                        expanded = false
-                    }
-                )
-            }
-        }
-    }
+    SettingsDropdownRow(
+        icon = Icons.Rounded.Sync,
+        title = stringResource(R.string.update_frequency),
+        options = options,
+        selected = options.firstOrNull { it.first == selectedFrequency }?.second.orEmpty(),
+        onSelect = onFrequencySelected
+    )
 }
 
 @Composable
@@ -464,30 +418,11 @@ private fun LastCheckItem(
         )
         else -> stringResource(R.string.settings_last_check_never)
     }
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(start = WeBeepSpacing.md, end = WeBeepSpacing.xs, top = WeBeepSpacing.xs, bottom = WeBeepSpacing.xs),
-        verticalAlignment = Alignment.CenterVertically
+    SettingsRow(
+        icon = Icons.Rounded.Notifications,
+        title = stringResource(R.string.settings_last_check_title),
+        subtitle = status
     ) {
-        Icon(
-            imageVector = Icons.Default.Notifications,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Spacer(modifier = Modifier.width(WeBeepSpacing.md))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = stringResource(R.string.settings_last_check_title),
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            Text(
-                text = status,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
         TextButton(
             onClick = onCheckNow,
             enabled = !checkInProgress,
@@ -500,67 +435,24 @@ private fun LastCheckItem(
 
 @Composable
 private fun LanguageSelectionRow() {
-    var expanded by remember { mutableStateOf(false) }
-    
     val currentLocales = AppCompatDelegate.getApplicationLocales()
     val currentTag = if (currentLocales.isEmpty) "system" else currentLocales.get(0)?.language ?: "system"
-
-    val labels = mapOf(
+    val options = listOf(
         "system" to "Sistema / System",
         "it" to "Italiano",
         "en" to "English"
     )
-
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .bouncyClickable { expanded = true }
-            .padding(horizontal = WeBeepSpacing.md, vertical = WeBeepSpacing.sm)
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                imageVector = Icons.Default.Language,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(modifier = Modifier.width(WeBeepSpacing.md))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = stringResource(R.string.settings_app_language),
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    text = labels[currentTag] ?: "Sistema",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            Icon(
-                imageVector = Icons.Default.ArrowDropDown,
-                contentDescription = stringResource(R.string.settings_cd_expand),
-                tint = MaterialTheme.colorScheme.onSurface
-            )
-        }
-
-        DropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false },
-            modifier = Modifier.fillMaxWidth(0.8f)
-        ) {
-            listOf("system", "it", "en").forEach { tag ->
-                DropdownMenuItem(
-                    text = { Text(labels[tag] ?: "") },
-                    onClick = {
-                        expanded = false
-                        if (tag == "system") {
-                            AppCompatDelegate.setApplicationLocales(LocaleListCompat.getEmptyLocaleList())
-                        } else {
-                            AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags(tag))
-                        }
-                    }
-                )
+    SettingsDropdownRow(
+        icon = Icons.Rounded.Language,
+        title = stringResource(R.string.settings_app_language),
+        options = options,
+        selected = options.firstOrNull { it.first == currentTag }?.second ?: options.first().second,
+        onSelect = { tag ->
+            if (tag == "system") {
+                AppCompatDelegate.setApplicationLocales(LocaleListCompat.getEmptyLocaleList())
+            } else {
+                AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags(tag))
             }
         }
-    }
+    )
 }

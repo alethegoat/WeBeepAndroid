@@ -10,10 +10,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Description
-import androidx.compose.material.icons.filled.Folder
-import androidx.compose.material.icons.filled.Link
-import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.rounded.Description
+import androidx.compose.material.icons.rounded.Folder
+import androidx.compose.material.icons.rounded.Link
+import androidx.compose.material.icons.rounded.Visibility
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -116,10 +116,10 @@ internal fun ModuleItemRow(
 
     val fileColors = WeBeepTheme.colors
     val (moduleIcon, moduleColor) = when (item.kind) {
-        ModuleKind.Folder -> Icons.Default.Folder to fileColors.fileFolder
-        ModuleKind.Link -> Icons.Default.Link to fileColors.fileLink
+        ModuleKind.Folder -> Icons.Rounded.Folder to fileColors.fileFolder
+        ModuleKind.Link -> Icons.Rounded.Link to fileColors.fileLink
         ModuleKind.SingleFile -> fileIconAndColor(module.files.first().filename, fileColors)
-        ModuleKind.MultiFile, ModuleKind.Other -> Icons.Default.Description to fileColors.fileGeneric
+        ModuleKind.MultiFile, ModuleKind.Other -> Icons.Rounded.Description to fileColors.fileGeneric
     }
     val onClick: (() -> Unit)? = when {
         item.kind == ModuleKind.Folder -> { { onToggleFolder(folderRootKey(module.id)) } }
@@ -199,7 +199,7 @@ private fun ModuleTrailing(
             contentAlignment = Alignment.Center
         ) {
             Icon(
-                imageVector = Icons.Default.Visibility,
+                imageVector = Icons.Rounded.Visibility,
                 contentDescription = stringResource(R.string.cd_preview),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(RowIconSize)

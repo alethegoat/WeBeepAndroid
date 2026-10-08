@@ -12,16 +12,16 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Description
-import androidx.compose.material.icons.filled.Download
-import androidx.compose.material.icons.filled.ErrorOutline
-import androidx.compose.material.icons.filled.ExpandMore
-import androidx.compose.material.icons.filled.Folder
-import androidx.compose.material.icons.filled.FolderZip
-import androidx.compose.material.icons.filled.PictureAsPdf
-import androidx.compose.material.icons.filled.Slideshow
-import androidx.compose.material.icons.filled.TableChart
+import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.Description
+import androidx.compose.material.icons.rounded.Download
+import androidx.compose.material.icons.rounded.ErrorOutline
+import androidx.compose.material.icons.rounded.ExpandMore
+import androidx.compose.material.icons.rounded.Folder
+import androidx.compose.material.icons.rounded.FolderZip
+import androidx.compose.material.icons.rounded.PictureAsPdf
+import androidx.compose.material.icons.rounded.Slideshow
+import androidx.compose.material.icons.rounded.TableChart
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -71,12 +71,12 @@ internal fun indentFor(depth: Int): Dp = FolderIndentStep * depth.coerceIn(0, Ma
 internal fun fileIconAndColor(filename: String, colors: WeBeepColors): Pair<ImageVector, Color> {
     val ext = filename.substringAfterLast('.', "").lowercase()
     return when (ext) {
-        "pdf" -> Icons.Default.PictureAsPdf to colors.filePdf
-        "doc", "docx" -> Icons.Default.Description to colors.fileWord
-        "xls", "xlsx" -> Icons.Default.TableChart to colors.fileExcel
-        "ppt", "pptx" -> Icons.Default.Slideshow to colors.filePowerPoint
-        "zip", "rar", "7z" -> Icons.Default.FolderZip to colors.fileZip
-        else -> Icons.Default.Description to colors.fileGeneric
+        "pdf" -> Icons.Rounded.PictureAsPdf to colors.filePdf
+        "doc", "docx" -> Icons.Rounded.Description to colors.fileWord
+        "xls", "xlsx" -> Icons.Rounded.TableChart to colors.fileExcel
+        "ppt", "pptx" -> Icons.Rounded.Slideshow to colors.filePowerPoint
+        "zip", "rar", "7z" -> Icons.Rounded.FolderZip to colors.fileZip
+        else -> Icons.Rounded.Description to colors.fileGeneric
     }
 }
 
@@ -121,7 +121,7 @@ internal fun ExpandChevron(
         contentAlignment = Alignment.Center
     ) {
         Icon(
-            imageVector = Icons.Default.ExpandMore,
+            imageVector = Icons.Rounded.ExpandMore,
             contentDescription = contentDescription,
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier
@@ -145,7 +145,7 @@ internal fun FileActionButton(
 ) {
     when (state) {
         DownloadState.NOT_STARTED -> FileActionIcon(
-            icon = Icons.Default.Download,
+            icon = Icons.Rounded.Download,
             tint = MaterialTheme.colorScheme.primary,
             contentDescription = stringResource(R.string.cd_download_resource),
             onClick = onDownloadClick,
@@ -167,14 +167,14 @@ internal fun FileActionButton(
             }
         }
         DownloadState.COMPLETED -> FileActionIcon(
-            icon = Icons.Default.CheckCircle,
+            icon = Icons.Rounded.CheckCircle,
             tint = WeBeepTheme.colors.success,
             contentDescription = stringResource(R.string.cd_open_file),
             onClick = onOpenClick,
             modifier = modifier
         )
         DownloadState.FAILED -> FileActionIcon(
-            icon = Icons.Default.ErrorOutline,
+            icon = Icons.Rounded.ErrorOutline,
             tint = MaterialTheme.colorScheme.error,
             contentDescription = stringResource(R.string.cd_error_retry),
             onClick = onDownloadClick,
@@ -288,7 +288,7 @@ internal fun SubfolderItemRow(
                     bottom = WeBeepSpacing.xxs
                 )
         ) {
-            FileTypeIcon(icon = Icons.Default.Folder, tint = WeBeepTheme.colors.fileFolder)
+            FileTypeIcon(icon = Icons.Rounded.Folder, tint = WeBeepTheme.colors.fileFolder)
             Spacer(modifier = Modifier.width(WeBeepSpacing.sm))
             RowLabels(title = item.name, meta = null, modifier = Modifier.weight(1f))
             ExpandChevron(

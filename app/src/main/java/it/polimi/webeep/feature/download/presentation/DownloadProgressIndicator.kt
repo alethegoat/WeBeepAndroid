@@ -4,9 +4,9 @@ import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Download
-import androidx.compose.material.icons.filled.ErrorOutline
+import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.Download
+import androidx.compose.material.icons.rounded.ErrorOutline
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -46,7 +46,7 @@ fun DownloadProgressIndicator(
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Download,
+                        imageVector = Icons.Rounded.Download,
                         contentDescription = androidx.compose.ui.res.stringResource(it.polimi.webeep.R.string.cd_download_resource),
                         tint = MaterialTheme.colorScheme.secondary
                     )
@@ -71,7 +71,7 @@ fun DownloadProgressIndicator(
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        imageVector = Icons.Default.CheckCircle,
+                        imageVector = Icons.Rounded.CheckCircle,
                         contentDescription = androidx.compose.ui.res.stringResource(it.polimi.webeep.R.string.cd_open_file),
                         tint = WeBeepTheme.colors.success
                     )
@@ -87,7 +87,7 @@ fun DownloadProgressIndicator(
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        imageVector = Icons.Default.ErrorOutline,
+                        imageVector = Icons.Rounded.ErrorOutline,
                         contentDescription = androidx.compose.ui.res.stringResource(it.polimi.webeep.R.string.cd_error_retry),
                         tint = MaterialTheme.colorScheme.error
                     )
