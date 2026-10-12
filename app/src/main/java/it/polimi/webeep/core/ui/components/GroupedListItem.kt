@@ -28,14 +28,14 @@ private val OuterCorner = 24.dp
 private val InnerCorner = 4.dp
 
 /** Where a row sits inside its group; decides which corners are rounded. */
-enum class GroupPosition { Top, Middle, Bottom, Single }
+enum class GroupPosition { TOP, MIDDLE, BOTTOM, SINGLE }
 
 /** Position of row [index] in a group of [count] rows. */
 fun groupPosition(index: Int, count: Int): GroupPosition = when {
-    count <= 1 -> GroupPosition.Single
-    index == 0 -> GroupPosition.Top
-    index == count - 1 -> GroupPosition.Bottom
-    else -> GroupPosition.Middle
+    count <= 1 -> GroupPosition.SINGLE
+    index == 0 -> GroupPosition.TOP
+    index == count - 1 -> GroupPosition.BOTTOM
+    else -> GroupPosition.MIDDLE
 }
 
 /**
@@ -53,8 +53,8 @@ fun GroupedListItem(
     content: @Composable () -> Unit
 ) {
     val reduceMotion = LocalReduceMotion.current
-    val roundTop = position == GroupPosition.Top || position == GroupPosition.Single
-    val roundBottom = position == GroupPosition.Bottom || position == GroupPosition.Single
+    val roundTop = position == GroupPosition.TOP || position == GroupPosition.SINGLE
+    val roundBottom = position == GroupPosition.BOTTOM || position == GroupPosition.SINGLE
     val top by animateDpAsState(
         targetValue = if (roundTop) OuterCorner else InnerCorner,
         animationSpec = WeBeepMotion.smooth(WeBeepMotion.SHORT_MS, reduceMotion),

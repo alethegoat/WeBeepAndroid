@@ -20,7 +20,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.Logout
 import androidx.compose.material.icons.rounded.ColorLens
 import androidx.compose.material.icons.rounded.DarkMode
@@ -35,7 +34,6 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -67,6 +65,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.os.LocaleListCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import it.polimi.webeep.R
+import it.polimi.webeep.core.ui.components.BackNavigationIcon
 import it.polimi.webeep.core.ui.components.GroupPosition
 import it.polimi.webeep.core.ui.components.GroupedListGap
 import it.polimi.webeep.core.ui.components.GroupedListItem
@@ -125,14 +124,7 @@ fun SettingsScreen(viewModel: SettingsViewModel, onBackClick: () -> Unit, onLogo
         topBar = {
             LargeTopAppBar(
                 title = { Text(text = stringResource(R.string.settings)) },
-                navigationIcon = {
-                    IconButton(onClick = onBackClick) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
-                            contentDescription = stringResource(R.string.cd_back)
-                        )
-                    }
-                },
+                navigationIcon = { BackNavigationIcon(onBack = onBackClick) },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background,
                     scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainer,
@@ -159,13 +151,13 @@ fun SettingsScreen(viewModel: SettingsViewModel, onBackClick: () -> Unit, onLogo
                 verticalArrangement = Arrangement.spacedBy(GroupedListGap)
             ) {
                 SettingsSectionTitle(stringResource(R.string.settings_section_appearance))
-                GroupedListItem(position = GroupPosition.Top) {
+                GroupedListItem(position = GroupPosition.TOP) {
                     ThemeSelectionRow(
                         selectedTheme = uiState.themePreference,
                         onThemeSelected = { viewModel.setThemePreference(it) }
                     )
                 }
-                GroupedListItem(position = GroupPosition.Middle) {
+                GroupedListItem(position = GroupPosition.MIDDLE) {
                     SettingsSwitchItem(
                         icon = Icons.Rounded.ColorLens,
                         title = stringResource(R.string.settings_dynamic_colors_title),
@@ -174,12 +166,12 @@ fun SettingsScreen(viewModel: SettingsViewModel, onBackClick: () -> Unit, onLogo
                         onCheckedChange = { viewModel.setDynamicColorPreference(it) }
                     )
                 }
-                GroupedListItem(position = GroupPosition.Bottom) {
+                GroupedListItem(position = GroupPosition.BOTTOM) {
                     LanguageSelectionRow()
                 }
 
                 SettingsSectionTitle(stringResource(R.string.settings_section_sync))
-                GroupedListItem(position = GroupPosition.Top) {
+                GroupedListItem(position = GroupPosition.TOP) {
                     SettingsSwitchItem(
                         icon = Icons.Rounded.Wifi,
                         title = stringResource(R.string.settings_wifi_only_title),
@@ -188,13 +180,13 @@ fun SettingsScreen(viewModel: SettingsViewModel, onBackClick: () -> Unit, onLogo
                         onCheckedChange = { viewModel.setWifiOnlySync(it) }
                     )
                 }
-                GroupedListItem(position = GroupPosition.Middle) {
+                GroupedListItem(position = GroupPosition.MIDDLE) {
                     SyncFrequencyItem(
                         selectedFrequency = uiState.syncFrequency,
                         onFrequencySelected = { viewModel.setSyncFrequency(it) }
                     )
                 }
-                GroupedListItem(position = GroupPosition.Bottom) {
+                GroupedListItem(position = GroupPosition.BOTTOM) {
                     LastCheckItem(
                         lastCheckAt = lastCheckAt,
                         checkInProgress = checkInProgress,
@@ -203,7 +195,7 @@ fun SettingsScreen(viewModel: SettingsViewModel, onBackClick: () -> Unit, onLogo
                 }
 
                 SettingsSectionTitle(stringResource(R.string.settings_section_account))
-                GroupedListItem(position = GroupPosition.Single) {
+                GroupedListItem(position = GroupPosition.SINGLE) {
                     SettingsRow(
                         icon = Icons.AutoMirrored.Rounded.Logout,
                         title = stringResource(R.string.logout),

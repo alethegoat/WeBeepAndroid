@@ -105,20 +105,20 @@ internal fun ModuleItemRow(
     modifier: Modifier = Modifier
 ) {
     val module = item.module
-    val hasLinkPreview = item.kind == ModuleKind.Link && !module.url.isNullOrBlank()
+    val hasLinkPreview = item.kind == ModuleKind.LINK && !module.url.isNullOrBlank()
 
     val fileColors = WeBeepTheme.colors
     val (moduleIcon, moduleColor) = when (item.kind) {
-        ModuleKind.Folder -> Icons.Rounded.Folder to fileColors.fileFolder
-        ModuleKind.Link -> Icons.Rounded.Link to fileColors.fileLink
-        ModuleKind.SingleFile -> fileIconAndColor(module.files.first().filename, fileColors)
-        ModuleKind.MultiFile, ModuleKind.Other -> Icons.Rounded.Description to fileColors.fileGeneric
+        ModuleKind.FOLDER -> Icons.Rounded.Folder to fileColors.fileFolder
+        ModuleKind.LINK -> Icons.Rounded.Link to fileColors.fileLink
+        ModuleKind.SINGLE_FILE -> fileIconAndColor(module.files.first().filename, fileColors)
+        ModuleKind.MULTI_FILE, ModuleKind.OTHER -> Icons.Rounded.Description to fileColors.fileGeneric
     }
     val onClick: (() -> Unit)? = when {
-        item.kind == ModuleKind.Folder -> {
+        item.kind == ModuleKind.FOLDER -> {
             { onToggleFolder(folderRootKey(module.id)) }
         }
-        item.kind == ModuleKind.SingleFile -> {
+        item.kind == ModuleKind.SINGLE_FILE -> {
             { onPreviewClick(module.files.first()) }
         }
         hasLinkPreview -> {
@@ -148,7 +148,7 @@ internal fun ModuleItemRow(
                 Spacer(modifier = Modifier.width(WeBeepSpacing.sm))
                 RowLabels(
                     title = module.name,
-                    meta = if (item.kind == ModuleKind.SingleFile) module.files.first().formattedSize else null,
+                    meta = if (item.kind == ModuleKind.SINGLE_FILE) module.files.first().formattedSize else null,
                     modifier = Modifier.weight(1f)
                 )
                 ModuleTrailing(
@@ -179,13 +179,13 @@ private fun ModuleTrailing(
     onOpenClick: (FileUiModel) -> Unit
 ) {
     when {
-        item.kind == ModuleKind.Folder -> ExpandChevron(
+        item.kind == ModuleKind.FOLDER -> ExpandChevron(
             expanded = item.isFolderExpanded,
             contentDescription = stringResource(
                 if (item.isFolderExpanded) R.string.cd_collapse_folder else R.string.cd_expand_folder
             )
         )
-        item.kind == ModuleKind.SingleFile -> {
+        item.kind == ModuleKind.SINGLE_FILE -> {
             val file = item.module.files.first()
             FileActionButton(
                 state = file.downloadState,

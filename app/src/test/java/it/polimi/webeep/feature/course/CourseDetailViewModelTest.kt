@@ -39,8 +39,12 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
 
 @OptIn(ExperimentalCoroutinesApi::class)
+// SavedStateHandle.toRoute builds a Bundle, which needs Robolectric.
+@RunWith(RobolectricTestRunner::class)
 class CourseDetailViewModelTest {
 
     @get:Rule
@@ -192,8 +196,8 @@ class CourseDetailViewModelTest {
             assertEquals("General", header.name)
             assertEquals("Summary", header.summary)
             val module = content.items[1] as CourseListItem.Module
-            assertEquals(ModuleKind.SingleFile, module.kind)
-            assertEquals(GroupPosition.Bottom, module.position)
+            assertEquals(ModuleKind.SINGLE_FILE, module.kind)
+            assertEquals(GroupPosition.BOTTOM, module.position)
         }
     }
 

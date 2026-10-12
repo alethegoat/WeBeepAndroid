@@ -22,7 +22,7 @@ import it.polimi.webeep.feature.auth.domain.SsoCallbackRelay
 import it.polimi.webeep.feature.settings.domain.SettingsRepository
 import it.polimi.webeep.feature.sync.domain.SyncExtras
 import it.polimi.webeep.feature.sync.domain.SyncScheduling
-import it.polimi.webeep.navigation.Screen
+import it.polimi.webeep.navigation.CourseDetail
 import it.polimi.webeep.navigation.navigateToLogin
 import javax.inject.Inject
 import kotlinx.coroutines.launch
@@ -131,7 +131,7 @@ class MainActivity : AppCompatActivity() {
         val courseId = pendingCourseId ?: return
         pendingCourseId = null
         if (tokenProvider.getTokenSync() != null) {
-            controller.navigate(Screen.CourseDetail.createRoute(courseId))
+            controller.navigate(CourseDetail(courseId))
         }
     }
 

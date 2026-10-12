@@ -9,6 +9,8 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.ui.unit.IntOffset
+import androidx.navigation.NavDestination
+import androidx.navigation.NavDestination.Companion.hasRoute
 import it.polimi.webeep.core.ui.theme.WeBeepMotion
 
 private const val FADE_THROUGH_INITIAL_SCALE = 0.94f
@@ -28,41 +30,38 @@ private const val PARALLAX_DIVISOR = 4
  * Back by gesture and back by the in-app arrow therefore look the same.
  */
 internal class NavTransitions(private val reduceMotion: Boolean) {
-    private enum class Pattern { FadeThrough, ContainerTransform, Slide }
+    private enum class Pattern { FADE_THROUGH, CONTAINER_TRANSFORM, SLIDE }
 
-    fun enter(from: String?, to: String?, pop: Boolean): EnterTransition {
+    fun enter(from: NavDestination, to: NavDestination, pop: Boolean): EnterTransition {
         if (reduceMotion) return EnterTransition.None
         return when (patternFor(from, to)) {
-            Pattern.FadeThrough -> fadeIn(WeBeepMotion.enter(WeBeepMotion.TRANSITION_IN_MS)) +
+            Pattern.FADE_THROUGH -> fadeIn(WeBeepMotion.enter(WeBeepMotion.TRANSITION_IN_MS)) +
                 scaleIn(WeBeepMotion.spatialSpring(), initialScale = FADE_THROUGH_INITIAL_SCALE)
             // As long as the shared-bounds animation, or that would be cut short.
-            Pattern.ContainerTransform -> fadeIn(WeBeepMotion.enter(WeBeepMotion.CONTAINER_TRANSFORM_MS))
+            Pattern.CONTAINER_TRANSFORM -> fadeIn(WeBeepMotion.enter(WeBeepMotion.CONTAINER_TRANSFORM_MS))
             // Push: the detail arrives from the right edge. Pop: the screen below comes back from its parallax.
-            Pattern.Slide -> slideInHorizontally(slideSpec()) { width ->
+            Pattern.SLIDE -> slideInHorizontally(slideSpec()) { width ->
                 if (pop) -width / PARALLAX_DIVISOR else width
             }
         }
     }
 
-    fun exit(from: String?, to: String?, pop: Boolean): ExitTransition {
+    fun exit(from: NavDestination, to: NavDestination, pop: Boolean): ExitTransition {
         if (reduceMotion) return ExitTransition.None
         return when (patternFor(from, to)) {
-            Pattern.FadeThrough -> fadeOut(WeBeepMotion.exit(WeBeepMotion.TRANSITION_OUT_MS))
-            Pattern.ContainerTransform -> fadeOut(WeBeepMotion.exit(WeBeepMotion.CONTAINER_TRANSFORM_MS))
+            Pattern.FADE_THROUGH -> fadeOut(WeBeepMotion.exit(WeBeepMotion.TRANSITION_OUT_MS))
+            Pattern.CONTAINER_TRANSFORM -> fadeOut(WeBeepMotion.exit(WeBeepMotion.CONTAINER_TRANSFORM_MS))
             // Push: the screen below drifts left. Pop: the detail leaves to the right, with the finger.
-            Pattern.Slide -> slideOutHorizontally(slideSpec()) { width ->
+            Pattern.SLIDE -> slideOutHorizontally(slideSpec()) { width ->
                 if (pop) width else -width / PARALLAX_DIVISOR
             }
         }
     }
 
-    private fun patternFor(from: String?, to: String?): Pattern {
-        val pair = setOf(from, to)
-        return when (pair) {
-            setOf(Screen.Login.route, Screen.Dashboard.route) -> Pattern.FadeThrough
-            setOf(Screen.Dashboard.route, Screen.CourseDetail.route) -> Pattern.ContainerTransform
-            else -> Pattern.Slide
-        }
+    private fun patternFor(from: NavDestination, to: NavDestination) = when {
+        from.isPair<Login, Dashboard>(to) -> Pattern.FADE_THROUGH
+        from.isPair<Dashboard, CourseDetail>(to) -> Pattern.CONTAINER_TRANSFORM
+        else -> Pattern.SLIDE
     }
 
     /**
@@ -73,4 +72,8 @@ internal class NavTransitions(private val reduceMotion: Boolean) {
         durationMillis = WeBeepMotion.SLIDE_MS,
         easing = WeBeepMotion.Standard
     )
+
+    /** Whether this and [other] are the two destinations [A] and [B], in either order. */
+    private inline fun <reified A : Any, reified B : Any> NavDestination.isPair(other: NavDestination) =
+        (hasRoute<A>() && other.hasRoute<B>()) || (hasRoute<B>() && other.hasRoute<A>())
 }

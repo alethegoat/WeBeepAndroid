@@ -21,16 +21,12 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Book
 import androidx.compose.material.icons.rounded.Description
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -54,6 +50,7 @@ import it.polimi.webeep.R
 import it.polimi.webeep.core.common.CourseTitle
 import it.polimi.webeep.core.common.CourseTitleParser
 import it.polimi.webeep.core.storage.mimeTypeForFileName
+import it.polimi.webeep.core.ui.components.BackTopBar
 import it.polimi.webeep.core.ui.components.EmptyStateView
 import it.polimi.webeep.core.ui.components.GroupPosition
 import it.polimi.webeep.core.ui.components.GroupedListGap
@@ -235,7 +232,7 @@ private fun CourseTopBar(title: String, showTitle: Boolean, isScrolled: Boolean,
         animationSpec = WeBeepMotion.smooth(reduceMotion = reduceMotion),
         label = "top_bar_container"
     )
-    TopAppBar(
+    BackTopBar(
         title = {
             AnimatedVisibility(
                 visible = showTitle,
@@ -250,14 +247,7 @@ private fun CourseTopBar(title: String, showTitle: Boolean, isScrolled: Boolean,
                 )
             }
         },
-        navigationIcon = {
-            IconButton(onClick = onBackClick) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
-                    contentDescription = stringResource(R.string.cd_back)
-                )
-            }
-        },
+        onBack = onBackClick,
         colors = TopAppBarDefaults.topAppBarColors(
             containerColor = containerColor,
             scrolledContainerColor = containerColor,
@@ -332,7 +322,7 @@ private fun CourseContentList(
                     key = { it.key },
                     contentType = { it.contentType }
                 ) { item ->
-                    val startsGroup = item.position == GroupPosition.Top || item.position == GroupPosition.Single
+                    val startsGroup = item.position == GroupPosition.TOP || item.position == GroupPosition.SINGLE
                     val rowModifier = Modifier
                         .then(
                             if (reduceMotion) {

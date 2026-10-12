@@ -4,8 +4,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.size
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -23,13 +21,13 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
 import it.polimi.webeep.core.datastore.TokenProvider
 import it.polimi.webeep.core.session.SessionExpiryHandler
+import it.polimi.webeep.core.ui.components.LoadingIndicator
 import it.polimi.webeep.core.ui.theme.InterFamily
 import it.polimi.webeep.core.ui.theme.OutfitFamily
 import it.polimi.webeep.core.ui.theme.WeBeepTheme
 import it.polimi.webeep.feature.settings.domain.SettingsRepository
 import it.polimi.webeep.feature.settings.domain.model.ThemePreference
 import it.polimi.webeep.navigation.NavGraph
-import it.polimi.webeep.navigation.Screen
 import it.polimi.webeep.navigation.navigateToLogin
 import kotlinx.coroutines.flow.first
 
@@ -51,19 +49,15 @@ fun WeBeepApp(
     // Saved, and the token store outlives the Activity: rotating or switching the
     // language recreates the screen in place instead of flashing the spinner. Only a
     // cold start (or process death) waits for the store to open.
-    var startDestination by rememberSaveable { mutableStateOf<String?>(null) }
+    var startLoggedIn by rememberSaveable { mutableStateOf<Boolean?>(null) }
     var storeReady by remember { mutableStateOf(tokenProvider.isLoaded) }
 
     LaunchedEffect(Unit) {
         // Keystore-backed prefs are opened on IO here, not on the main thread.
         tokenProvider.ensureLoaded()
         storeReady = true
-        if (startDestination == null) {
-            startDestination = when {
-                startAtLogin -> Screen.Login.route
-                tokenProvider.isLoggedIn.first() -> Screen.Dashboard.route
-                else -> Screen.Login.route
-            }
+        if (startLoggedIn == null) {
+            startLoggedIn = !startAtLogin && tokenProvider.isLoggedIn.first()
         }
         sessionExpiryHandler.wipeStaleDataIfLoggedOut()
     }
@@ -87,7 +81,7 @@ fun WeBeepApp(
             fontResolver.preload(InterFamily)
         }
         // Each screen paints its own background (the login one its animated aurora).
-        when (val destination = startDestination?.takeIf { storeReady }) {
+        when (val loggedIn = startLoggedIn?.takeIf { storeReady }) {
             null -> {
                 Box(
                     modifier = Modifier
@@ -95,10 +89,7 @@ fun WeBeepApp(
                         .background(MaterialTheme.colorScheme.background),
                     contentAlignment = Alignment.Center
                 ) {
-                    CircularProgressIndicator(
-                        strokeWidth = 2.5.dp,
-                        modifier = Modifier.size(28.dp)
-                    )
+                    LoadingIndicator(size = 28.dp)
                 }
             }
             else -> {
@@ -111,7 +102,7 @@ fun WeBeepApp(
                     }
                 }
                 NavGraph(
-                    startDestination = destination,
+                    startLoggedIn = loggedIn,
                     navController = navController,
                     modifier = Modifier.fillMaxSize()
                 )

@@ -294,7 +294,7 @@ private fun DashboardCourseGrid(
 ) {
     val reduceMotion = LocalReduceMotion.current
     var searchQuery by rememberSaveable { mutableStateOf("") }
-    var courseFilter by rememberSaveable { mutableStateOf(CourseFilter.Active) }
+    var courseFilter by rememberSaveable { mutableStateOf(CourseFilter.ACTIVE) }
     val filteredCourses = remember(state.courses, searchQuery, courseFilter) {
         filterCourses(
             courses = state.courses,
@@ -303,7 +303,7 @@ private fun DashboardCourseGrid(
             nowEpochSeconds = System.currentTimeMillis() / 1000
         )
     }
-    val filtersActive = searchQuery.isNotEmpty() || courseFilter != CourseFilter.Active
+    val filtersActive = searchQuery.isNotEmpty() || courseFilter != CourseFilter.ACTIVE
 
     PullToRefreshBox(
         isRefreshing = state.isRefreshing,
@@ -348,7 +348,7 @@ private fun DashboardCourseGrid(
                         onAction = {
                             if (filtersActive) {
                                 searchQuery = ""
-                                courseFilter = CourseFilter.Active
+                                courseFilter = CourseFilter.ACTIVE
                             } else {
                                 onRefresh()
                             }
@@ -453,9 +453,9 @@ private fun CourseFilterBar(selected: CourseFilter, onSelect: (CourseFilter) -> 
     val reduceMotion = LocalReduceMotion.current
     val haptics = LocalHapticFeedback.current
     val filters = listOf(
-        CourseFilter.Active to stringResource(R.string.filter_active),
-        CourseFilter.Past to stringResource(R.string.filter_past),
-        CourseFilter.All to stringResource(R.string.filter_all)
+        CourseFilter.ACTIVE to stringResource(R.string.filter_active),
+        CourseFilter.PAST to stringResource(R.string.filter_past),
+        CourseFilter.ALL to stringResource(R.string.filter_all)
     )
     BoxWithConstraints(
         modifier = modifier

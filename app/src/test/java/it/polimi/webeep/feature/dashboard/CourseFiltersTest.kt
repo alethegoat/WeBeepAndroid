@@ -17,27 +17,27 @@ class CourseFiltersTest {
 
     @Test
     fun activeFilterKeepsOpenAndUndatedCourses() {
-        val result = filterCourses(courses, query = "", filter = CourseFilter.Active, nowEpochSeconds = now)
+        val result = filterCourses(courses, query = "", filter = CourseFilter.ACTIVE, nowEpochSeconds = now)
         assertEquals(listOf(1, 2), result.map { it.id })
     }
 
     @Test
     fun pastFilterKeepsExpiredCourses() {
-        val result = filterCourses(courses, query = "", filter = CourseFilter.Past, nowEpochSeconds = now)
+        val result = filterCourses(courses, query = "", filter = CourseFilter.PAST, nowEpochSeconds = now)
         assertEquals(listOf(3), result.map { it.id })
     }
 
     @Test
     fun searchMatchesFullnameAndShortname() {
-        val byName = filterCourses(courses, "analisi", CourseFilter.All, now)
+        val byName = filterCourses(courses, "analisi", CourseFilter.ALL, now)
         assertEquals(listOf(2), byName.map { it.id })
-        val byCode = filterCourses(courses, "fis-1", CourseFilter.All, now)
+        val byCode = filterCourses(courses, "fis-1", CourseFilter.ALL, now)
         assertEquals(listOf(3), byCode.map { it.id })
     }
 
     @Test
     fun blankQueryDoesNotFilterByText() {
-        val result = filterCourses(courses, "   ", CourseFilter.All, now)
+        val result = filterCourses(courses, "   ", CourseFilter.ALL, now)
         assertEquals(3, result.size)
     }
 

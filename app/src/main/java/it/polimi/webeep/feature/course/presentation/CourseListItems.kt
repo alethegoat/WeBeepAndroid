@@ -6,14 +6,14 @@ import it.polimi.webeep.core.ui.components.groupPosition
 import it.polimi.webeep.feature.course.domain.model.ModuleType
 
 /** How a module row looks and what tapping it does. */
-enum class ModuleKind { Folder, Link, SingleFile, MultiFile, Other }
+enum class ModuleKind { FOLDER, LINK, SINGLE_FILE, MULTI_FILE, OTHER }
 
 internal fun ModuleUiModel.kind(): ModuleKind = when {
-    type == ModuleType.FOLDER -> ModuleKind.Folder
-    type in ModuleType.Link -> ModuleKind.Link
-    files.size == 1 -> ModuleKind.SingleFile
-    files.size > 1 -> ModuleKind.MultiFile
-    else -> ModuleKind.Other
+    type == ModuleType.FOLDER -> ModuleKind.FOLDER
+    type in ModuleType.Link -> ModuleKind.LINK
+    files.size == 1 -> ModuleKind.SINGLE_FILE
+    files.size > 1 -> ModuleKind.MULTI_FILE
+    else -> ModuleKind.OTHER
 }
 
 /**
@@ -125,10 +125,10 @@ private class CourseListBuilder(private val openFolders: Set<String>) {
 
     private fun addModule(module: ModuleUiModel) {
         val kind = module.kind()
-        val isFolderExpanded = kind == ModuleKind.Folder && folderRootKey(module.id) in openFolders
+        val isFolderExpanded = kind == ModuleKind.FOLDER && folderRootKey(module.id) in openFolders
         val key = uniqueKey("module:${module.id}")
         group += { position -> CourseListItem.Module(key, position, module, kind, isFolderExpanded) }
-        if (isFolderExpanded || kind == ModuleKind.MultiFile) {
+        if (isFolderExpanded || kind == ModuleKind.MULTI_FILE) {
             addTree(buildFolderTree(module.files), module.id, depth = 1)
         }
     }

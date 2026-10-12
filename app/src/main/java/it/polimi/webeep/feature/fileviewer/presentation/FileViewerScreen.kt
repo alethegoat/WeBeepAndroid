@@ -32,7 +32,6 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.OpenInNew
 import androidx.compose.material.icons.outlined.BrokenImage
 import androidx.compose.material.icons.rounded.Description
@@ -51,7 +50,6 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -84,6 +82,7 @@ import coil.compose.SubcomposeAsyncImage
 import coil.compose.SubcomposeAsyncImageContent
 import it.polimi.webeep.R
 import it.polimi.webeep.core.common.FileUtils
+import it.polimi.webeep.core.ui.components.BackTopBar
 import it.polimi.webeep.core.ui.components.EmptyStateView
 import it.polimi.webeep.core.ui.theme.WeBeepMotion
 import it.polimi.webeep.core.ui.theme.WeBeepSpacing
@@ -217,7 +216,7 @@ private fun ViewerTopBar(
         exit = slideOutVertically(WeBeepMotion.exit(reduceMotion = reduceMotion)) { -it } +
             fadeOut(WeBeepMotion.exit(reduceMotion = reduceMotion))
     ) {
-        TopAppBar(
+        BackTopBar(
             title = {
                 Column {
                     Text(
@@ -237,14 +236,7 @@ private fun ViewerTopBar(
                     }
                 }
             },
-            navigationIcon = {
-                IconButton(onClick = onBackClick) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
-                        contentDescription = stringResource(R.string.cd_back)
-                    )
-                }
-            },
+            onBack = onBackClick,
             actions = {
                 val canAct = state != null &&
                     state !is FileContentState.Downloading &&

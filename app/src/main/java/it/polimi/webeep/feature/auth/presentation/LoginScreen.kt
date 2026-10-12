@@ -24,7 +24,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Login
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -54,6 +53,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import it.polimi.webeep.R
 import it.polimi.webeep.core.ui.components.AuroraBackground
+import it.polimi.webeep.core.ui.components.LoadingIndicator
 import it.polimi.webeep.core.ui.components.WeBeepSnackbarHost
 import it.polimi.webeep.core.ui.components.showErrorSnackbar
 import it.polimi.webeep.core.ui.theme.WeBeepMotion
@@ -297,11 +297,7 @@ private fun LoginCard(isLoading: Boolean, onLoginClick: () -> Unit) {
                 label = "login_cta"
             ) { loading ->
                 if (loading) {
-                    CircularProgressIndicator(
-                        color = MaterialTheme.colorScheme.onPrimary,
-                        strokeWidth = 2.5.dp,
-                        modifier = Modifier.size(26.dp)
-                    )
+                    LoadingIndicator(size = 26.dp, color = MaterialTheme.colorScheme.onPrimary)
                 } else {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,

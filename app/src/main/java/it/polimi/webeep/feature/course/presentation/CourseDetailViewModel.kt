@@ -5,6 +5,7 @@ import androidx.compose.runtime.Immutable
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.navigation.toRoute
 import dagger.hilt.android.lifecycle.HiltViewModel
 import it.polimi.webeep.core.common.FileUtils
 import it.polimi.webeep.core.common.MoodleText
@@ -23,6 +24,7 @@ import it.polimi.webeep.feature.download.domain.DownloadRepository
 import it.polimi.webeep.feature.download.domain.DownloadRepository.Companion.PROGRESS_COMPLETE
 import it.polimi.webeep.feature.download.domain.DownloadRepository.Companion.PROGRESS_FAILED
 import it.polimi.webeep.feature.download.domain.model.DownloadState
+import it.polimi.webeep.navigation.CourseDetail
 import java.io.File
 import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
@@ -90,9 +92,7 @@ class CourseDetailViewModel @Inject constructor(
     @DefaultDispatcher private val defaultDispatcher: CoroutineDispatcher
 ) : ViewModel() {
 
-    val courseId: Int = checkNotNull(savedStateHandle["courseId"]) {
-        "course id not passed to navigator"
-    }
+    val courseId: Int = savedStateHandle.toRoute<CourseDetail>().courseId
 
     private val _uiState = MutableStateFlow<CourseDetailUiState>(CourseDetailUiState.Loading)
     val uiState: StateFlow<CourseDetailUiState> = _uiState.asStateFlow()

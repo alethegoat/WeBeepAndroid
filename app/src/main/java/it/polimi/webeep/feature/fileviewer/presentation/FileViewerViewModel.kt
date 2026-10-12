@@ -3,6 +3,7 @@ package it.polimi.webeep.feature.fileviewer.presentation
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.navigation.toRoute
 import dagger.hilt.android.lifecycle.HiltViewModel
 import it.polimi.webeep.core.common.FileUtils
 import it.polimi.webeep.core.common.Resource
@@ -17,7 +18,7 @@ import it.polimi.webeep.feature.download.domain.model.DownloadState
 import it.polimi.webeep.feature.fileviewer.domain.FileContentRepository
 import it.polimi.webeep.feature.fileviewer.domain.ViewerFile
 import it.polimi.webeep.feature.fileviewer.domain.findSiblings
-import it.polimi.webeep.navigation.Screen
+import it.polimi.webeep.navigation.FileViewer
 import java.io.File
 import javax.inject.Inject
 import kotlinx.coroutines.Job
@@ -51,12 +52,14 @@ class FileViewerViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
+    private val route = savedStateHandle.toRoute<FileViewer>()
+
     val initialFile = ViewerFile(
-        url = MoodleFileUrlBuilder.stripAuthFromUrl(savedStateHandle[Screen.FileViewer.URL_ARG] ?: ""),
-        title = savedStateHandle[Screen.FileViewer.TITLE_ARG] ?: "Preview",
-        mimeType = savedStateHandle[Screen.FileViewer.MIME_TYPE_ARG] ?: ""
+        url = MoodleFileUrlBuilder.stripAuthFromUrl(route.url),
+        title = route.title,
+        mimeType = route.mimeType.orEmpty()
     )
-    private val courseId: Int = savedStateHandle[Screen.FileViewer.COURSE_ID_ARG] ?: Screen.FileViewer.NO_COURSE
+    private val courseId: Int? = route.courseId
 
     private val _files = MutableStateFlow<ViewerFiles?>(null)
     val files: StateFlow<ViewerFiles?> = _files.asStateFlow()
@@ -83,7 +86,7 @@ class FileViewerViewModel @Inject constructor(
     }
 
     private suspend fun resolveFiles(): ViewerFiles {
-        if (courseId == Screen.FileViewer.NO_COURSE) return ViewerFiles(listOf(initialFile), 0)
+        if (courseId == null) return ViewerFiles(listOf(initialFile), 0)
         val siblings = runCatchingCancellable {
             findSiblings(courseRepository.getCachedCourseContents(courseId).first(), initialFile.url)
         }.getOrDefault(emptyList())
