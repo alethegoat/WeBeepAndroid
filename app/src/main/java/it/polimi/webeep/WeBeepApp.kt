@@ -10,6 +10,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -37,8 +38,10 @@ fun WeBeepApp(
     settingsRepository: SettingsRepository,
     sessionExpiryHandler: SessionExpiryHandler,
     startAtLogin: Boolean,
+    modifier: Modifier = Modifier,
     onNavControllerReady: (NavHostController) -> Unit = {}
 ) {
+    val currentOnNavControllerReady by rememberUpdatedState(onNavControllerReady)
     val themePreference by settingsRepository.themePreference.collectAsStateWithLifecycle(
         initialValue = ThemePreference.SYSTEM_DEFAULT
     )
@@ -84,7 +87,7 @@ fun WeBeepApp(
         when (val loggedIn = startLoggedIn?.takeIf { storeReady }) {
             null -> {
                 Box(
-                    modifier = Modifier
+                    modifier = modifier
                         .fillMaxSize()
                         .background(MaterialTheme.colorScheme.background),
                     contentAlignment = Alignment.Center
@@ -94,7 +97,7 @@ fun WeBeepApp(
             }
             else -> {
                 LaunchedEffect(navController) {
-                    onNavControllerReady(navController)
+                    currentOnNavControllerReady(navController)
                 }
                 LaunchedEffect(navController, sessionExpiryHandler) {
                     sessionExpiryHandler.sessionLost.collect {
@@ -104,7 +107,7 @@ fun WeBeepApp(
                 NavGraph(
                     startLoggedIn = loggedIn,
                     navController = navController,
-                    modifier = Modifier.fillMaxSize()
+                    modifier = modifier.fillMaxSize()
                 )
             }
         }

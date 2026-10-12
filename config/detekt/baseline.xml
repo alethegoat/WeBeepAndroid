@@ -6,14 +6,7 @@
     <ID>CompositionLocalAllowlist:SharedMotion.kt$LocalNavAnimatedVisibilityScope</ID>
     <ID>CompositionLocalAllowlist:SharedMotion.kt$LocalNavSharedTransitionScope</ID>
     <ID>CompositionLocalAllowlist:WeBeepColors.kt$LocalWeBeepColors</ID>
-    <ID>LambdaParameterInRestartableEffect:LoginScreen.kt$onLoginSuccess</ID>
-    <ID>LambdaParameterInRestartableEffect:WeBeepApp.kt$onNavControllerReady</ID>
     <ID>ModifierComposed:BouncyClickable.kt$bouncyClickable</ID>
     <ID>ModifierComposed:SharedMotion.kt$courseSharedBounds</ID>
-    <ID>ModifierMissing:SettingsScreen.kt$SettingsScreen</ID>
-    <ID>ModifierMissing:WeBeepApp.kt$WeBeepApp</ID>
-    <ID>ParameterNaming:SettingsScreen.kt$onFrequencySelected</ID>
-    <ID>ParameterNaming:SettingsScreen.kt$onThemeSelected</ID>
-    <ID>ViewModelInjection:NavGraph.kt$viewModel</ID>
   </CurrentIssues>
 </SmellBaseline>
