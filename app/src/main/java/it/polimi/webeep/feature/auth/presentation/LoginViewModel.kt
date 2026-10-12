@@ -47,6 +47,7 @@ class LoginViewModel @Inject constructor(
         }
     }
 
+    /** Starts a login attempt and returns the SSO URL to open; see [LoginUseCase.generateSsoLaunchUrl]. */
     fun generateSsoUrl(): String = loginUseCase.generateSsoLaunchUrl()
 
     private fun handleSsoCallback(encodedToken: String) {

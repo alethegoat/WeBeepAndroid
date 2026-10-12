@@ -8,6 +8,7 @@ import it.polimi.webeep.feature.dashboard.data.DashboardRepositoryImpl
 import it.polimi.webeep.feature.dashboard.domain.DashboardRepository
 import javax.inject.Singleton
 
+/** Binds the dashboard feature's repository. */
 @Module
 @InstallIn(SingletonComponent::class)
 abstract class DashboardModule {

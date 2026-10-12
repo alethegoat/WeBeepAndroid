@@ -32,6 +32,7 @@ private const val PARALLAX_DIVISOR = 4
 internal class NavTransitions(private val reduceMotion: Boolean) {
     private enum class Pattern { FADE_THROUGH, CONTAINER_TRANSFORM, SLIDE }
 
+    /** Enter animation for navigating from [from] to [to]; [pop] is true when going back. None with reduced motion. */
     fun enter(from: NavDestination, to: NavDestination, pop: Boolean): EnterTransition {
         if (reduceMotion) return EnterTransition.None
         return when (patternFor(from, to)) {
@@ -46,6 +47,7 @@ internal class NavTransitions(private val reduceMotion: Boolean) {
         }
     }
 
+    /** Exit animation matching [enter]. None with reduced motion. */
     fun exit(from: NavDestination, to: NavDestination, pop: Boolean): ExitTransition {
         if (reduceMotion) return ExitTransition.None
         return when (patternFor(from, to)) {

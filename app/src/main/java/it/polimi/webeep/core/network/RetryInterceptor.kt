@@ -6,8 +6,8 @@ import okhttp3.Interceptor
 import okhttp3.Response
 
 /**
- * okhttp interceptor for automatic retry with exponential backoff.
- * retries failed requests for network errors or 5xx server errors.
+ * OkHttp interceptor that retries failed requests with exponential backoff.
+ * Retries on network errors and 5xx responses.
  * NOTE: OkHttp interceptors are blocking by design; Thread.sleep here holds
  * one dispatcher thread (max ~3s total: 1s+2s) with 30s timeouts configured
  * in NetworkModule. Only idempotent GET/HEAD/OPTIONS and POSTs marked with
@@ -15,6 +15,7 @@ import okhttp3.Response
  */
 class RetryInterceptor @Inject constructor(private val maxRetries: Int = 3, private val initialDelayMs: Long = 1000L) : Interceptor {
 
+    /** Request methods that are safe to repeat. */
     companion object {
         private val IDEMPOTENT_METHODS = setOf("GET", "HEAD", "OPTIONS")
     }

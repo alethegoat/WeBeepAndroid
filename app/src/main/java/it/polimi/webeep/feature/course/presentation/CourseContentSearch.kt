@@ -1,5 +1,9 @@
 package it.polimi.webeep.feature.course.presentation
 
+/**
+ * Sections matching [query] by name, summary, module name, description or file name, expanded; a section that
+ * matches itself keeps all its modules.
+ */
 internal fun filterSections(sections: List<SectionUiModel>, query: String): List<SectionUiModel> {
     val needle = query.trim()
     if (needle.isEmpty()) return sections

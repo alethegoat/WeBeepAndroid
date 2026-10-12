@@ -16,6 +16,7 @@ class SyncCoursesUseCase @Inject constructor(
     private val repository: DashboardRepository,
     private val connectivityObserver: ConnectivityObserver
 ) {
+    /** Syncs the courses now; returns [DataError.Network] without a request when the device is offline. */
     suspend operator fun invoke(): Resource<List<Course>> {
         val online = runCatchingCancellable { connectivityObserver.isOnline.first() }.getOrDefault(true)
         if (!online) return Resource.Error(DataError.Network)

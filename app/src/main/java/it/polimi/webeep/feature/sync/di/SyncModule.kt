@@ -12,6 +12,7 @@ import it.polimi.webeep.feature.sync.domain.SyncScheduling
 import it.polimi.webeep.feature.sync.domain.SyncStateRepository
 import javax.inject.Singleton
 
+/** Binds the sync feature's domain interfaces to their singleton implementations. */
 @Module
 @InstallIn(SingletonComponent::class)
 abstract class SyncModule {

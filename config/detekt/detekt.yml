@@ -62,6 +62,35 @@ style:
   ForbiddenComment:
     active: false
 
+# KDoc is enforced only where the contract matters: domain and data code plus the non-UI core
+# packages (common, network, datastore, session, storage). Presentation, Compose UI and the
+# database/DI wiring are excluded: composables and entities are self-describing and documented
+# by hand only where non-obvious. Overrides need no KDoc (the interface documents the contract).
+comments:
+  UndocumentedPublicClass:
+    active: true
+    includes: &documentedScope
+      - '**/domain/**'
+      - '**/data/**'
+      - '**/core/common/**'
+      - '**/core/network/**'
+      - '**/core/datastore/**'
+      - '**/core/session/**'
+      - '**/core/storage/**'
+    excludes: &testSources
+      - '**/test/**'
+      - '**/androidTest/**'
+      - '**/testFixtures/**'
+  UndocumentedPublicFunction:
+    active: true
+    includes: *documentedScope
+    excludes: *testSources
+  # Left off: it demands a @property tag for every constructor field, which for DTOs mirroring Moodle's
+  # wire names and for plain domain models only invites paraphrase. Fields are documented where they
+  # carry a constraint (@property on the class) and left to the type KDoc otherwise.
+  UndocumentedPublicProperty:
+    active: false
+
 exceptions:
   # `catch (e: Exception) { if (e is CancellationException) throw e ... }` is the
   # deliberate coroutine-safe pattern used at IO/UI boundaries in this codebase.

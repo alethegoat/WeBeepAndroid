@@ -13,6 +13,12 @@ import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
+/**
+ * DataStore-backed [SettingsRepository].
+ *
+ * The preference key names are the on-disk format: they must not change, existing installs depend on them. Unknown or
+ * missing stored values fall back to the defaults.
+ */
 @Singleton
 class SettingsRepositoryImpl @Inject constructor(private val dataStore: DataStore<Preferences>) : SettingsRepository {
     private val themeKey = stringPreferencesKey("theme_preference")

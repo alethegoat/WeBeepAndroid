@@ -19,6 +19,9 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext
 
 /**
+ * [SessionDataCleaner] that wipes the database, downloads, sync state, notifications, WebView
+ * cookies and the HTTP, viewer and image caches.
+ *
  * Each storage step is isolated: one failing must not leave the remaining user data behind.
  * Callers serialize concurrent wipes.
  */

@@ -7,6 +7,7 @@ import androidx.navigation.compose.composable
 import it.polimi.webeep.core.ui.util.LocalNavAnimatedVisibilityScope
 import it.polimi.webeep.navigation.Settings
 
+/** Registers the settings destination; back is dropped unless the entry is resumed. */
 fun NavGraphBuilder.settingsDestination(onBack: () -> Unit, onLoggedOut: () -> Unit) {
     composable<Settings> {
         CompositionLocalProvider(LocalNavAnimatedVisibilityScope provides this) {

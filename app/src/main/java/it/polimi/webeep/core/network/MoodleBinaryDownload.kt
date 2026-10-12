@@ -10,6 +10,10 @@ object MoodleBinaryDownload {
 
     private const val PEEK_BYTES = 4096L
 
+    /**
+     * Returns the body of [response], or throws `IllegalStateException` if the download failed or Moodle answered
+     * with its login page, which would otherwise be saved as if it were the requested file.
+     */
     fun requireBinaryBody(response: Response): ResponseBody {
         check(response.isSuccessful) { "Download failed (${response.code})" }
         val contentType = response.header("Content-Type").orEmpty().lowercase()

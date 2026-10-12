@@ -6,16 +6,30 @@ import it.polimi.webeep.core.common.DataError
 import it.polimi.webeep.feature.fileviewer.domain.LoadedContent
 import java.io.File
 
+/** What one viewer page shows; the UI-side counterpart of `LoadedContent`. */
 sealed interface FileContentState {
+    /** Download in progress. */
     data class Downloading(val bytesRead: Long, val totalBytes: Long?) : FileContentState {
         /** 0..1, or null when the server did not send a length. */
         val progress: Float? = totalBytes?.takeIf { it > 0 }?.let { (bytesRead.toFloat() / it).coerceIn(0f, 1f) }
     }
+
+    /** Image streamed from [url]. */
     data class Image(val url: String) : FileContentState
+
+    /** PDF saved locally. */
     data class Pdf(val file: File, val pageCount: Int) : FileContentState
+
+    /** Audio or video streamed from [url]. */
     data class Media(val url: String) : FileContentState
+
+    /** Text shown inline. */
     data class Code(val file: File, val content: String) : FileContentState
+
+    /** No in-app viewer: offer to open the local [file] in another app. */
     data class External(val file: File, val mimeType: String) : FileContentState
+
+    /** Loading failed; [reason] picks the text. */
     data class Error(val reason: ViewerError) : FileContentState {
         @get:StringRes
         val messageRes: Int get() = reason.messageRes

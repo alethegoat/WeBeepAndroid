@@ -9,6 +9,10 @@ sealed interface SettingsAction {
     data class DynamicColorChange(val enabled: Boolean) : SettingsAction
     data class WifiOnlyChange(val enabled: Boolean) : SettingsAction
     data class FrequencyChange(val frequency: SyncFrequency) : SettingsAction
+
+    /** Run a sync now, even when background sync is set to never. */
     data object CheckNow : SettingsAction
+
+    /** Sign out and wipe local data. */
     data object Logout : SettingsAction
 }

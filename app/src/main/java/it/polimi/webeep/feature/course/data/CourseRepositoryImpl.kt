@@ -20,6 +20,8 @@ import kotlinx.coroutines.withContext
 /**
  * Course contents repository. Mapping lives in [CourseContentMapper] so the
  * background sync worker cannot drift from the interactive refresh path.
+ * Fetched content replaces the cached copy of the course in a single database transaction, and
+ * only token-free URLs reach Room.
  */
 class CourseRepositoryImpl @Inject constructor(
     private val apiService: MoodleApiService,

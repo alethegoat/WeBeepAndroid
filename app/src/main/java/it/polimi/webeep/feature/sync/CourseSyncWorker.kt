@@ -32,6 +32,12 @@ import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 
 // The FQN is persisted in WorkManager's queue: moving or renaming this class breaks jobs already enqueued on installed apps.
+/**
+ * Background sync: refreshes the course list and every course's content, diffs it against the stored snapshot and
+ * records the changes for [SyncNotifications] to deliver.
+ *
+ * Stops with a failure when logged out; retries only when nothing could be synced, since a partial run is picked up by the next one.
+ */
 @HiltWorker
 class CourseSyncWorker @AssistedInject constructor(
     @Assisted appContext: Context,

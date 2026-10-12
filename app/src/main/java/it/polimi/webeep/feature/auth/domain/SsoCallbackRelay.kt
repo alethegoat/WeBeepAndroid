@@ -19,11 +19,13 @@ class SsoCallbackRelay @Inject constructor() {
     private val channel = Channel<String>(Channel.CONFLATED)
     private val pending = AtomicBoolean(false)
 
+    /** Callback blobs, each delivered to a single collector. */
     val tokens: Flow<String> = channel.receiveAsFlow().onEach { pending.set(false) }
 
     /** Best-effort hint used to route to the login screen while a token waits for a collector. */
     val hasPending: Boolean get() = pending.get()
 
+    /** Hands a blob to the login screen; blank values are ignored and a newer one replaces an undelivered older one. */
     fun offer(token: String) {
         if (token.isBlank()) return
         pending.set(true)

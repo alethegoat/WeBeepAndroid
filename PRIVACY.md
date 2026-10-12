@@ -4,7 +4,7 @@
   <a href="#-english">🇬🇧 English</a> | <a href="#-italiano">🇮🇹 Italiano</a>
 </div>
 
-_Last updated: 2026-09-26_
+_Last updated: 2026-10-12_
 
 ---
 
@@ -16,8 +16,9 @@ WeBeep Android is an **unofficial**, open-source client for the WeBeep (Moodle) 
 
 | Data | Why | Where it lives |
 |---|---|---|
-| Moodle access token (`wstoken`) | Authenticate your requests to WeBeep | On the device only, encrypted (EncryptedSharedPreferences, Android Keystore) |
-| Your name and Moodle user ID | Greeting and loading your enrolled courses | On the device only, encrypted together with the token |
+| Moodle access token (`wstoken`) | Authenticate your requests to WeBeep | On the device only, encrypted with Tink; the key is held in the Android Keystore |
+| Moodle user ID | Loading your enrolled courses | On the device only, stored encrypted together with the token |
+| Your name | Greeting in the app | Fetched from WeBeep when needed and kept in memory only; not stored on the device |
 | Course list, sections, file names and metadata | Offline access and change detection | Local Room database (app-private) |
 | Files you open or download | Offline viewing | App-private internal storage (`files/downloads`) |
 | Settings (theme, language, sync frequency) | Your preferences | Local DataStore |
@@ -31,7 +32,7 @@ WeBeep Android is an **unofficial**, open-source client for the WeBeep (Moodle) 
 ### Retention and deletion
 
 - Data is **excluded from cloud backup and device-to-device transfer**.
-- **Logging out**, or a session revoked or expired on the server, wipes the token, profile, database, downloaded files and caches.
+- **Logging out**, or a session revoked or expired on the server, wipes the token, database, downloaded files and caches.
 - Uninstalling the app removes everything it stored.
 
 ### Your rights
@@ -48,8 +49,9 @@ WeBeep Android è un client **non ufficiale** e open source per la piattaforma W
 
 | Dato | Perché | Dove resta |
 |---|---|---|
-| Token di accesso Moodle (`wstoken`) | Autenticare le richieste a WeBeep | Solo sul dispositivo, cifrato (EncryptedSharedPreferences, Android Keystore) |
-| Nome e user ID Moodle | Saluto e caricamento dei corsi a cui sei iscritto | Solo sul dispositivo, cifrati insieme al token |
+| Token di accesso Moodle (`wstoken`) | Autenticare le richieste a WeBeep | Solo sul dispositivo, cifrato con Tink; la chiave è custodita nell'Android Keystore |
+| User ID Moodle | Caricamento dei corsi a cui sei iscritto | Solo sul dispositivo, salvato cifrato insieme al token |
+| Il tuo nome | Saluto nell'app | Richiesto a WeBeep quando serve e tenuto solo in memoria; non salvato sul dispositivo |
 | Elenco corsi, sezioni, nomi e metadati dei file | Accesso offline e rilevamento delle novità | Database Room locale (privato dell'app) |
 | File che apri o scarichi | Visualizzazione offline | Storage interno privato dell'app (`files/downloads`) |
 | Impostazioni (tema, lingua, frequenza di sync) | Le tue preferenze | DataStore locale |
@@ -63,7 +65,7 @@ WeBeep Android è un client **non ufficiale** e open source per la piattaforma W
 ### Conservazione e cancellazione
 
 - I dati sono **esclusi dal backup cloud e dal trasferimento tra dispositivi**.
-- Il **logout**, o una sessione revocata o scaduta sul server, cancella token, profilo, database, file scaricati e cache.
+- Il **logout**, o una sessione revocata o scaduta sul server, cancella token, database, file scaricati e cache.
 - Disinstallando l'app viene rimosso tutto ciò che ha salvato.
 
 ### I tuoi diritti

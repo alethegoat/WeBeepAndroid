@@ -13,6 +13,7 @@ import androidx.compose.ui.platform.LocalContext
  */
 val LocalReduceMotion = staticCompositionLocalOf { false }
 
+/** Reads the system animation scales once per composition context; unreadable settings count as "animate". */
 @Composable
 fun rememberReduceMotion(): Boolean {
     val context = LocalContext.current

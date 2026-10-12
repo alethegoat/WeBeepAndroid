@@ -23,6 +23,7 @@ import kotlinx.coroutines.withContext
 
 /**
  * Dashboard repository backed by Room and the Moodle REST API.
+ * Course images and avatars are stored without tokens (`stripAuthFromUrl`); a sync replaces the whole course table.
  */
 class DashboardRepositoryImpl @Inject constructor(
     private val apiService: MoodleApiService,

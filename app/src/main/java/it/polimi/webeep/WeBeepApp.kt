@@ -32,6 +32,11 @@ import it.polimi.webeep.navigation.NavGraph
 import it.polimi.webeep.navigation.navigateToLogin
 import kotlinx.coroutines.flow.first
 
+/**
+ * App root: applies the theme, waits for the secure session store to open (showing a spinner on a cold start) to pick
+ * login or dashboard as the start, and navigates back to login when the session is lost.
+ * [startAtLogin] forces the login screen; [onNavControllerReady] hands the controller to the activity for deep links.
+ */
 @Composable
 fun WeBeepApp(
     tokenProvider: TokenProvider,

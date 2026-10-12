@@ -12,5 +12,6 @@ interface SyncStateRepository {
     /** Atomic read-modify-write: [block] returns the new state and a result handed back to the caller. */
     suspend fun <T> update(block: (SyncState) -> Pair<SyncState, T>): T
 
+    /** Forgets everything the sync knows, so the next run starts from a fresh baseline without notifying. */
     suspend fun clear()
 }

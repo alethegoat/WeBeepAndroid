@@ -4,6 +4,7 @@ import androidx.annotation.StringRes
 import it.polimi.webeep.R
 import it.polimi.webeep.feature.auth.domain.LoginError
 
+/** String resource for a login failure; all validation failures share one text. */
 @StringRes
 fun LoginError.toMessageRes(): Int = when (this) {
     LoginError.InvalidTokenFormat -> R.string.error_login_invalid_format

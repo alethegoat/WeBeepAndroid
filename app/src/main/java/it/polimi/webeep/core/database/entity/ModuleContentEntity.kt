@@ -5,6 +5,7 @@ import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
 
+/** Row of a file inside a module; [fileUrl] is stored without a token (`stripAuthFromUrl`). */
 @Entity(
     tableName = "module_contents",
     foreignKeys = [

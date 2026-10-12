@@ -44,6 +44,7 @@ import it.polimi.webeep.feature.course.presentation.components.CourseTopBar
 import it.polimi.webeep.feature.course.presentation.components.MaxContentWidth
 import kotlinx.coroutines.flow.filter
 
+/** Searchable list of the course's sections, folders and files, driven entirely by [state]. */
 @Composable
 fun CourseDetailScreen(
     state: CourseDetailUiState,

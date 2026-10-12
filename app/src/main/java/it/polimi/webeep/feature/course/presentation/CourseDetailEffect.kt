@@ -11,5 +11,6 @@ sealed interface CourseDetailEffect {
     /** A web link outside WeBeep, already stripped of any token. */
     data class OpenLink(val url: String) : CourseDetailEffect
 
+    /** Navigate to the in-app viewer. */
     data class OpenViewer(val route: FileViewer) : CourseDetailEffect
 }

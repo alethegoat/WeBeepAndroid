@@ -27,6 +27,10 @@ import it.polimi.webeep.navigation.navigateToLogin
 import javax.inject.Inject
 import kotlinx.coroutines.launch
 
+/**
+ * Single activity hosting the Compose UI. It also receives the SSO callback deep link (handed to the login screen
+ * through `SsoCallbackRelay`) and the taps on sync notifications.
+ */
 @AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
 

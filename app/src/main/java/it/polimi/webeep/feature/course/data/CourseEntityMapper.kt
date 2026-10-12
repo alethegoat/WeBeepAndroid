@@ -20,6 +20,7 @@ fun SectionWithModules.toDomain(): Section = Section(
     modules = modules.map { it.toDomain() }
 )
 
+/** Room module with its files to the domain [Module]; URLs are re-stripped of tokens. */
 fun ModuleWithContents.toDomain(): Module = Module(
     id = module.id,
     name = module.name,
@@ -30,6 +31,7 @@ fun ModuleWithContents.toDomain(): Module = Module(
     files = contents.map { it.toDomain() }
 )
 
+/** Room file row to [FileResource]; missing path and size fall back to `/` and `0`. */
 fun ModuleContentEntity.toDomain(): FileResource = FileResource(
     filename = filename,
     filepath = filepath ?: "/",

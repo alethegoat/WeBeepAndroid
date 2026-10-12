@@ -14,6 +14,7 @@ import it.polimi.webeep.R
 import it.polimi.webeep.core.ui.components.showErrorSnackbar
 import it.polimi.webeep.core.ui.util.ObserveEffects
 
+/** Stateful entry of the login screen: opens the SSO browser on tap and shows errors in a snackbar; [onLoggedIn] fires on success. */
 @Composable
 fun LoginRoute(onLoggedIn: () -> Unit, modifier: Modifier = Modifier, viewModel: LoginViewModel = hiltViewModel()) {
     val context = LocalContext.current

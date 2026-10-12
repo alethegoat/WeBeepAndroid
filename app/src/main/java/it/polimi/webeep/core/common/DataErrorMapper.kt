@@ -5,6 +5,7 @@ import kotlin.io.FileSystemException
 
 private val UNAUTHORIZED_MOODLE_CODES = setOf("invalidtoken", "accessexception")
 
+/** Classifies a failure into a [DataError]; the order of the branches matters because [MoodleException] is an `IOException`. */
 fun Throwable.toDataError(): DataError = when (this) {
     // MoodleException is an IOException: it must be matched first.
     is MoodleException ->

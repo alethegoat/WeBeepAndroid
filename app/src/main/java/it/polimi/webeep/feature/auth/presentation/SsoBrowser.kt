@@ -21,6 +21,7 @@ object SsoBrowser {
         "com.chrome.dev"
     )
 
+    /** Opens [url], preferring a Chrome Custom Tab and falling back to a plain browser intent. */
     fun open(context: Context, url: String) {
         val uri = Uri.parse(url)
         if (launchCustomTab(context, uri)) {

@@ -37,6 +37,7 @@ internal fun Module.toUiModel(isDownloaded: (localFileName: String) -> Boolean) 
     files = files.map { it.toUiModel(isDownloaded) }
 )
 
+/** Maps a file; [isDownloaded] decides the initial download state from the local file name. */
 internal fun FileResource.toUiModel(isDownloaded: (localFileName: String) -> Boolean): FileUiModel {
     val localFileName = FileUtils.buildLocalFileName(filename, fileUrl)
     return FileUiModel(

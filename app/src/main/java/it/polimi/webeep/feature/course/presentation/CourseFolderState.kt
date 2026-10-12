@@ -30,6 +30,7 @@ private fun folderKeysOnPath(moduleId: Int, filepath: String): List<String> {
     return listOf(folderRootKey(moduleId)) + paths.map { folderKey(moduleId, "/$it") }
 }
 
+/** A folder of a module's files; [fullPath] is its `/`-separated path from the module root and is what keys the open/closed state. */
 internal data class FolderNode(
     val name: String,
     val fullPath: String,
@@ -37,6 +38,7 @@ internal data class FolderNode(
     val subfolders: MutableMap<String, FolderNode> = mutableMapOf()
 )
 
+/** Groups [files] into a folder tree by their `filepath`; files with an empty path sit directly under the returned root. */
 internal fun buildFolderTree(files: List<FileUiModel>): FolderNode {
     val root = FolderNode("", "")
     files.forEach { file ->

@@ -19,12 +19,22 @@ import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.decodeFromJsonElement
 
+/**
+ * Moodle web-service calls used by the app.
+ *
+ * A `null` `wsToken` means "use the saved session token" (added by [TokenInterceptor]); an explicit value is
+ * only for validating a token before it is saved (login). Failures surface as [MoodleException] (application
+ * error), `IOException` (transport or HTTP) or `SerializationException` (unexpected payload).
+ */
 interface MoodleApiService {
 
+    /** Fetches the profile behind the token; throws [IllegalArgumentException] if the response has no valid user id. */
     suspend fun getSiteInfo(wsToken: String? = null): SiteInfoDto
 
+    /** Lists the courses [userId] is enrolled in; [userId] must be positive. */
     suspend fun getEnrolledCourses(wsToken: String? = null, userId: Int): List<CourseDto>
 
+    /** Fetches the sections, modules and file contents of [courseId]. */
     suspend fun getCourseContents(wsToken: String? = null, courseId: Int): List<CourseSectionDto>
 }
 
@@ -35,6 +45,7 @@ interface MoodleApiService {
  */
 class MoodleApiServiceImpl(private val client: HttpClient) : MoodleApiService {
 
+    /** Request marker and endpoint constants shared with the interceptors. */
     companion object {
         /** Internal marker: the request is a read-only WS call, safe to retry. Stripped before sending. */
         const val READ_ONLY_WS_HEADER = "X-WeBeep-Read-Only-WS"

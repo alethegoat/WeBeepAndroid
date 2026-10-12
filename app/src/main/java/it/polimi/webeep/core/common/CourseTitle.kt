@@ -5,6 +5,9 @@ import java.util.Locale
 /**
  * Structured view of a WeBeep/Polimi course full name such as
  * `"052537 - TECHNOLOGIES FOR INFORMATION SYSTEMS (TANCA LETIZIA) [2026-27]"`.
+ *
+ * Only [name] is guaranteed: titles that do not follow the convention keep their raw text there and
+ * leave the other parts `null`.
  */
 data class CourseTitle(val code: String?, val name: String, val teacher: String?, val academicYear: String?)
 
@@ -43,6 +46,7 @@ object CourseTitleParser {
         "NLP", "PCB", "PLC", "RF", "SQL", "UI", "UX", "VLSI"
     )
 
+    /** Best-effort parse; never throws and never drops the raw text (see the class docs). */
     fun parse(raw: String): CourseTitle {
         val cleaned = raw.trim().replace(WHITESPACE, " ")
         var rest = cleaned

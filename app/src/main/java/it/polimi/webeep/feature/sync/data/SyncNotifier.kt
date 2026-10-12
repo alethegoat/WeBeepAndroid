@@ -186,7 +186,9 @@ class SyncNotifier @Inject constructor(@ApplicationContext private val context: 
         .setContentTitle(context.getString(R.string.sync_completed_title))
         .build()
 
+    /** Channel id and notification constants. */
     companion object {
+        /** Notification channel id; changing it would orphan the channel settings users have already tuned. */
         const val CHANNEL_ID = "webeep_sync_channel"
         private const val GROUP_KEY = "WE_BEEP_SYNC_GROUP"
         private const val SUMMARY_NOTIFICATION_ID = Int.MAX_VALUE

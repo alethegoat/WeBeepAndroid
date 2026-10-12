@@ -44,6 +44,7 @@ object NetworkModule {
     private const val WRITE_TIMEOUT_SECONDS = 30L
     private const val HTTP_CACHE_SIZE_BYTES = 10L * 1024L * 1024L
 
+    /** HTTP logging at body level in debug builds only; every line goes through `LogRedactor` first. */
     @Provides
     @Singleton
     fun provideLoggingInterceptor(): HttpLoggingInterceptor {
@@ -75,6 +76,10 @@ object NetworkModule {
     @Singleton
     fun provideRetryInterceptor(): RetryInterceptor = RetryInterceptor()
 
+    /**
+     * The single HTTP client. Interceptor order matters: retry wraps everything, the plugin-file and wstoken interceptors add
+     * auth before logging (which redacts tokens), and the network-level interceptor stops auth responses reaching the disk cache.
+     */
     @Provides
     @Singleton
     fun provideOkHttpClient(
@@ -100,6 +105,7 @@ object NetworkModule {
             .build()
     }
 
+    /** Ktor client that delegates to the shared [OkHttpClient], so it gets the same auth, retry and cache behavior. */
     @Provides
     @Singleton
     fun provideKtorHttpClient(okHttpClient: OkHttpClient): HttpClient = HttpClient(OkHttp) {

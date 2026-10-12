@@ -27,6 +27,10 @@ import kotlinx.coroutines.launch
 private const val SEARCH_QUERY_KEY = "dashboard_search_query"
 private const val FILTER_KEY = "dashboard_filter"
 
+/**
+ * Loads courses (cache first), applies search and filter and keeps both in the saved state; the filtered list is part
+ * of [DashboardUiState].
+ */
 @HiltViewModel
 class DashboardViewModel @Inject constructor(
     private val getCoursesUseCase: GetCoursesUseCase,

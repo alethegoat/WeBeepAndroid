@@ -21,6 +21,7 @@ data class CourseModuleDto(
     @SerialName("contents") val contents: List<ModuleContentDto>? = null
 )
 
+/** One file or link attached to a module; [fileurl] is token-free and must pass through `stripAuthFromUrl` before persistence. */
 @Serializable
 data class ModuleContentDto(
     @SerialName("type") val type: String = "",

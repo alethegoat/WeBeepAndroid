@@ -17,6 +17,7 @@ import kotlinx.coroutines.CancellationException
  * Failures are typed ([LoginError]) so the UI can localize them.
  */
 class LoginUseCase @Inject constructor(private val authRepository: AuthRepository, private val tokenProvider: TokenProvider) {
+    /** Starts a login attempt: stores a fresh passport as pending and returns the Moodle SSO URL that carries it. */
     fun generateSsoLaunchUrl(): String {
         val passport = generatePassport()
         tokenProvider.savePendingPassportSync(passport)
@@ -24,6 +25,10 @@ class LoginUseCase @Inject constructor(private val authRepository: AuthRepositor
     }
 
     // Linear validation chain: each check maps to a distinct LoginError.
+    /**
+     * Completes login from the callback blob [encodedToken]: checks the passport hash against pending logins,
+     * validates the token with Moodle and stores the session. Only the access token is kept.
+     */
     @Suppress("ReturnCount")
     suspend fun execute(encodedToken: String): LoginResult {
         val wstoken = try {
@@ -76,18 +81,27 @@ class LoginUseCase @Inject constructor(private val authRepository: AuthRepositor
         return runCatchingCancellable { URLDecoder.decode(token.replace("+", "%2B"), Charsets.UTF_8.name()) }.getOrDefault(token)
     }
 
+    /** Moodle SSO protocol constants and the stateless helpers of the passport handshake. */
     companion object {
-        // Must equal MoodleFileUrlBuilder.TRUSTED_HOST (a unit test pins it); the domain layer stays free of network code.
+        /**
+         * Moodle site root, hashed into the passport check.
+         * Must equal `MoodleFileUrlBuilder.TRUSTED_HOST` (a unit test pins it); the domain layer stays free of network code.
+         */
         const val SITE_WWWROOT = "https://webeep.polimi.it"
+
+        /** Moodle web-service short name requested at SSO launch. */
         const val SSO_SERVICE = "moodle_mobile_app"
+
+        /** Custom URL scheme Moodle redirects to; must match the manifest intent filter. */
         const val SSO_URL_SCHEME = "webeepandroid"
 
-        fun generatePassport(): String {
-            // Official Moodle app sends Math.random() * 1000 (numeric). Older Moodle
-            // used PARAM_INT, which would collapse a UUID to 0 and break the hash.
-            return (SecureRandom().nextInt(Int.MAX_VALUE - 1) + 1).toString()
-        }
+        /**
+         * Random positive integer as a string. It must stay numeric: older Moodle used `PARAM_INT`, which would
+         * collapse a UUID to 0 and break the hash.
+         */
+        fun generatePassport(): String = (SecureRandom().nextInt(Int.MAX_VALUE - 1) + 1).toString()
 
+        /** Moodle launch URL that carries [passport] and the app's URL scheme. */
         fun buildSsoLaunchUrl(passport: String): String = "$SITE_WWWROOT/admin/tool/mobile/launch.php" +
             "?service=$SSO_SERVICE" +
             "&passport=$passport" +
@@ -106,11 +120,13 @@ class LoginUseCase @Inject constructor(private val authRepository: AuthRepositor
             return hashes
         }
 
+        /** Lowercase hex MD5; Moodle's launch protocol mandates it, it is not used for security here. */
         fun md5Hex(input: String): String {
             val bytes = MessageDigest.getInstance("MD5").digest(input.toByteArray(Charsets.UTF_8))
             return bytes.joinToString("") { "%02x".format(it) }
         }
 
+        /** Decodes standard or URL-safe Base64, ignoring whitespace; throws `IllegalArgumentException` if neither fits. */
         fun decodeBase64Token(encoded: String): ByteArray {
             val cleaned = encoded.replace("\\s".toRegex(), "")
             return try {

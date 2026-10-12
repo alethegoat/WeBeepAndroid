@@ -8,6 +8,7 @@ import it.polimi.webeep.feature.download.data.DownloadRepositoryImpl
 import it.polimi.webeep.feature.download.domain.DownloadRepository
 import javax.inject.Singleton
 
+/** Binds the download feature's repository. */
 @Module
 @InstallIn(SingletonComponent::class)
 abstract class DownloadModule {

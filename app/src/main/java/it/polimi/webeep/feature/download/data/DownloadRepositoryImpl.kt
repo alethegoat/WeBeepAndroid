@@ -39,6 +39,8 @@ import okhttp3.ResponseBody
 /**
  * Downloads files with OkHttp into internal app storage (filesDir/downloads).
  * Writes to a temp file and only replaces the previous copy on success.
+ * Downloads run on a repository-owned scope, so they outlive the screen that started them and are stopped
+ * only by [cancelDownload] or [clearAllDownloads]. Progress state is in memory and is lost on process death.
  */
 @Singleton
 class DownloadRepositoryImpl @Inject constructor(

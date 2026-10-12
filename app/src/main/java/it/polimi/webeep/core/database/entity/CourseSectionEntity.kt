@@ -5,6 +5,7 @@ import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
 
+/** Row of a course section; [section] is its position in the course. */
 @Entity(
     tableName = "course_sections",
     foreignKeys = [

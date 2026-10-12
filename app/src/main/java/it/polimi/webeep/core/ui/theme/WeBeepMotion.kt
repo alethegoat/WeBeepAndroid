@@ -30,14 +30,18 @@ object WeBeepMotion {
     /** Card -> course container transform; navigation fades last exactly as long. */
     const val CONTAINER_TRANSFORM_MS = 350
 
+    /** [ms], or 0 when [reduceMotion] is on. */
     fun duration(ms: Int, reduceMotion: Boolean): Int = if (reduceMotion) 0 else ms
 
+    /** Tween for things appearing (decelerating); instant with [reduceMotion]. */
     fun <T> enter(durationMs: Int = MEDIUM_MS, reduceMotion: Boolean = false) =
         tween<T>(durationMillis = duration(durationMs, reduceMotion), easing = EmphasizedDecelerate)
 
+    /** Tween for things leaving (accelerating); instant with [reduceMotion]. */
     fun <T> exit(durationMs: Int = SHORT_MS, reduceMotion: Boolean = false) =
         tween<T>(durationMillis = duration(durationMs, reduceMotion), easing = EmphasizedAccelerate)
 
+    /** Plain standard-easing tween; instant with [reduceMotion]. */
     fun <T> smooth(durationMs: Int = MEDIUM_MS, reduceMotion: Boolean = false) =
         tween<T>(durationMillis = duration(durationMs, reduceMotion), easing = Standard)
 
@@ -54,6 +58,7 @@ object WeBeepMotion {
         )
     }
 
+    /** Slightly under-damped spring for small movements; instant with [reduceMotion]. */
     fun <T> softSpring(reduceMotion: Boolean = false) = if (reduceMotion) {
         tween<T>(durationMillis = 0)
     } else {

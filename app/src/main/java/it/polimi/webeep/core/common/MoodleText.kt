@@ -1,11 +1,12 @@
 package it.polimi.webeep.core.common
 
+/** Cleaning of the user-visible strings Moodle returns (multi-language tags, HTML markup and entities). */
 object MoodleText {
     private val singleMlangRegex = """\{mlang\s+([a-zA-Z0-9_-]+)\}(.*?)\{mlang\}""".toRegex(RegexOption.DOT_MATCHES_ALL)
 
     /**
-     * parse moodle multi-language tags.
-     * picks the block matching [preferredlang], or the first available if not found.
+     * Resolves Moodle multi-language tags (`{mlang xx}...{mlang}`) to a single language.
+     * Picks the block matching [preferredLang], or the first available one if there is no match.
      */
     fun parse(text: String?, preferredLang: String = "it"): String {
         if (text.isNullOrEmpty()) return ""
@@ -30,7 +31,7 @@ object MoodleText {
     private val HTML_TAG_REGEX = Regex("<[^>]*>")
 
     /**
-     * Unescapes common HTML entities and strips HTML tags with whitespace normalization.
+     * Strips HTML tags, unescapes common entities and collapses whitespace; blank input gives `""`.
      */
     fun cleanHtml(text: String?): String {
         if (text.isNullOrBlank()) return ""

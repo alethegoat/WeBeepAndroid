@@ -9,21 +9,27 @@ import androidx.room.Update
 import it.polimi.webeep.core.database.entity.CourseEntity
 import kotlinx.coroutines.flow.Flow
 
+/** Enrolled courses. Deleting a course cascades to its sections, modules and files. */
 @Dao
 interface CourseDao {
 
+    /** All courses ordered by name; re-emits on every change. */
     @Query("SELECT * FROM courses ORDER BY fullname ASC")
     fun getAllCourses(): Flow<List<CourseEntity>>
 
+    /** Inserts a new course; returns -1 and leaves the row untouched if the id already exists. */
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertCourse(course: CourseEntity): Long
 
+    /** Updates the row with the same id. */
     @Update
     suspend fun updateCourse(course: CourseEntity)
 
+    /** Deletes the given courses and, by cascade, their contents. */
     @Query("DELETE FROM courses WHERE id IN (:courseIds)")
     suspend fun deleteCoursesByIds(courseIds: List<Int>)
 
+    /** Ids of every cached course. */
     @Query("SELECT id FROM courses")
     suspend fun getAllCourseIds(): List<Int>
 
@@ -49,6 +55,7 @@ interface CourseDao {
         }
     }
 
+    /** The cached course, or `null` if absent. */
     @Query("SELECT * FROM courses WHERE id = :courseId")
     suspend fun getCourseById(courseId: Int): CourseEntity?
 }

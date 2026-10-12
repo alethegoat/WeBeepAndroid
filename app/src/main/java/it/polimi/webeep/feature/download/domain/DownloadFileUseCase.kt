@@ -7,10 +7,12 @@ import it.polimi.webeep.core.common.stripAuthFromUrl
 import it.polimi.webeep.core.datastore.TokenProvider
 import javax.inject.Inject
 
+/** Starts a download of a Moodle file with the saved session token. */
 class DownloadFileUseCase @Inject constructor(
     private val downloadRepository: DownloadRepository,
     private val tokenProvider: TokenProvider
 ) {
+    /** Returns the id to follow, or [DataError.Unauthorized] when logged out. The URL is stripped of tokens first and never throws. */
     suspend operator fun invoke(url: String, localFileName: String, displayName: String, mimeType: String?): Resource<Long> {
         val token = tokenProvider.getToken() ?: return Resource.Error(DataError.Unauthorized)
         val cleanUrl = stripAuthFromUrl(url)
