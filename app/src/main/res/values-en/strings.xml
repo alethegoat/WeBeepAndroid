@@ -15,6 +15,7 @@
     <string name="search_courses_placeholder">Search courses...</string>
     <string name="cd_search">Search</string>
     <string name="clear_search">Clear search</string>
+    <string name="cd_dismiss">Dismiss</string>
     <string name="no_courses_found">No courses found</string>
     <string name="try_changing_filters">Try changing search filters</string>
     <string name="no_courses_enrolled">You are not enrolled in any course</string>

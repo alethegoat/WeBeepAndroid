@@ -1,47 +1,49 @@
 package it.polimi.webeep.feature.settings
 
-import android.content.Context
 import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
-import androidx.test.core.app.ApplicationProvider
 import it.polimi.webeep.feature.settings.data.SettingsRepositoryImpl
 import it.polimi.webeep.feature.settings.domain.model.SyncFrequency
 import it.polimi.webeep.feature.settings.domain.model.ThemePreference
+import java.io.File
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
-import org.junit.runner.RunWith
-import org.robolectric.RobolectricTestRunner
+import org.junit.rules.TemporaryFolder
 
-@RunWith(RobolectricTestRunner::class)
 class SettingsRepositoryImplTest {
 
-    private val context: Context = ApplicationProvider.getApplicationContext()
-    private lateinit var repository: SettingsRepositoryImpl
+    @get:Rule
+    val tempFolder = TemporaryFolder()
 
-    /**
-     * The repository keeps its DataStore in a process-wide property delegate that outlives a single
-     * test, so each test starts by clearing that instance instead of relying on a fresh file.
-     */
-    private fun dataStore(): DataStore<Preferences> {
-        val getter = Class.forName("it.polimi.webeep.feature.settings.data.SettingsRepositoryImplKt")
-            .getDeclaredMethod("access\$getDataStore", Context::class.java)
-        getter.isAccessible = true
-        @Suppress("UNCHECKED_CAST")
-        return getter.invoke(null, context) as DataStore<Preferences>
-    }
+    private val testScope = CoroutineScope(UnconfinedTestDispatcher() + Job())
+    private lateinit var dataStore: DataStore<Preferences>
+    private lateinit var repository: SettingsRepositoryImpl
 
     @Before
     fun setUp() {
-        repository = SettingsRepositoryImpl(context)
-        runBlocking { dataStore().edit { it.clear() } }
+        dataStore = PreferenceDataStoreFactory.create(scope = testScope) {
+            File(tempFolder.root, "settings.preferences_pb")
+        }
+        repository = SettingsRepositoryImpl(dataStore)
+    }
+
+    @After
+    fun tearDown() {
+        testScope.cancel()
     }
 
     @Test
@@ -93,7 +95,7 @@ class SettingsRepositoryImplTest {
 
     @Test
     fun `unknown stored enum names fall back to the defaults`() = runTest {
-        dataStore().edit {
+        dataStore.edit {
             it[stringPreferencesKey("theme_preference")] = "NOT_A_THEME"
             it[stringPreferencesKey("sync_frequency")] = "EVERY_SECOND"
         }
