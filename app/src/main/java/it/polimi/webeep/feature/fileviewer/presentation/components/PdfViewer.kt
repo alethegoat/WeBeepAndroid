@@ -71,11 +71,11 @@ import it.polimi.webeep.core.ui.util.LocalReduceMotion
 import it.polimi.webeep.core.ui.util.currentWindowSize
 import it.polimi.webeep.core.ui.util.rememberZoomState
 import it.polimi.webeep.core.ui.util.zoomable
+import it.polimi.webeep.core.util.runCatchingCancellable
 import java.io.File
 import kotlin.math.abs
 import kotlin.math.min
 import kotlin.math.roundToInt
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
@@ -222,11 +222,8 @@ private fun PdfPages(
                 if (memoryCache.get(fastKey) == null) {
                     pdfMutex.withLock {
                         if (memoryCache.get(fastKey) != null || !isActive) return@withLock
-                        try {
-                            memoryCache.put(fastKey, renderPage(pdfRenderer, pageIndex, FAST_WIDTH).first)
-                        } catch (e: Exception) {
-                            if (e is CancellationException) throw e
-                        }
+                        // Prefetch is best effort: a page that fails to render is simply left uncached.
+                        runCatchingCancellable { memoryCache.put(fastKey, renderPage(pdfRenderer, pageIndex, FAST_WIDTH).first) }
                     }
                 }
             }
@@ -476,13 +473,11 @@ private fun PdfPageItem(
             if (fastBitmap == null) {
                 pdfMutex.withLock {
                     if (!isActive) return@withContext
-                    try {
+                    runCatchingCancellable {
                         val (rendered, ratio) = renderPage(pdfRenderer, pageIndex, FAST_WIDTH)
                         currentAspectRatio = ratio
                         fastBitmap = rendered
                         memoryCache.put(fastKey, rendered)
-                    } catch (e: Exception) {
-                        if (e is CancellationException) throw e
                     }
                 }
             }
@@ -502,12 +497,10 @@ private fun PdfPageItem(
             if (highResBitmap == null) {
                 pdfMutex.withLock {
                     if (!isActive) return@withContext
-                    try {
+                    runCatchingCancellable {
                         val (rendered, _) = renderPage(pdfRenderer, pageIndex, highResWidth)
                         highResBitmap = rendered
                         memoryCache.put(highKey, rendered)
-                    } catch (e: Exception) {
-                        if (e is CancellationException) throw e
                     }
                 }
             }

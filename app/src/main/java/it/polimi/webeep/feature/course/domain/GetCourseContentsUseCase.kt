@@ -2,7 +2,7 @@ package it.polimi.webeep.feature.course.domain
 
 import it.polimi.webeep.core.util.ConnectivityObserver
 import it.polimi.webeep.core.util.Resource
-import it.polimi.webeep.core.util.toDataError
+import it.polimi.webeep.core.util.runCatchingCancellable
 import it.polimi.webeep.feature.course.domain.model.Section
 import javax.inject.Inject
 import kotlinx.coroutines.CompletableDeferred
@@ -35,13 +35,13 @@ class GetCourseContentsUseCase @Inject constructor(
 
         cacheStarted.await()
 
-        val online = runCatching { connectivityObserver.isOnline.first() }.getOrDefault(true)
+        val online = runCatchingCancellable { connectivityObserver.isOnline.first() }.getOrDefault(true)
         if (online) {
             val syncResult = repository.getCourseContents(courseId)
-            syncResult.onFailure { throwable ->
+            if (syncResult is Resource.Error) {
                 val isCacheEmpty = lastCachedSections?.isEmpty() ?: true
                 if (isCacheEmpty) {
-                    send(Resource.Error(throwable.toDataError(), throwable))
+                    send(syncResult)
                 }
             }
         }

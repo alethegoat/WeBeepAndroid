@@ -9,9 +9,15 @@ import it.polimi.webeep.core.di.IoDispatcher
 import it.polimi.webeep.core.network.MoodleBinaryDownload
 import it.polimi.webeep.core.network.MoodleFileUrlBuilder
 import it.polimi.webeep.core.util.AppDirectories
+import it.polimi.webeep.core.util.DataError
 import it.polimi.webeep.core.util.FileUtils
+import it.polimi.webeep.core.util.Resource
+import it.polimi.webeep.core.util.runCatchingCancellable
 import it.polimi.webeep.feature.download.domain.DownloadRepository
+import it.polimi.webeep.feature.download.domain.DownloadRepository.Companion.PROGRESS_COMPLETE
+import it.polimi.webeep.feature.download.domain.DownloadRepository.Companion.PROGRESS_FAILED
 import java.io.File
+import java.io.OutputStream
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicLong
 import javax.inject.Inject
@@ -31,6 +37,7 @@ import kotlinx.coroutines.launch
 import okhttp3.Call
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.ResponseBody
 
 /**
  * Downloads files with OkHttp into internal app storage (filesDir/downloads).
@@ -51,24 +58,16 @@ class DownloadRepositoryImpl @Inject constructor(
     private val downloadsDir: File by lazy { File(context.filesDir, AppDirectories.DOWNLOADS) }
     private val migrationJob: Job = scope.launch { migrateLegacyDownloads() }
 
-    override fun downloadFile(url: String, token: String?, localFileName: String, displayName: String, mimeType: String?): Long {
+    override fun downloadFile(url: String, token: String?, localFileName: String, displayName: String, mimeType: String?): Resource<Long> {
         val directory = getDownloadsDirectory()
         val safeLocalFileName = sanitizeFileName(localFileName)
-        val destination = containedFile(directory, safeLocalFileName) ?: return -1L
-        val part = containedFile(directory, "$safeLocalFileName.part") ?: return -1L
+        val destination = containedFile(directory, safeLocalFileName) ?: return Resource.Error(DataError.Storage)
+        val part = containedFile(directory, "$safeLocalFileName.part") ?: return Resource.Error(DataError.Storage)
 
-        val requestUrl = if (token != null) {
-            MoodleFileUrlBuilder.buildAuthenticatedUrl(
-                MoodleFileUrlBuilder.stripAuthFromUrl(url),
-                token
-            )
-        } else {
-            MoodleFileUrlBuilder.stripAuthFromUrl(url)
-        }
         val call = try {
-            okHttpClient.newCall(Request.Builder().url(requestUrl).build())
-        } catch (_: IllegalArgumentException) {
-            return -1L
+            okHttpClient.newCall(Request.Builder().url(requestUrl(url, token)).build())
+        } catch (e: IllegalArgumentException) {
+            return Resource.Error(DataError.Unknown, e)
         }
 
         val id = nextId.getAndIncrement()
@@ -76,59 +75,79 @@ class DownloadRepositoryImpl @Inject constructor(
         progress[id] = state
         // Registered before launching so an immediate cancelDownload() reaches the network call.
         calls[id] = call
-        jobs[id] = scope.launch {
-            try {
-                migrationJob.join()
-                if (!directory.exists()) {
-                    directory.mkdirs()
-                }
-                if (part.exists()) {
-                    part.delete()
-                }
-                call.executeCancellable { response ->
-                    val body = MoodleBinaryDownload.requireBinaryBody(response)
-                    val total = body.contentLength()
-                    part.outputStream().use { output ->
-                        body.byteStream().use { input ->
-                            val buffer = ByteArray(DOWNLOAD_BUFFER_SIZE)
-                            var read = 0L
-                            while (true) {
-                                val n = input.read(buffer)
-                                if (n < 0) break
-                                output.write(buffer, 0, n)
-                                read += n
-                                if (total > 0) {
-                                    state.value = ((read * 100) / total).toInt().coerceIn(0, MAX_IN_FLIGHT_PROGRESS)
-                                }
-                            }
-                        }
-                    }
-                }
-                ensureActive()
-                if (destination.exists()) {
-                    destination.delete()
-                }
-                if (!part.renameTo(destination)) {
-                    part.copyTo(destination, overwrite = true)
-                    part.delete()
-                }
-                evictDownloadsIfNeeded(keep = destination)
-                state.value = 100
-            } catch (e: CancellationException) {
+        jobs[id] = scope.launch { runDownload(id, call, directory, part, destination, state) }
+        return Resource.Success(id)
+    }
+
+    private suspend fun CoroutineScope.runDownload(
+        id: Long,
+        call: Call,
+        directory: File,
+        part: File,
+        destination: File,
+        state: MutableStateFlow<Int>
+    ) {
+        try {
+            migrationJob.join()
+            if (!directory.exists()) {
+                directory.mkdirs()
+            }
+            if (part.exists()) {
                 part.delete()
-                throw e
-            } catch (_: Exception) {
-                part.delete()
-                state.value = -1
-            } finally {
-                jobs.remove(id)
-                calls.remove(id)
-                if (state.value == 100 || state.value == -1) {
-                    scheduleProgressCleanup(id, state)
+            }
+            call.executeCancellable { response ->
+                val body = MoodleBinaryDownload.requireBinaryBody(response)
+                part.outputStream().use { output -> body.copyTo(output, state) }
+            }
+            ensureActive()
+            moveIntoPlace(part, destination)
+            evictDownloadsIfNeeded(keep = destination)
+            state.value = PROGRESS_COMPLETE
+        } catch (e: CancellationException) {
+            part.delete()
+            throw e
+        } catch (_: Exception) {
+            part.delete()
+            state.value = PROGRESS_FAILED
+        } finally {
+            jobs.remove(id)
+            calls.remove(id)
+            if (state.value == PROGRESS_COMPLETE || state.value == PROGRESS_FAILED) {
+                scheduleProgressCleanup(id, state)
+            }
+        }
+    }
+
+    private fun ResponseBody.copyTo(output: OutputStream, state: MutableStateFlow<Int>) {
+        val total = contentLength()
+        byteStream().use { input ->
+            val buffer = ByteArray(DOWNLOAD_BUFFER_SIZE)
+            var read = 0L
+            while (true) {
+                val n = input.read(buffer)
+                if (n < 0) break
+                output.write(buffer, 0, n)
+                read += n
+                if (total > 0) {
+                    state.value = ((read * 100) / total).toInt().coerceIn(0, MAX_IN_FLIGHT_PROGRESS)
                 }
             }
         }
-        return id
+    }
+
+    private fun moveIntoPlace(part: File, destination: File) {
+        if (destination.exists()) {
+            destination.delete()
+        }
+        if (!part.renameTo(destination)) {
+            part.copyTo(destination, overwrite = true)
+            part.delete()
+        }
+    }
+
+    private fun requestUrl(url: String, token: String?): String {
+        val cleanUrl = MoodleFileUrlBuilder.stripAuthFromUrl(url)
+        return if (token != null) MoodleFileUrlBuilder.buildAuthenticatedUrl(cleanUrl, token) else cleanUrl
     }
 
     override fun cancelDownload(downloadId: Long) {
@@ -138,14 +157,14 @@ class DownloadRepositoryImpl @Inject constructor(
     }
 
     /**
-     * Completes after the terminal value (100 or -1). Terminal states are kept
+     * Completes after the terminal value ([PROGRESS_COMPLETE] or [PROGRESS_FAILED]). Terminal states are kept
      * for [PROGRESS_RETENTION_MS] so late or repeated collectors see the result.
      */
     override fun getDownloadProgress(downloadId: Long): Flow<Int> {
-        val state = progress[downloadId] ?: return flowOf(-1)
+        val state = progress[downloadId] ?: return flowOf(PROGRESS_FAILED)
         return state.transformWhile { value ->
             emit(value)
-            value in 0..99
+            value in 0 until PROGRESS_COMPLETE
         }
     }
 
@@ -171,13 +190,7 @@ class DownloadRepositoryImpl @Inject constructor(
         val chooser = Intent.createChooser(viewIntent, null).apply {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
-        return try {
-            context.startActivity(chooser)
-            true
-        } catch (e: Exception) {
-            if (e is CancellationException) throw e
-            false
-        }
+        return runCatchingCancellable { context.startActivity(chooser) }.isSuccess
     }
 
     override fun isFileDownloaded(fileName: String): Boolean {
@@ -237,12 +250,11 @@ class DownloadRepositoryImpl @Inject constructor(
     private fun migrateLegacyDownloads() {
         val marker = File(context.filesDir, MIGRATION_MARKER)
         if (marker.exists()) return
-        try {
+        // Best effort: a failed migration is retried on the next launch because the marker is not written.
+        runCatchingCancellable {
             val externalRoot = context.getExternalFilesDir(null) ?: return
             LegacyDownloadsMigration.migrate(File(externalRoot, AppDirectories.DOWNLOADS), getDownloadsDirectory())
             marker.createNewFile()
-        } catch (e: Exception) {
-            if (e is CancellationException) throw e
         }
     }
 

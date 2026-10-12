@@ -262,7 +262,7 @@ class CourseDetailViewModelTest {
         val fileUrl = "https://webeep.polimi.it/webservice/pluginfile.php/123/syllabus.pdf"
         coEvery {
             downloadFileUseCase.execute(fileUrl, any(), "syllabus.pdf", "application/pdf")
-        } returns 999L
+        } returns Resource.Success(999L)
         every { downloadRepository.getDownloadProgress(999L) } returns flowOf(50, 100)
 
         initViewModel()
@@ -302,7 +302,7 @@ class CourseDetailViewModelTest {
         val fileUrl = "https://webeep.polimi.it/webservice/pluginfile.php/123/syllabus.pdf"
         coEvery {
             downloadFileUseCase.execute(fileUrl, any(), "syllabus.pdf", "application/pdf")
-        } throws Exception("Errore download")
+        } returns Resource.Error(DataError.Unauthorized)
 
         initViewModel()
 
@@ -350,7 +350,7 @@ class CourseDetailViewModelTest {
         val fileUrl = "https://webeep.polimi.it/webservice/pluginfile.php/123/syllabus.pdf"
         val cache = MutableStateFlow(sampleSections)
         coEvery { getCourseContentsUseCase(5) } returns cache.map { Resource.Success(it) }
-        coEvery { downloadFileUseCase.execute(fileUrl, any(), any(), any()) } returns 7L
+        coEvery { downloadFileUseCase.execute(fileUrl, any(), any(), any()) } returns Resource.Success(7L)
         every { downloadRepository.getDownloadProgress(7L) } returns MutableSharedFlow<Int>()
 
         initViewModel()
@@ -373,7 +373,7 @@ class CourseDetailViewModelTest {
         val fileUrl = "https://webeep.polimi.it/webservice/pluginfile.php/123/syllabus.pdf"
         val cache = MutableStateFlow(sampleSections)
         coEvery { getCourseContentsUseCase(5) } returns cache.map { Resource.Success(it) }
-        coEvery { downloadFileUseCase.execute(fileUrl, any(), any(), any()) } throws Exception("boom")
+        coEvery { downloadFileUseCase.execute(fileUrl, any(), any(), any()) } returns Resource.Error(DataError.Unauthorized)
 
         initViewModel()
         advanceUntilIdle()
@@ -389,6 +389,21 @@ class CourseDetailViewModelTest {
         cache.value = sampleSections.map { it.copy(summary = "v3") }
         advanceUntilIdle()
         assertEquals(DownloadState.COMPLETED, firstFile().downloadState)
+    }
+
+    @Test
+    fun `an unexpected repository exception ends in FAILED without crashing`() = runTest {
+        val tokenProvider = io.mockk.mockk<it.polimi.webeep.core.datastore.TokenProvider>()
+        coEvery { tokenProvider.getToken() } returns "token"
+        every { downloadRepository.downloadFile(any(), any(), any(), any(), any()) } throws RuntimeException("boom")
+        downloadFileUseCase = DownloadFileUseCase(downloadRepository, tokenProvider)
+
+        initViewModel()
+        advanceUntilIdle()
+        viewModel.downloadFile(firstFile())
+        advanceUntilIdle()
+
+        assertEquals(DownloadState.FAILED, firstFile().downloadState)
     }
 
     private fun firstFile() = (viewModel.uiState.value as CourseDetailUiState.Success).sections.first().modules.first().files.first()

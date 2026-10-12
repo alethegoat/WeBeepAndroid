@@ -1,6 +1,7 @@
 package it.polimi.webeep.feature.download
 
 import android.app.Application
+import it.polimi.webeep.core.util.Resource
 import it.polimi.webeep.feature.download.data.DownloadRepositoryImpl
 import java.io.File
 import kotlinx.coroutines.Dispatchers
@@ -52,7 +53,7 @@ class DownloadRepositoryImplTest {
         server.enqueue(pdfResponse("pdf-bytes"))
         val repository = DownloadRepositoryImpl(context, client, Dispatchers.IO)
 
-        val id = repository.downloadFile(server.url("/file.pdf").toString(), null, "lesson.pdf", "lesson.pdf", "application/pdf")
+        val id = startedId(repository.downloadFile(server.url("/file.pdf").toString(), null, "lesson.pdf", "lesson.pdf", "application/pdf"))
         val result = withTimeout(TIMEOUT_MS) { repository.getDownloadProgress(id).last() }
 
         assertEquals(100, result)
@@ -68,7 +69,7 @@ class DownloadRepositoryImplTest {
         val repository = DownloadRepositoryImpl(context, client, Dispatchers.IO)
         val downloadsDir = File(context.filesDir, "downloads")
 
-        val id = repository.downloadFile(server.url("/file.pdf").toString(), null, "../../evil.pdf", "evil.pdf", null)
+        val id = startedId(repository.downloadFile(server.url("/file.pdf").toString(), null, "../../evil.pdf", "evil.pdf", null))
         val result = withTimeout(TIMEOUT_MS) { repository.getDownloadProgress(id).last() }
 
         assertEquals(100, result)
@@ -84,7 +85,7 @@ class DownloadRepositoryImplTest {
         server.enqueue(pdfResponse("data"))
         val repository = DownloadRepositoryImpl(context, client, Dispatchers.IO)
 
-        val id = repository.downloadFile(server.url("/file.pdf").toString(), null, "twice.pdf", "twice.pdf", null)
+        val id = startedId(repository.downloadFile(server.url("/file.pdf").toString(), null, "twice.pdf", "twice.pdf", null))
         withTimeout(TIMEOUT_MS) { repository.getDownloadProgress(id).last() }
 
         assertEquals(listOf(100), repository.getDownloadProgress(id).toList())
@@ -95,7 +96,7 @@ class DownloadRepositoryImplTest {
         server.enqueue(MockResponse().setResponseCode(500))
         val repository = DownloadRepositoryImpl(context, client, Dispatchers.IO)
 
-        val id = repository.downloadFile(server.url("/file.pdf").toString(), null, "broken.pdf", "broken.pdf", null)
+        val id = startedId(repository.downloadFile(server.url("/file.pdf").toString(), null, "broken.pdf", "broken.pdf", null))
         val result = withTimeout(TIMEOUT_MS) { repository.getDownloadProgress(id).last() }
 
         assertEquals(-1, result)
@@ -108,7 +109,7 @@ class DownloadRepositoryImplTest {
         val dispatcher = StandardTestDispatcher()
         val repository = DownloadRepositoryImpl(context, client, dispatcher)
 
-        val id = repository.downloadFile(server.url("/file.pdf").toString(), null, "cancelled.pdf", "cancelled.pdf", null)
+        val id = startedId(repository.downloadFile(server.url("/file.pdf").toString(), null, "cancelled.pdf", "cancelled.pdf", null))
         repository.cancelDownload(id)
         dispatcher.scheduler.advanceUntilIdle()
 
@@ -129,6 +130,8 @@ class DownloadRepositoryImplTest {
         assertFalse(legacyDir.exists())
         assertTrue(repository.isFileDownloaded("old.pdf"))
     }
+
+    private fun startedId(result: Resource<Long>): Long = (result as Resource.Success).data
 
     private companion object {
         const val TIMEOUT_MS = 10_000L

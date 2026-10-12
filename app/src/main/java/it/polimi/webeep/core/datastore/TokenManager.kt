@@ -3,10 +3,10 @@ package it.polimi.webeep.core.datastore
 import android.app.Application
 import android.util.Log
 import it.polimi.webeep.core.di.IoDispatcher
+import it.polimi.webeep.core.util.runCatchingCancellable
 import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
 import javax.inject.Singleton
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -167,14 +167,9 @@ class TokenManager @Inject constructor(private val application: Application, @Io
     }
 
     /** Writes [updated] to the secure store; never falls back to cleartext. */
-    private fun persist(updated: AuthRecord): Boolean = try {
-        store.replaceAll(updated.toMap())
-        true
-    } catch (e: Exception) {
-        if (e is CancellationException) throw e
-        Log.w(TAG, "Unable to persist secure session data")
-        false
-    }
+    private fun persist(updated: AuthRecord): Boolean = runCatchingCancellable { store.replaceAll(updated.toMap()) }
+        .onFailure { Log.w(TAG, "Unable to persist secure session data") }
+        .isSuccess
 
     private fun publish() {
         val token = record.token

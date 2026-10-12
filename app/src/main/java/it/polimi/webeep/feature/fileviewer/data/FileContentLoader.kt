@@ -6,16 +6,19 @@ import android.os.ParcelFileDescriptor
 import android.webkit.MimeTypeMap
 import androidx.annotation.StringRes
 import it.polimi.webeep.R
+import it.polimi.webeep.core.datastore.MissingTokenException
 import it.polimi.webeep.core.datastore.TokenProvider
 import it.polimi.webeep.core.di.IoDispatcher
 import it.polimi.webeep.core.network.MoodleBinaryDownload
 import it.polimi.webeep.core.network.MoodleFileUrlBuilder
 import it.polimi.webeep.core.util.AppDirectories
+import it.polimi.webeep.core.util.DataError
 import it.polimi.webeep.core.util.FileUtils
+import it.polimi.webeep.core.util.Resource
+import it.polimi.webeep.core.util.resourceOf
 import it.polimi.webeep.feature.download.data.executeCancellable
 import it.polimi.webeep.feature.fileviewer.domain.ViewerFile
 import java.io.File
-import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
 import javax.inject.Inject
@@ -41,7 +44,27 @@ sealed interface FileContentState {
     data class Media(val url: String) : FileContentState
     data class Code(val file: File, val content: String) : FileContentState
     data class External(val file: File, val mimeType: String) : FileContentState
-    data class Error(@StringRes val messageRes: Int) : FileContentState
+    data class Error(val reason: ViewerError) : FileContentState {
+        @get:StringRes
+        val messageRes: Int get() = reason.messageRes
+    }
+}
+
+/**
+ * Why a file could not be shown. The viewer words some failures more specifically than the
+ * generic [it.polimi.webeep.core.util.DataError] messages, so its texts live here in one place.
+ */
+enum class ViewerError(@StringRes val messageRes: Int) {
+    SessionExpired(R.string.error_session_expired),
+    Network(R.string.file_viewer_error_network),
+    CorruptPdf(R.string.file_viewer_error_pdf),
+    CannotOpen(R.string.error_cannot_open_file)
+}
+
+private fun DataError.toViewerError(): ViewerError = when (this) {
+    DataError.Unauthorized -> ViewerError.SessionExpired
+    DataError.Network, is DataError.Server -> ViewerError.Network
+    DataError.Storage, DataError.Unknown -> ViewerError.CannotOpen
 }
 
 /** Local copy behind a ready state, if the state was built from one. */
@@ -67,14 +90,16 @@ class FileContentLoader @Inject constructor(
 
     fun load(file: ViewerFile): Flow<FileContentState> = channelFlow {
         send(FileContentState.Downloading(0L, file.size.takeIf { it > 0 }))
-        val result = try {
-            tokenProvider.getToken() ?: throw ViewerException(R.string.error_session_expired)
+        val loaded = resourceOf {
+            tokenProvider.getToken() ?: throw MissingTokenException()
             classify(file)
-        } catch (e: Exception) {
-            if (e is CancellationException) throw e
-            FileContentState.Error(errorMessageRes(e))
         }
-        send(result)
+        send(
+            when (loaded) {
+                is Resource.Success -> loaded.data
+                is Resource.Error -> FileContentState.Error(loaded.error.toViewerError())
+            }
+        )
     }.flowOn(ioDispatcher)
 
     /** Local copy of [file] for sharing or opening elsewhere; downloads it if needed. */
@@ -102,7 +127,9 @@ class FileContentLoader @Inject constructor(
             mimeType.startsWith("image/") -> FileContentState.Image(file.url)
             mimeType == "application/pdf" || title.endsWith(".pdf", ignoreCase = true) -> {
                 val local = download(file, "pdf", onProgress)
-                FileContentState.Pdf(file = local, pageCount = readPdfPageCount(local))
+                readPdfPageCount(local)
+                    ?.let { FileContentState.Pdf(file = local, pageCount = it) }
+                    ?: FileContentState.Error(ViewerError.CorruptPdf)
             }
             mimeType.startsWith("video/") ||
                 mimeType.startsWith("audio/") ||
@@ -202,7 +229,8 @@ class FileContentLoader @Inject constructor(
         return copied
     }
 
-    private fun readPdfPageCount(file: File): Int = try {
+    /** Page count, or null when the file is not a readable PDF. */
+    private fun readPdfPageCount(file: File): Int? = try {
         ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY).use { descriptor ->
             PdfRenderer(descriptor).use { renderer -> renderer.pageCount }
         }
@@ -211,17 +239,8 @@ class FileContentLoader @Inject constructor(
         if (file.parentFile?.name == AppDirectories.VIEWER_CACHE) {
             file.delete()
         }
-        throw ViewerException(R.string.file_viewer_error_pdf)
+        null
     }
-
-    @StringRes
-    private fun errorMessageRes(e: Exception): Int = when (e) {
-        is ViewerException -> e.messageRes
-        is IOException -> R.string.file_viewer_error_network
-        else -> R.string.error_cannot_open_file
-    }
-
-    private class ViewerException(@StringRes val messageRes: Int) : Exception()
 
     private fun evictCacheIfNeeded(cacheDir: File) {
         val files = cacheDir.listFiles() ?: return

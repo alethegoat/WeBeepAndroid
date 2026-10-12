@@ -131,6 +131,7 @@
     <string name="settings_logout_dialog_cancel">Cancel</string>
     <string name="error_data_network">No connection. Check your network and try again.</string>
     <string name="error_data_server">The WeBeep server returned an error. Please try again later.</string>
+    <string name="error_data_storage">Couldn\'t save the file on this device. Check your free storage.</string>
     <string name="error_data_unknown">Something went wrong. Please try again.</string>
     <string name="course_meta_code">Course code: %1$s</string>
     <string name="course_meta_teacher">Lecturer: %1$s</string>

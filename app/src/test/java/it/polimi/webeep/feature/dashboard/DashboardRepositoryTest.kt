@@ -12,13 +12,20 @@ import it.polimi.webeep.core.datastore.TokenProvider
 import it.polimi.webeep.core.network.MoodleApiService
 import it.polimi.webeep.core.network.dto.CourseDto
 import it.polimi.webeep.core.network.dto.SiteInfoDto
+import it.polimi.webeep.core.util.DataError
+import it.polimi.webeep.core.util.Resource
 import it.polimi.webeep.feature.dashboard.data.DashboardRepositoryImpl
+import it.polimi.webeep.feature.dashboard.domain.model.UserProfile
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -118,8 +125,9 @@ class DashboardRepositoryTest {
 
         val result = repository.syncCourses()
 
-        assertTrue(result.isFailure)
-        assertTrue(result.exceptionOrNull() is MissingTokenException)
+        assertTrue(result is Resource.Error)
+        assertEquals(DataError.Unauthorized, (result as Resource.Error).error)
+        assertTrue(result.throwable is MissingTokenException)
     }
 
     @Test
@@ -131,8 +139,8 @@ class DashboardRepositoryTest {
 
         val result = repository.syncCourses()
 
-        assertTrue(result.isSuccess)
-        val courses = result.getOrThrow()
+        assertTrue(result is Resource.Success)
+        val courses = (result as Resource.Success).data
         assertEquals(1, courses.size)
         assertEquals("Intro to CS", courses.first().fullname)
 
@@ -150,7 +158,7 @@ class DashboardRepositoryTest {
 
         val result = repository.syncCourses()
 
-        assertTrue(result.isSuccess)
+        assertTrue(result is Resource.Success)
         coVerify(exactly = 1) { tokenProvider.updateUserProfile(12345, "Mario Rossi") }
         coVerify(exactly = 0) { tokenProvider.saveAuthData(any(), any(), any()) }
     }
@@ -166,7 +174,7 @@ class DashboardRepositoryTest {
 
         val result = repository.syncCourses()
 
-        assertTrue(result.isSuccess)
+        assertTrue(result is Resource.Success)
         coVerify(exactly = 1) { apiService.getEnrolledCourses(userId = 12345) }
     }
 
@@ -178,10 +186,26 @@ class DashboardRepositoryTest {
 
         val result = repository.getUserInfo()
 
-        assertTrue(result.isSuccess)
-        val (name, avatar) = result.getOrThrow()
-        assertEquals("Mario Rossi", name)
+        assertTrue(result is Resource.Success)
+        val profile = (result as Resource.Success).data
+        assertEquals("Mario Rossi", profile.fullName)
+        val avatar = profile.avatarUrl.orEmpty()
         assertTrue(avatar.contains("/webservice/pluginfile.php/"))
         assertFalse(avatar.contains("token="))
+    }
+
+    @Test
+    fun `cancelling a running call propagates instead of becoming an error result`() = runTest {
+        coEvery { tokenProvider.getToken() } returns "mock_token"
+        coEvery { apiService.getSiteInfo(wsToken = null) } coAnswers { awaitCancellation() }
+        var result: Resource<UserProfile>? = null
+
+        val job = launch { result = repository.getUserInfo() }
+        runCurrent()
+        job.cancel()
+        job.join()
+
+        assertTrue(job.isCancelled)
+        assertNull(result)
     }
 }

@@ -10,12 +10,14 @@ import dagger.assisted.AssistedInject
 import it.polimi.webeep.core.database.dao.CourseDao
 import it.polimi.webeep.core.database.entity.CourseEntity
 import it.polimi.webeep.core.datastore.TokenProvider
+import it.polimi.webeep.core.util.Resource
+import it.polimi.webeep.core.util.getOrThrow
+import it.polimi.webeep.core.util.resourceOf
 import it.polimi.webeep.feature.course.domain.CourseRepository
 import it.polimi.webeep.feature.course.domain.model.Section
 import it.polimi.webeep.feature.dashboard.domain.DashboardRepository
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.first
@@ -42,61 +44,71 @@ class CourseSyncWorker @AssistedInject constructor(
             return Result.failure()
         }
 
-        try {
-            // Changes found by a run that was stopped before notifying.
-            SyncNotifier.deliverPending(appContext, syncStateStore)
-
-            dashboardRepository.syncCourses()
-
-            val courses = courseDao.getAllCourses().firstOrNull()?.sortedWith(currentCoursesFirst())
-            if (courses.isNullOrEmpty()) {
-                Log.d("CourseSyncWorker", "No local courses. Stopping worker.")
-                return Result.success()
+        return when (val outcome = resourceOf { syncAllCourses() }) {
+            is Resource.Success -> outcome.data
+            is Resource.Error -> {
+                Log.e("CourseSyncWorker", "Fatal worker error type=${outcome.throwable?.let { it::class.simpleName }}")
+                Result.retry()
             }
+        }
+    }
 
-            val hasErrors = AtomicBoolean(false)
-            val syncedCourses = AtomicInteger(0)
-            val courseSyncSemaphore = Semaphore(MAX_CONCURRENT_COURSE_SYNCS)
+    // Unexpected failures bubble up to doWork, which turns them into a retry.
+    private suspend fun syncAllCourses(): Result {
+        // Changes found by a run that was stopped before notifying.
+        SyncNotifier.deliverPending(appContext, syncStateStore)
 
-            supervisorScope {
-                val jobs = courses.map { course ->
-                    async {
-                        courseSyncSemaphore.withPermit {
-                            try {
-                                val cached = courseRepository.getCachedCourseContents(course.id).first()
-                                val current = courseRepository.getCourseContents(course.id).getOrThrow()
-                                syncedCourses.incrementAndGet()
+        dashboardRepository.syncCourses()
 
-                                recordSnapshot(course.id, course.fullname, cached, current)
-                            } catch (e: Exception) {
-                                if (e is CancellationException) throw e
-                                Log.e("CourseSyncWorker", "Sync error course=${course.id} type=${e::class.simpleName}")
-                                hasErrors.set(true)
-                            }
+        val courses = courseDao.getAllCourses().firstOrNull()?.sortedWith(currentCoursesFirst())
+        if (courses.isNullOrEmpty()) {
+            Log.d("CourseSyncWorker", "No local courses. Stopping worker.")
+            return Result.success()
+        }
+
+        val hasErrors = AtomicBoolean(false)
+        val syncedCourses = AtomicInteger(0)
+        val courseSyncSemaphore = Semaphore(MAX_CONCURRENT_COURSE_SYNCS)
+
+        supervisorScope {
+            val jobs = courses.map { course ->
+                async {
+                    courseSyncSemaphore.withPermit {
+                        val synced = resourceOf {
+                            val cached = courseRepository.getCachedCourseContents(course.id).first()
+                            val current = courseRepository.getCourseContents(course.id).getOrThrow()
+                            syncedCourses.incrementAndGet()
+
+                            recordSnapshot(course.id, course.fullname, cached, current)
+                        }
+                        if (synced is Resource.Error) {
+                            Log.e(
+                                "CourseSyncWorker",
+                                "Sync error course=${course.id} type=${synced.throwable?.let {
+                                    it::class.simpleName
+                                }}"
+                            )
+                            hasErrors.set(true)
                         }
                     }
                 }
-                jobs.awaitAll()
             }
-
-            val enrolledIds = courses.map { it.id }.toSet()
-            val checkedAt = System.currentTimeMillis()
-            syncStateStore.update { state ->
-                state.copy(
-                    snapshots = state.snapshots.filterKeys { it in enrolledIds },
-                    lastCheckAt = if (syncedCourses.get() > 0) checkedAt else state.lastCheckAt
-                ) to Unit
-            }
-            SyncNotifier.deliverPending(appContext, syncStateStore)
-
-            // Avoid retry loops: partial success is enough since the next
-            // periodic run will pick up the rest. Retry only when nothing synced.
-            return if (hasErrors.get() && syncedCourses.get() == 0) Result.retry() else Result.success()
-        } catch (e: Exception) {
-            if (e is CancellationException) throw e
-            Log.e("CourseSyncWorker", "Fatal worker error type=${e::class.simpleName}")
-            return Result.retry()
+            jobs.awaitAll()
         }
+
+        val enrolledIds = courses.map { it.id }.toSet()
+        val checkedAt = System.currentTimeMillis()
+        syncStateStore.update { state ->
+            state.copy(
+                snapshots = state.snapshots.filterKeys { it in enrolledIds },
+                lastCheckAt = if (syncedCourses.get() > 0) checkedAt else state.lastCheckAt
+            ) to Unit
+        }
+        SyncNotifier.deliverPending(appContext, syncStateStore)
+
+        // Avoid retry loops: partial success is enough since the next
+        // periodic run will pick up the rest. Retry only when nothing synced.
+        return if (hasErrors.get() && syncedCourses.get() == 0) Result.retry() else Result.success()
     }
 
     /**

@@ -1,5 +1,7 @@
 package it.polimi.webeep.feature.auth
 
+import it.polimi.webeep.core.util.DataError
+import it.polimi.webeep.core.util.Resource
 import it.polimi.webeep.feature.auth.domain.LoginError
 import it.polimi.webeep.feature.auth.domain.LoginResult
 import it.polimi.webeep.feature.auth.domain.LoginUseCase
@@ -41,7 +43,7 @@ class LoginUseCaseTest {
     @Test
     fun `execute with valid encoded SSO token decodes, validates and saves auth data`() = runTest {
         val encodedToken = encodeSsoPayload(LoginUseCase.md5Hex(passport), "wstoken_123", "private_token_456")
-        fakeAuthRepository.validateResult = Result.success(sampleSession)
+        fakeAuthRepository.validateResult = Resource.Success(sampleSession)
 
         val result = loginUseCase.execute(encodedToken)
 
@@ -55,7 +57,7 @@ class LoginUseCaseTest {
     @Test
     fun `execute with expired or missing passports returns SessionExpired and saves nothing`() = runTest {
         val encodedToken = encodeSsoPayload(LoginUseCase.md5Hex(passport), "wstoken_123", "private_token_456")
-        fakeAuthRepository.validateResult = Result.success(sampleSession)
+        fakeAuthRepository.validateResult = Resource.Success(sampleSession)
         // TokenManager drops passports older than the TTL, so an expired one reads as none.
         fakeTokenProvider.clearPendingPassportSync()
 
@@ -79,7 +81,7 @@ class LoginUseCaseTest {
     @Test
     fun `execute preserves plus characters in base64 token`() = runTest {
         val encodedToken = generateEncodedTokenContainingPlus()
-        fakeAuthRepository.validateResult = Result.success(sampleSession)
+        fakeAuthRepository.validateResult = Resource.Success(sampleSession)
 
         val result = loginUseCase.execute(encodedToken)
 
@@ -90,7 +92,7 @@ class LoginUseCaseTest {
     @Test
     fun `execute decodes percent encoded plus characters in base64 token`() = runTest {
         val encodedToken = generateEncodedTokenContainingPlus().replace("+", "%2B")
-        fakeAuthRepository.validateResult = Result.success(sampleSession)
+        fakeAuthRepository.validateResult = Resource.Success(sampleSession)
 
         val result = loginUseCase.execute(encodedToken)
 
@@ -115,7 +117,7 @@ class LoginUseCaseTest {
             "wstoken_123",
             "private_token_456"
         )
-        fakeAuthRepository.validateResult = Result.success(sampleSession)
+        fakeAuthRepository.validateResult = Resource.Success(sampleSession)
 
         val result = loginUseCase.execute(encodedToken)
 
@@ -132,7 +134,7 @@ class LoginUseCaseTest {
             "wstoken_123",
             "private_token_456"
         )
-        fakeAuthRepository.validateResult = Result.success(sampleSession)
+        fakeAuthRepository.validateResult = Resource.Success(sampleSession)
 
         val result = loginUseCase.execute(encodedToken)
 
@@ -145,7 +147,7 @@ class LoginUseCaseTest {
         val firstPassport = "first-passport"
         fakeTokenProvider.savePendingPassportSync(firstPassport)
         fakeTokenProvider.savePendingPassportSync(passport)
-        fakeAuthRepository.validateResult = Result.success(sampleSession)
+        fakeAuthRepository.validateResult = Resource.Success(sampleSession)
 
         val encodedToken = encodeSsoPayload(LoginUseCase.md5Hex(firstPassport), "wstoken_123", "private_token_456")
         val result = loginUseCase.execute(encodedToken)
@@ -171,7 +173,7 @@ class LoginUseCaseTest {
     @Test
     fun `execute with mismatched passport returns InvalidPassport failure and saves nothing`() = runTest {
         val encodedToken = encodeSsoPayload("wronghash", "wstoken_123", "private_token_456")
-        fakeAuthRepository.validateResult = Result.success(sampleSession)
+        fakeAuthRepository.validateResult = Resource.Success(sampleSession)
 
         val result = loginUseCase.execute(encodedToken)
 
@@ -183,14 +185,14 @@ class LoginUseCaseTest {
     @Test
     fun `execute with server validation failure returns ValidationFailed and saves nothing`() = runTest {
         val encodedToken = encodeSsoPayload(LoginUseCase.md5Hex(passport), "wstoken_123", "private_token_456")
-        fakeAuthRepository.validateResult = Result.failure(Exception("Token non valido"))
+        fakeAuthRepository.validateResult = Resource.Error(DataError.Unauthorized)
 
         val result = loginUseCase.execute(encodedToken)
 
         assertTrue(result is LoginResult.Failure)
         val error = (result as LoginResult.Failure).error
         assertTrue(error is LoginError.ValidationFailed)
-        assertEquals("Token non valido", (error as LoginError.ValidationFailed).cause?.message)
+        assertEquals(DataError.Unauthorized, (error as LoginError.ValidationFailed).error)
         assertTrue(fakeAuthRepository.savedToken == null)
     }
 

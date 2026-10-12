@@ -81,6 +81,7 @@ fun LoginScreen(viewModel: LoginViewModel, onLoginSuccess: () -> Unit, modifier:
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val retryLabel = stringResource(R.string.retry)
+    val errorMessage = (uiState as? LoginUiState.Error)?.let { stringResource(it.messageRes) }
 
     val reduceMotion = LocalReduceMotion.current
     // Saved: the entrance plays once, not again on rotation or language change.
@@ -99,12 +100,12 @@ fun LoginScreen(viewModel: LoginViewModel, onLoginSuccess: () -> Unit, modifier:
     }
 
     LaunchedEffect(uiState) {
-        when (val state = uiState) {
+        when (uiState) {
             is LoginUiState.Success -> onLoginSuccess()
             is LoginUiState.Error -> {
                 showErrorSnackbar(
                     snackbarHostState = snackbarHostState,
-                    message = state.message,
+                    message = errorMessage.orEmpty(),
                     actionLabel = retryLabel
                 )
                 viewModel.clearError()

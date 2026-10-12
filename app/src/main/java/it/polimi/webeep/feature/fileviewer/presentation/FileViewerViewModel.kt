@@ -6,10 +6,14 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import it.polimi.webeep.core.network.MoodleFileUrlBuilder
 import it.polimi.webeep.core.util.FileUtils
+import it.polimi.webeep.core.util.Resource
+import it.polimi.webeep.core.util.runCatchingCancellable
 import it.polimi.webeep.feature.course.domain.CourseRepository
 import it.polimi.webeep.feature.course.presentation.DownloadState
 import it.polimi.webeep.feature.download.domain.DownloadFileUseCase
 import it.polimi.webeep.feature.download.domain.DownloadRepository
+import it.polimi.webeep.feature.download.domain.DownloadRepository.Companion.PROGRESS_COMPLETE
+import it.polimi.webeep.feature.download.domain.DownloadRepository.Companion.PROGRESS_FAILED
 import it.polimi.webeep.feature.fileviewer.data.FileContentLoader
 import it.polimi.webeep.feature.fileviewer.data.FileContentState
 import it.polimi.webeep.feature.fileviewer.data.localFile
@@ -18,7 +22,6 @@ import it.polimi.webeep.feature.fileviewer.domain.findSiblings
 import it.polimi.webeep.navigation.Screen
 import java.io.File
 import javax.inject.Inject
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -83,12 +86,9 @@ class FileViewerViewModel @Inject constructor(
 
     private suspend fun resolveFiles(): ViewerFiles {
         if (courseId == Screen.FileViewer.NO_COURSE) return ViewerFiles(listOf(initialFile), 0)
-        val siblings = try {
+        val siblings = runCatchingCancellable {
             findSiblings(courseRepository.getCachedCourseContents(courseId).first(), initialFile.url)
-        } catch (e: Exception) {
-            if (e is CancellationException) throw e
-            emptyList()
-        }
+        }.getOrDefault(emptyList())
         val index = siblings.indexOfFirst { it.url == initialFile.url }
         return if (index < 0) {
             ViewerFiles(listOf(initialFile), 0)
@@ -141,23 +141,21 @@ class FileViewerViewModel @Inject constructor(
         if (_downloadStates.value[file.url] == DownloadState.DOWNLOADING) return
         viewModelScope.launch {
             setDownloadState(file, DownloadState.DOWNLOADING)
-            try {
-                val id = downloadFileUseCase.execute(
-                    url = file.url,
-                    localFileName = localName(file),
-                    displayName = file.title,
-                    mimeType = file.mimeType.ifBlank { null }
-                )
-                downloadRepository.getDownloadProgress(id).collect { progress ->
+            val started = downloadFileUseCase.execute(
+                url = file.url,
+                localFileName = localName(file),
+                displayName = file.title,
+                mimeType = file.mimeType.ifBlank { null }
+            )
+            when (started) {
+                is Resource.Error -> setDownloadState(file, DownloadState.FAILED)
+                is Resource.Success -> downloadRepository.getDownloadProgress(started.data).collect { progress ->
                     when (progress) {
-                        100 -> setDownloadState(file, DownloadState.COMPLETED)
-                        -1 -> setDownloadState(file, DownloadState.FAILED)
+                        PROGRESS_COMPLETE -> setDownloadState(file, DownloadState.COMPLETED)
+                        PROGRESS_FAILED -> setDownloadState(file, DownloadState.FAILED)
                         else -> Unit
                     }
                 }
-            } catch (e: Exception) {
-                if (e is CancellationException) throw e
-                setDownloadState(file, DownloadState.FAILED)
             }
         }
     }
@@ -167,10 +165,7 @@ class FileViewerViewModel @Inject constructor(
         contents[file.url]?.value?.localFile?.let { return it }
         _preparingShare.value = true
         return try {
-            loader.localCopy(file)
-        } catch (e: Exception) {
-            if (e is CancellationException) throw e
-            null
+            runCatchingCancellable { loader.localCopy(file) }.getOrNull()
         } finally {
             _preparingShare.value = false
         }

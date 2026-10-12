@@ -11,6 +11,9 @@ import it.polimi.webeep.core.network.MoodleApiService
 import it.polimi.webeep.core.network.MoodleFileUrlBuilder
 import it.polimi.webeep.core.network.dto.SiteInfoDto
 import it.polimi.webeep.core.util.AppDirectories
+import it.polimi.webeep.core.util.Resource
+import it.polimi.webeep.core.util.resourceOf
+import it.polimi.webeep.core.util.runCatchingCancellable
 import it.polimi.webeep.feature.auth.domain.AuthRepository
 import it.polimi.webeep.feature.auth.domain.UserSession
 import it.polimi.webeep.feature.download.domain.DownloadRepository
@@ -40,7 +43,7 @@ class AuthRepositoryImpl @Inject constructor(
     // Manual logout and SessionExpiryHandler may overlap: run wipes one at a time.
     private val logoutMutex = Mutex()
 
-    override suspend fun validateToken(token: String): Result<UserSession> = runCatching {
+    override suspend fun validateToken(token: String): Resource<UserSession> = resourceOf {
         apiService.getSiteInfo(wsToken = token).toUserSession()
     }
 
@@ -71,9 +74,9 @@ class AuthRepositoryImpl @Inject constructor(
             tokenProvider.clearAll()
         }
         withContext(ioDispatcher) {
-            runCatching { weBeepDatabase.clearAllTables() }
-            runCatching { downloadRepository.clearAllDownloads() }
-            runCatching { syncStateStore.clear() }
+            runCatchingCancellable { weBeepDatabase.clearAllTables() }
+            runCatchingCancellable { downloadRepository.clearAllDownloads() }
+            runCatchingCancellable { syncStateStore.clear() }
         }
         SyncNotifier.cancelAll(application)
         withContext(mainDispatcher) {
@@ -97,6 +100,6 @@ class AuthRepositoryImpl @Inject constructor(
     )
 
     private fun deleteQuietly(file: File) {
-        runCatching { file.deleteRecursively() }
+        runCatchingCancellable { file.deleteRecursively() }
     }
 }

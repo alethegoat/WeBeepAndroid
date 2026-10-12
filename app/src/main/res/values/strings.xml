@@ -131,6 +131,7 @@
     <string name="settings_logout_dialog_cancel">Annulla</string>
     <string name="error_data_network">Nessuna connessione. Controlla la rete e riprova.</string>
     <string name="error_data_server">Il server di WeBeep ha restituito un errore. Riprova più tardi.</string>
+    <string name="error_data_storage">Impossibile salvare il file sul dispositivo. Controlla lo spazio disponibile.</string>
     <string name="error_data_unknown">Si è verificato un errore imprevisto. Riprova.</string>
     <string name="course_meta_code">Codice corso: %1$s</string>
     <string name="course_meta_teacher">Docente: %1$s</string>

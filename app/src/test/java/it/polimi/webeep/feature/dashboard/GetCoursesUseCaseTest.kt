@@ -36,7 +36,7 @@ class GetCoursesUseCaseTest {
     fun `skips network sync when offline and emits cache`() = runTest {
         val repository = FakeDashboardRepository()
         repository.cachedCoursesFlow.value = listOf(sampleCourse)
-        repository.syncResult = Result.success(emptyList())
+        repository.syncResult = Resource.Success(emptyList())
 
         GetCoursesUseCase(repository, connectivity(false))().test {
             val success = awaitItem()
@@ -51,7 +51,7 @@ class GetCoursesUseCaseTest {
     fun `syncs when online`() = runTest {
         val repository = FakeDashboardRepository()
         repository.cachedCoursesFlow.value = listOf(sampleCourse)
-        repository.syncResult = Result.success(listOf(sampleCourse))
+        repository.syncResult = Resource.Success(listOf(sampleCourse))
 
         GetCoursesUseCase(repository, connectivity(true))().test {
             awaitItem()
@@ -64,7 +64,7 @@ class GetCoursesUseCaseTest {
     fun `emits typed network error when sync fails with empty cache`() = runTest {
         val repository = FakeDashboardRepository()
         val failure = IOException("Unable to resolve host")
-        repository.syncResult = Result.failure(failure)
+        repository.syncResult = Resource.Error(DataError.Network, failure)
 
         GetCoursesUseCase(repository, connectivity(true))().test {
             val error = awaitItem()
@@ -86,9 +86,9 @@ class GetCoursesUseCaseTest {
     }
 
     @Test
-    fun `sync use case maps failures to DataError`() = runTest {
+    fun `sync use case passes repository failures through`() = runTest {
         val repository = FakeDashboardRepository()
-        repository.syncResult = Result.failure(RuntimeException("boom"))
+        repository.syncResult = Resource.Error(DataError.Unknown, RuntimeException("boom"))
 
         val result = SyncCoursesUseCase(repository, connectivity(true))()
 
@@ -99,7 +99,7 @@ class GetCoursesUseCaseTest {
     @Test
     fun `sync use case returns synced courses`() = runTest {
         val repository = FakeDashboardRepository()
-        repository.syncResult = Result.success(listOf(sampleCourse))
+        repository.syncResult = Resource.Success(listOf(sampleCourse))
 
         val result = SyncCoursesUseCase(repository, connectivity(true))()
 

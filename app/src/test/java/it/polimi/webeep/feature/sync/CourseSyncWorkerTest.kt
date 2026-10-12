@@ -16,6 +16,7 @@ import io.mockk.mockk
 import it.polimi.webeep.core.database.dao.CourseDao
 import it.polimi.webeep.core.database.entity.CourseEntity
 import it.polimi.webeep.core.datastore.TokenProvider
+import it.polimi.webeep.core.util.Resource
 import it.polimi.webeep.feature.course.domain.CourseRepository
 import it.polimi.webeep.feature.course.domain.model.FileResource
 import it.polimi.webeep.feature.course.domain.model.Module
@@ -64,9 +65,9 @@ class CourseSyncWorkerTest {
         store = SyncStateStore({ File(tempFolder.root, SyncStateStore.FILE_NAME) }, Dispatchers.IO)
         courseRepository = mockk()
         every { courseRepository.getCachedCourseContents(COURSE_ID) } answers { flowOf(cachedContents) }
-        coEvery { courseRepository.getCourseContents(COURSE_ID) } answers { Result.success(remoteContents) }
+        coEvery { courseRepository.getCourseContents(COURSE_ID) } answers { Resource.Success(remoteContents) }
         every { courseDao.getAllCourses() } returns flowOf(listOf(course()))
-        coEvery { dashboardRepository.syncCourses() } returns Result.success(emptyList())
+        coEvery { dashboardRepository.syncCourses() } returns Resource.Success(emptyList())
         coEvery { tokenProvider.getToken() } returns "token"
         shadowOf(context).grantPermissions(Manifest.permission.POST_NOTIFICATIONS)
     }
