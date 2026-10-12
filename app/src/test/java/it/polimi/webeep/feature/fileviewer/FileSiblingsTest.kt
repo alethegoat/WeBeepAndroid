@@ -25,17 +25,17 @@ class FileSiblingsTest {
                     "folder",
                     file("a.pdf", "/"),
                     file("b.pdf", "/"),
-                    file("sol.pdf", "/Soluzioni/"),
-                ),
-            ),
+                    file("sol.pdf", "/Soluzioni/")
+                )
+            )
         ),
         Section(
             id = 2,
             name = "Lab",
             summary = null,
             sectionNumber = 2,
-            modules = listOf(module(20, "resource", file("lab.pdf", "/"))),
-        ),
+            modules = listOf(module(20, "resource", file("lab.pdf", "/")))
+        )
     )
 
     @Test
@@ -68,7 +68,7 @@ class FileSiblingsTest {
         iconUrl = null,
         description = null,
         url = if (type == "url") "https://example.com" else null,
-        files = files.toList(),
+        files = files.toList()
     )
 
     private fun url(name: String, path: String) = "https://webeep.polimi.it/pluginfile.php/1$path$name"
@@ -79,6 +79,6 @@ class FileSiblingsTest {
         fileUrl = url(name, path),
         fileSize = 10L,
         mimeType = "application/pdf",
-        timeModified = null,
+        timeModified = null
     )
 }

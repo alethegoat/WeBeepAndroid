@@ -35,11 +35,7 @@ private val RowTextInset = WeBeepSpacing.md + FileIconContainerSize + WeBeepSpac
 
 /** Tappable title of a course section; its rows follow it while expanded. */
 @Composable
-internal fun SectionHeaderRow(
-    item: CourseListItem.SectionHeader,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
+internal fun SectionHeaderRow(item: CourseListItem.SectionHeader, onClick: () -> Unit, modifier: Modifier = Modifier) {
     GroupedListItem(position = item.position, modifier = modifier) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -84,10 +80,7 @@ internal fun SectionHeaderRow(
 }
 
 @Composable
-internal fun SectionEmptyRow(
-    item: CourseListItem.SectionEmpty,
-    modifier: Modifier = Modifier
-) {
+internal fun SectionEmptyRow(item: CourseListItem.SectionEmpty, modifier: Modifier = Modifier) {
     GroupedListItem(position = item.position, modifier = modifier) {
         Text(
             text = stringResource(R.string.no_materials_section),
@@ -122,9 +115,15 @@ internal fun ModuleItemRow(
         ModuleKind.MultiFile, ModuleKind.Other -> Icons.Rounded.Description to fileColors.fileGeneric
     }
     val onClick: (() -> Unit)? = when {
-        item.kind == ModuleKind.Folder -> { { onToggleFolder(folderRootKey(module.id)) } }
-        item.kind == ModuleKind.SingleFile -> { { onPreviewClick(module.files.first()) } }
-        hasLinkPreview -> { { onPreviewClick(module.toLinkPreview()) } }
+        item.kind == ModuleKind.Folder -> {
+            { onToggleFolder(folderRootKey(module.id)) }
+        }
+        item.kind == ModuleKind.SingleFile -> {
+            { onPreviewClick(module.files.first()) }
+        }
+        hasLinkPreview -> {
+            { onPreviewClick(module.toLinkPreview()) }
+        }
         else -> null
     }
 

@@ -12,10 +12,7 @@ import javax.inject.Inject
  * Decodes the base64 token, verifies the Moodle passport hash, then validates via API.
  * Failures are typed ([LoginError]) so the UI can localize them.
  */
-class LoginUseCase @Inject constructor(
-    private val authRepository: AuthRepository,
-    private val tokenProvider: TokenProvider
-) {
+class LoginUseCase @Inject constructor(private val authRepository: AuthRepository, private val tokenProvider: TokenProvider) {
     fun generateSsoLaunchUrl(): String {
         val passport = generatePassport()
         tokenProvider.savePendingPassportSync(passport)
@@ -93,11 +90,10 @@ class LoginUseCase @Inject constructor(
             return (SecureRandom().nextInt(Int.MAX_VALUE - 1) + 1).toString()
         }
 
-        fun buildSsoLaunchUrl(passport: String): String =
-            "$SITE_WWWROOT/admin/tool/mobile/launch.php" +
-                "?service=$SSO_SERVICE" +
-                "&passport=$passport" +
-                "&urlscheme=$SSO_URL_SCHEME"
+        fun buildSsoLaunchUrl(passport: String): String = "$SITE_WWWROOT/admin/tool/mobile/launch.php" +
+            "?service=$SSO_SERVICE" +
+            "&passport=$passport" +
+            "&urlscheme=$SSO_URL_SCHEME"
 
         /**
          * Moodle 4+/5 launch.php hashes md5($CFG->wwwroot . $passport).

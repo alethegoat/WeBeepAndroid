@@ -34,13 +34,13 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.OpenInNew
+import androidx.compose.material.icons.outlined.BrokenImage
 import androidx.compose.material.icons.rounded.Description
 import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.DownloadDone
 import androidx.compose.material.icons.rounded.ErrorOutline
 import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.Share
-import androidx.compose.material.icons.outlined.BrokenImage
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -97,9 +97,9 @@ import it.polimi.webeep.feature.fileviewer.domain.ViewerFile
 import it.polimi.webeep.feature.fileviewer.presentation.components.CodeViewer
 import it.polimi.webeep.feature.fileviewer.presentation.components.MediaViewer
 import it.polimi.webeep.feature.fileviewer.presentation.components.PdfViewer
+import java.io.File
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import java.io.File
 
 private val TopBarHeight = 64.dp
 private val ActionProgressSize = 20.dp
@@ -112,11 +112,7 @@ private val ActionProgressStroke = 2.dp
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun FileViewerScreen(
-    viewModel: FileViewerViewModel,
-    onBackClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
+fun FileViewerScreen(viewModel: FileViewerViewModel, onBackClick: () -> Unit, modifier: Modifier = Modifier) {
     val viewerFiles by viewModel.files.collectAsStateWithLifecycle()
     var chromeVisible by rememberSaveable { mutableStateOf(true) }
     val toggleChrome = { chromeVisible = !chromeVisible }
@@ -349,8 +345,10 @@ private fun FileViewerPage(
         targetState = content,
         contentKey = { it::class },
         transitionSpec = {
-            (fadeIn(WeBeepMotion.enter(reduceMotion = reduceMotion)) +
-                scaleIn(WeBeepMotion.enter(reduceMotion = reduceMotion), initialScale = 0.98f)) togetherWith
+            (
+                fadeIn(WeBeepMotion.enter(reduceMotion = reduceMotion)) +
+                    scaleIn(WeBeepMotion.enter(reduceMotion = reduceMotion), initialScale = 0.98f)
+                ) togetherWith
                 fadeOut(WeBeepMotion.exit(reduceMotion = reduceMotion))
         },
         label = "file_content",
@@ -450,7 +448,7 @@ private fun FileViewerLoading(title: String, progress: FileContentState.Download
         if (fraction != null) {
             val animated by animateFloatAsState(
                 targetValue = fraction,
-                animationSpec = WeBeepMotion.smooth(durationMs = WeBeepMotion.ShortMs, reduceMotion = reduceMotion),
+                animationSpec = WeBeepMotion.smooth(durationMs = WeBeepMotion.SHORT_MS, reduceMotion = reduceMotion),
                 label = "download_progress"
             )
             LinearProgressIndicator(progress = { animated }, modifier = Modifier.fillMaxWidth())
@@ -536,7 +534,7 @@ private fun ImagePreviewContent(
         AnimatedVisibility(
             visible = showHint && !zoomState.isZoomed,
             enter = fadeIn(WeBeepMotion.enter(reduceMotion = reduceMotion)),
-            exit = fadeOut(WeBeepMotion.exit(durationMs = WeBeepMotion.MediumMs, reduceMotion = reduceMotion)),
+            exit = fadeOut(WeBeepMotion.exit(durationMs = WeBeepMotion.MEDIUM_MS, reduceMotion = reduceMotion)),
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .navigationBarsPadding()
@@ -560,12 +558,7 @@ private fun ImagePreviewContent(
 private const val HINT_DURATION_MS = 2_000L
 
 @Composable
-private fun ExternalFileContent(
-    file: File,
-    mimeType: String,
-    title: String,
-    autoLaunch: Boolean
-) {
+private fun ExternalFileContent(file: File, mimeType: String, title: String, autoLaunch: Boolean) {
     val context = LocalContext.current
     val chooserTitle = stringResource(R.string.file_viewer_open_with)
     val launch = { openWithExternalApp(context, file, mimeType, chooserTitle) }

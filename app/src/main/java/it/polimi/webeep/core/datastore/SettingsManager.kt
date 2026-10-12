@@ -8,25 +8,29 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import dagger.hilt.android.qualifiers.ApplicationContext
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 
 val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
 
 enum class ThemePreference {
-    SYSTEM_DEFAULT, LIGHT, DARK
+    SYSTEM_DEFAULT,
+    LIGHT,
+    DARK
 }
 
 enum class SyncFrequency {
-    FIFTEEN_MINUTES, ONE_HOUR, TWELVE_HOURS, DAILY, NEVER
+    FIFTEEN_MINUTES,
+    ONE_HOUR,
+    TWELVE_HOURS,
+    DAILY,
+    NEVER
 }
 
 @Singleton
-class SettingsManager @Inject constructor(
-    @ApplicationContext private val context: Context
-) {
+class SettingsManager @Inject constructor(@ApplicationContext private val context: Context) {
     private val themeKey = stringPreferencesKey("theme_preference")
     private val dynamicColorKey = booleanPreferencesKey("dynamic_color_preference")
     private val wifiOnlySyncKey = booleanPreferencesKey("wifi_only_sync")

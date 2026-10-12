@@ -23,7 +23,7 @@ object MoodleText {
             val content = matchResult.groupValues[2]
             if (lang == langToKeep) content else ""
         }
-        
+
         return unescapeHtml(result.trim())
     }
 

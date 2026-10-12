@@ -1,102 +1,87 @@
 package it.polimi.webeep.feature.fileviewer.presentation.components
 
 import android.graphics.Bitmap
-import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.pdf.PdfRenderer
 import android.os.ParcelFileDescriptor
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.ScrollableDefaults
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.TextButton
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardType
-import it.polimi.webeep.core.ui.theme.WeBeepMotion
-import it.polimi.webeep.core.ui.util.LocalReduceMotion
-import it.polimi.webeep.core.ui.util.currentWindowSize
-import it.polimi.webeep.core.ui.util.rememberZoomState
-import it.polimi.webeep.core.ui.util.zoomable
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
-import androidx.compose.animation.core.animate
-import androidx.compose.foundation.gestures.awaitEachGesture
-import androidx.compose.foundation.gestures.awaitFirstDown
-import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.gestures.calculatePan
-import androidx.compose.foundation.gestures.calculateZoom
-import androidx.compose.runtime.rememberCoroutineScope
-import kotlinx.coroutines.launch
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Description
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.input.pointer.positionChanged
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.min
 import it.polimi.webeep.R
 import it.polimi.webeep.core.ui.components.EmptyStateView
+import it.polimi.webeep.core.ui.theme.WeBeepMotion
 import it.polimi.webeep.core.ui.theme.WeBeepSpacing
 import it.polimi.webeep.core.ui.theme.WeBeepTheme
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.CoroutineDispatcher
+import it.polimi.webeep.core.ui.util.LocalReduceMotion
+import it.polimi.webeep.core.ui.util.currentWindowSize
+import it.polimi.webeep.core.ui.util.rememberZoomState
+import it.polimi.webeep.core.ui.util.zoomable
+import java.io.File
+import kotlin.math.min
+import kotlin.math.roundToInt
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.isActive
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import java.io.File
-import kotlin.math.min
-import androidx.compose.ui.unit.min
-import kotlin.math.roundToInt
+import kotlinx.coroutines.withContext
 
 @Composable
 fun PdfViewer(
@@ -118,9 +103,7 @@ fun PdfViewer(
             .coerceAtLeast(MIN_CACHE_SIZE_KB)
             .coerceAtMost(MAX_CACHE_SIZE_KB)
         object : android.util.LruCache<String, Bitmap>(cacheSize) {
-            override fun sizeOf(key: String, bitmap: Bitmap): Int {
-                return bitmap.byteCount / 1024
-            }
+            override fun sizeOf(key: String, bitmap: Bitmap): Int = bitmap.byteCount / 1024
         }
     }
 
@@ -306,7 +289,7 @@ private fun PdfPages(
 
         // Always visible (dimmed at rest) so it can be tapped to jump to a page.
         val indicatorAlpha by animateFloatAsState(
-            targetValue = if (lazyListState.isScrollInProgress) 1f else IdleIndicatorAlpha,
+            targetValue = if (lazyListState.isScrollInProgress) 1f else IDLE_INDICATOR_ALPHA,
             animationSpec = WeBeepMotion.smooth(reduceMotion = reduceMotion),
             label = "page_indicator_alpha"
         )
@@ -346,11 +329,7 @@ private fun PdfPages(
 }
 
 @Composable
-private fun GoToPageDialog(
-    pageCount: Int,
-    onDismiss: () -> Unit,
-    onGo: (Int) -> Unit
-) {
+private fun GoToPageDialog(pageCount: Int, onDismiss: () -> Unit, onGo: (Int) -> Unit) {
     var text by remember { mutableStateOf("") }
     val page = text.toIntOrNull()?.takeIf { it in 1..pageCount }
     val submit = { page?.let { onGo(it - 1) } }
@@ -397,12 +376,9 @@ private fun renderPage(renderer: PdfRenderer, pageIndex: Int, width: Int): Pair<
 private val PageIndicatorClearance = 72.dp
 private val PageCornerRadius = 4.dp
 private val PageElevation = 2.dp
-private const val IdleIndicatorAlpha = 0.7f
+private const val IDLE_INDICATOR_ALPHA = 0.7f
 
-private class PdfSession(
-    val descriptor: ParcelFileDescriptor,
-    val renderer: PdfRenderer
-) {
+private class PdfSession(val descriptor: ParcelFileDescriptor, val renderer: PdfRenderer) {
     fun close() {
         try {
             renderer.close()
@@ -455,11 +431,7 @@ private const val DEFAULT_ASPECT_RATIO = 1f / 1.414f
 private const val MIN_CACHE_SIZE_KB = 8 * 1024
 private const val MAX_CACHE_SIZE_KB = 24 * 1024
 
-data class PageRenderResult(
-    val fastBitmap: Bitmap? = null,
-    val highResBitmap: Bitmap? = null,
-    val aspectRatio: Float
-)
+data class PageRenderResult(val fastBitmap: Bitmap? = null, val highResBitmap: Bitmap? = null, val aspectRatio: Float)
 
 @Composable
 private fun PdfPageItem(
@@ -479,8 +451,10 @@ private fun PdfPageItem(
             fastBitmap = memoryCache.get(fastKey),
             highResBitmap = memoryCache.get(highKey),
             aspectRatio = defaultAspectRatio
-        ), 
-        pdfRenderer, pageIndex, highResWidth
+        ),
+        pdfRenderer,
+        pageIndex,
+        highResWidth
     ) {
         // Skip rendering entirely when HD is cached: saves CPU/battery.
         if (value.highResBitmap != null) {
@@ -554,7 +528,7 @@ private fun PdfPageItem(
         // Blank page -> fast render -> HD: each step fades in instead of popping.
         Crossfade(
             targetState = pageResult.highResBitmap ?: pageResult.fastBitmap,
-            animationSpec = WeBeepMotion.smooth(durationMs = WeBeepMotion.ShortMs, reduceMotion = reduceMotion),
+            animationSpec = WeBeepMotion.smooth(durationMs = WeBeepMotion.SHORT_MS, reduceMotion = reduceMotion),
             label = "pdf_page_bitmap"
         ) { bitmap ->
             if (bitmap != null) {

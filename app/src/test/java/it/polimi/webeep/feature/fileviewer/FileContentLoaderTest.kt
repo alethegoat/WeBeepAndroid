@@ -94,6 +94,6 @@ class FileContentLoaderTest {
     private fun file(name: String, mime: String) = ViewerFile(
         url = server.url("/pluginfile.php/1/$name").toString(),
         title = name,
-        mimeType = mime,
+        mimeType = mime
     )
 }

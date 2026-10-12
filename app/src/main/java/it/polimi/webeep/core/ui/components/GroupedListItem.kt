@@ -57,12 +57,12 @@ fun GroupedListItem(
     val roundBottom = position == GroupPosition.Bottom || position == GroupPosition.Single
     val top by animateDpAsState(
         targetValue = if (roundTop) OuterCorner else InnerCorner,
-        animationSpec = WeBeepMotion.smooth(WeBeepMotion.ShortMs, reduceMotion),
+        animationSpec = WeBeepMotion.smooth(WeBeepMotion.SHORT_MS, reduceMotion),
         label = "group_top_corner"
     )
     val bottom by animateDpAsState(
         targetValue = if (roundBottom) OuterCorner else InnerCorner,
-        animationSpec = WeBeepMotion.smooth(WeBeepMotion.ShortMs, reduceMotion),
+        animationSpec = WeBeepMotion.smooth(WeBeepMotion.SHORT_MS, reduceMotion),
         label = "group_bottom_corner"
     )
     Surface(

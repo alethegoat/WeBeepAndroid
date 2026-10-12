@@ -20,8 +20,7 @@ internal object LegacyEncryptedPrefsMigration {
     private const val KEY_PENDING_PASSPORTS = "pending_sso_passports"
     private const val USER_ID_DEFAULT = -1
 
-    fun exists(context: Context): Boolean =
-        File(context.dataDir, "shared_prefs/$PREFS_NAME.xml").exists()
+    fun exists(context: Context): Boolean = File(context.dataDir, "shared_prefs/$PREFS_NAME.xml").exists()
 
     /** Returns the legacy session, or null if the file cannot be decrypted. */
     fun read(context: Context): AuthRecord? = try {

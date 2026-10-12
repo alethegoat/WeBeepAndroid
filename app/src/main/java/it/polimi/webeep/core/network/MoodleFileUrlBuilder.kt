@@ -14,14 +14,11 @@ object MoodleFileUrlBuilder {
     private val AUTH_QUERY_PARAMS = setOf("token", "wstoken")
     private val AUTH_TOKEN_QUERY_REGEX = Regex("""[?&](token|wstoken)=""")
 
-    fun isTrustedHost(host: String?): Boolean =
-        host.equals(TRUSTED_HOST, ignoreCase = true)
+    fun isTrustedHost(host: String?): Boolean = host.equals(TRUSTED_HOST, ignoreCase = true)
 
-    fun isMoodleRestPath(encodedPath: String): Boolean =
-        encodedPath.contains("/webservice/rest/server.php")
+    fun isMoodleRestPath(encodedPath: String): Boolean = encodedPath.contains("/webservice/rest/server.php")
 
-    fun isPluginFilePath(encodedPath: String): Boolean =
-        encodedPath.contains("/pluginfile.php")
+    fun isPluginFilePath(encodedPath: String): Boolean = encodedPath.contains("/pluginfile.php")
 
     fun isTrustedWeBeepUrl(url: String): Boolean {
         val uri = parseUri(url) ?: return false
@@ -80,19 +77,15 @@ object MoodleFileUrlBuilder {
         return null
     }
 
-    fun normalizePluginFileUrl(url: String): String {
-        return if (url.contains("/webservice/pluginfile.php/")) {
-            url
-        } else {
-            url.replace("/pluginfile.php/", "/webservice/pluginfile.php/")
-        }
+    fun normalizePluginFileUrl(url: String): String = if (url.contains("/webservice/pluginfile.php/")) {
+        url
+    } else {
+        url.replace("/pluginfile.php/", "/webservice/pluginfile.php/")
     }
 
-    private fun parseUri(url: String): URI? {
-        return try {
-            URI(url)
-        } catch (_: Exception) {
-            null
-        }
+    private fun parseUri(url: String): URI? = try {
+        URI(url)
+    } catch (_: Exception) {
+        null
     }
 }

@@ -28,14 +28,12 @@ object FileUtils {
         }
     }
 
-    fun stableUrlHash(fileUrl: String): String {
-        return try {
-            val digest = java.security.MessageDigest.getInstance("SHA-256")
-            val bytes = digest.digest(fileUrl.toByteArray(Charsets.UTF_8))
-            bytes.take(URL_HASH_BYTES).joinToString("") { "%02x".format(it) }
-        } catch (_: Exception) {
-            Integer.toHexString(fileUrl.hashCode())
-        }
+    fun stableUrlHash(fileUrl: String): String = try {
+        val digest = java.security.MessageDigest.getInstance("SHA-256")
+        val bytes = digest.digest(fileUrl.toByteArray(Charsets.UTF_8))
+        bytes.take(URL_HASH_BYTES).joinToString("") { "%02x".format(it) }
+    } catch (_: Exception) {
+        Integer.toHexString(fileUrl.hashCode())
     }
 
     private fun urlHashPrefix(fileUrl: String): String = stableUrlHash(fileUrl)

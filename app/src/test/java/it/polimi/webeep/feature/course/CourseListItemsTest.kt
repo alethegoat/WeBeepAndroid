@@ -25,8 +25,8 @@ class CourseListItemsTest {
         url = null,
         files = listOf(
             file("readme.txt", "/"),
-            file("sol1.pdf", "/Esercizi/Soluzioni/"),
-        ),
+            file("sol1.pdf", "/Esercizi/Soluzioni/")
+        )
     )
 
     private val singleFile = ModuleUiModel(
@@ -36,7 +36,7 @@ class CourseListItemsTest {
         iconUrl = null,
         description = null,
         url = null,
-        files = listOf(file("slide.pdf", "/")),
+        files = listOf(file("slide.pdf", "/"))
     )
 
     private val multiFile = ModuleUiModel(
@@ -46,13 +46,13 @@ class CourseListItemsTest {
         iconUrl = null,
         description = null,
         url = null,
-        files = listOf(file("es1.pdf", "/"), file("es2.pdf", "/")),
+        files = listOf(file("es1.pdf", "/"), file("es2.pdf", "/"))
     )
 
     private val sections = listOf(
         SectionUiModel(id = 1, name = "Lezioni", summary = null, modules = listOf(folder, singleFile), isExpanded = true),
         SectionUiModel(id = 2, name = "Esercitazioni", summary = null, modules = listOf(multiFile), isExpanded = false),
-        SectionUiModel(id = 3, name = "Avvisi", summary = null, modules = emptyList(), isExpanded = true),
+        SectionUiModel(id = 3, name = "Avvisi", summary = null, modules = emptyList(), isExpanded = true)
     )
 
     @Test
@@ -79,7 +79,7 @@ class CourseListItemsTest {
                 GroupPosition.Bottom,
                 GroupPosition.Single,
                 GroupPosition.Top,
-                GroupPosition.Bottom,
+                GroupPosition.Bottom
             ),
             items.map { it.position }
         )
@@ -101,7 +101,7 @@ class CourseListItemsTest {
                 "file:30:/readme.txt",
                 "folder:30:/Esercizi",
                 "folder:30:/Esercizi/Soluzioni",
-                "module:31",
+                "module:31"
             ),
             keys.take(6)
         )
@@ -132,7 +132,7 @@ class CourseListItemsTest {
                 "file:30:/readme.txt",
                 "folder:30:/Esercizi",
                 "folder:30:/Esercizi/Soluzioni",
-                "file:30:/Esercizi/Soluzioni/sol1.pdf",
+                "file:30:/Esercizi/Soluzioni/sol1.pdf"
             ),
             content.items.map { it.key }
         )
@@ -167,6 +167,6 @@ class CourseListItemsTest {
         fileUrl = "https://example.invalid$path$name",
         fileSize = 1L,
         mimeType = null,
-        formattedSize = "1 B",
+        formattedSize = "1 B"
     )
 }

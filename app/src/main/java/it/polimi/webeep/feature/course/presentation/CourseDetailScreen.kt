@@ -1,9 +1,9 @@
 package it.polimi.webeep.feature.course.presentation
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -216,12 +216,7 @@ fun CourseDetailScreen(
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun CourseTopBar(
-    title: String,
-    showTitle: Boolean,
-    isScrolled: Boolean,
-    onBackClick: () -> Unit
-) {
+private fun CourseTopBar(title: String, showTitle: Boolean, isScrolled: Boolean, onBackClick: () -> Unit) {
     val reduceMotion = LocalReduceMotion.current
     val containerColor by animateColorAsState(
         targetValue = if (isScrolled) MaterialTheme.colorScheme.surfaceContainer else Color.Transparent,

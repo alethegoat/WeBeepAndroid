@@ -1,8 +1,8 @@
 package it.polimi.webeep.feature.course.data
 
-import it.polimi.webeep.core.datastore.MissingTokenException
 import it.polimi.webeep.core.database.dao.CourseContentDao
 import it.polimi.webeep.core.database.dao.CourseDao
+import it.polimi.webeep.core.datastore.MissingTokenException
 import it.polimi.webeep.core.datastore.TokenProvider
 import it.polimi.webeep.core.di.DefaultDispatcher
 import it.polimi.webeep.core.network.MoodleApiService
@@ -11,12 +11,12 @@ import it.polimi.webeep.feature.course.domain.CourseRepository
 import it.polimi.webeep.feature.course.domain.model.FileResource
 import it.polimi.webeep.feature.course.domain.model.Module
 import it.polimi.webeep.feature.course.domain.model.Section
+import javax.inject.Inject
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
-import javax.inject.Inject
 
 /**
  * Course contents repository. Mapping lives in [CourseContentMapper] so the
@@ -30,26 +30,24 @@ class CourseRepositoryImpl @Inject constructor(
     @DefaultDispatcher private val defaultDispatcher: CoroutineDispatcher
 ) : CourseRepository {
 
-    override suspend fun getCourseContents(courseId: Int): Result<List<Section>> {
-        return runCatching {
-            tokenProvider.getToken() ?: throw MissingTokenException()
+    override suspend fun getCourseContents(courseId: Int): Result<List<Section>> = runCatching {
+        tokenProvider.getToken() ?: throw MissingTokenException()
 
-            val sectionDtos = apiService.getCourseContents(courseId = courseId)
-            val mapped = withContext(defaultDispatcher) {
-                CourseContentMapper.map(courseId = courseId, sectionDtos = sectionDtos)
-            }
-            contentDao.replaceCourseContent(
-                courseId,
-                mapped.sectionEntities,
-                mapped.moduleEntities,
-                mapped.contentEntities
-            )
-            mapped.sections
+        val sectionDtos = apiService.getCourseContents(courseId = courseId)
+        val mapped = withContext(defaultDispatcher) {
+            CourseContentMapper.map(courseId = courseId, sectionDtos = sectionDtos)
         }
+        contentDao.replaceCourseContent(
+            courseId,
+            mapped.sectionEntities,
+            mapped.moduleEntities,
+            mapped.contentEntities
+        )
+        mapped.sections
     }
 
-    override fun getCachedCourseContents(courseId: Int): Flow<List<Section>> {
-        return contentDao.getSectionsByCourse(courseId).map { sectionWithModulesList ->
+    override fun getCachedCourseContents(courseId: Int): Flow<List<Section>> =
+        contentDao.getSectionsByCourse(courseId).map { sectionWithModulesList ->
             sectionWithModulesList.map { swm ->
                 val sectionEntity = swm.section
                 val modules = swm.modules.map { mwc ->
@@ -84,9 +82,6 @@ class CourseRepositoryImpl @Inject constructor(
                 )
             }
         }.flowOn(defaultDispatcher)
-    }
 
-    override suspend fun getCourseName(courseId: Int): String? {
-        return courseDao.getCourseById(courseId)?.fullname
-    }
+    override suspend fun getCourseName(courseId: Int): String? = courseDao.getCourseById(courseId)?.fullname
 }

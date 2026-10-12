@@ -13,6 +13,11 @@ import it.polimi.webeep.core.network.MoodleFileUrlBuilder
 import it.polimi.webeep.core.util.FileUtils
 import it.polimi.webeep.feature.download.data.executeCancellable
 import it.polimi.webeep.feature.fileviewer.domain.ViewerFile
+import java.io.File
+import java.io.IOException
+import java.io.InputStream
+import java.io.OutputStream
+import javax.inject.Inject
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Job
@@ -24,11 +29,6 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import java.io.File
-import java.io.IOException
-import java.io.InputStream
-import java.io.OutputStream
-import javax.inject.Inject
 
 sealed interface FileContentState {
     data class Downloading(val bytesRead: Long, val totalBytes: Long?) : FileContentState {
@@ -103,7 +103,8 @@ class FileContentLoader @Inject constructor(
                 val local = download(file, "pdf", onProgress)
                 FileContentState.Pdf(file = local, pageCount = readPdfPageCount(local))
             }
-            mimeType.startsWith("video/") || mimeType.startsWith("audio/") ||
+            mimeType.startsWith("video/") ||
+                mimeType.startsWith("audio/") ||
                 title.endsWith(".mp4", ignoreCase = true) -> FileContentState.Media(file.url)
             isCodeFile(title, mimeType) -> {
                 val local = download(file, MoodleFileUrlBuilder.extractExtension(title) ?: "txt", onProgress)
@@ -121,11 +122,7 @@ class FileContentLoader @Inject constructor(
         }
     }
 
-    private suspend fun download(
-        file: ViewerFile,
-        extension: String,
-        onProgress: ((FileContentState.Downloading) -> Unit)?
-    ): File {
+    private suspend fun download(file: ViewerFile, extension: String, onProgress: ((FileContentState.Downloading) -> Unit)?): File {
         val localName = FileUtils.buildLocalFileName(file.title, file.url)
         val alreadyDownloaded = File(File(application.filesDir, DOWNLOADS_DIR), localName)
         if (alreadyDownloaded.exists() && alreadyDownloaded.length() > 0) {
@@ -204,18 +201,16 @@ class FileContentLoader @Inject constructor(
         return copied
     }
 
-    private fun readPdfPageCount(file: File): Int {
-        return try {
-            ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY).use { descriptor ->
-                PdfRenderer(descriptor).use { renderer -> renderer.pageCount }
-            }
-        } catch (_: Exception) {
-            // A corrupted cached copy would otherwise fail on every retry.
-            if (file.parentFile?.name == CACHE_DIR) {
-                file.delete()
-            }
-            throw ViewerException(R.string.file_viewer_error_pdf)
+    private fun readPdfPageCount(file: File): Int = try {
+        ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY).use { descriptor ->
+            PdfRenderer(descriptor).use { renderer -> renderer.pageCount }
         }
+    } catch (_: Exception) {
+        // A corrupted cached copy would otherwise fail on every retry.
+        if (file.parentFile?.name == CACHE_DIR) {
+            file.delete()
+        }
+        throw ViewerException(R.string.file_viewer_error_pdf)
     }
 
     @StringRes

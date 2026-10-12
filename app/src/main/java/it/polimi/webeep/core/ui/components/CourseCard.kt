@@ -11,11 +11,11 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material.icons.outlined.School
 import androidx.compose.material.icons.outlined.StarOutline
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -58,7 +58,7 @@ data class CourseUiModel(
     val progress: Float? = null,
     val isFavourite: Boolean = false,
     val category: String? = null,
-    val endDate: Long = 0L,
+    val endDate: Long = 0L
 )
 
 /** Height of the cover image when a course has one; kept small so text stays the focus. */
@@ -69,20 +69,10 @@ private val CourseMonogramSize = 56.dp
 
 /** Display-ready pieces of a Moodle course title. */
 @Immutable
-private data class CourseCardText(
-    val code: String,
-    val name: String,
-    val subtitle: String,
-    val initials: String,
-)
+private data class CourseCardText(val code: String, val name: String, val subtitle: String, val initials: String)
 
 @Composable
-fun CourseCard(
-    course: CourseUiModel,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    onFavouriteClick: (() -> Unit)? = null,
-) {
+fun CourseCard(course: CourseUiModel, onClick: () -> Unit, modifier: Modifier = Modifier, onFavouriteClick: (() -> Unit)? = null) {
     val openLabel = stringResource(R.string.cd_open_course)
     val text = remember(course.fullname, course.shortname, course.category) {
         course.toCardText()
@@ -99,9 +89,9 @@ fun CourseCard(
         // Tonal only (no outline): same surface as the grouped lists elsewhere.
         colors = CardDefaults.cardColors(
             containerColor = groupedListContainerColor(),
-            contentColor = MaterialTheme.colorScheme.onSurface,
+            contentColor = MaterialTheme.colorScheme.onSurface
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         val image = course.courseImage
         if (image.isNullOrBlank()) {
@@ -118,11 +108,7 @@ fun CourseCard(
 }
 
 @Composable
-private fun CompactCourseContent(
-    course: CourseUiModel,
-    text: CourseCardText,
-    onFavouriteClick: (() -> Unit)?,
-) {
+private fun CompactCourseContent(course: CourseUiModel, text: CourseCardText, onFavouriteClick: (() -> Unit)?) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -132,7 +118,7 @@ private fun CompactCourseContent(
                 bottom = WeBeepSpacing.md,
                 end = if (onFavouriteClick != null) WeBeepSpacing.xxs else WeBeepSpacing.md
             ),
-        verticalAlignment = Alignment.Top,
+        verticalAlignment = Alignment.Top
     ) {
         CourseMonogram(key = text.code.ifBlank { course.fullname }, initials = text.initials)
         Spacer(modifier = Modifier.width(WeBeepSpacing.md))
@@ -152,11 +138,7 @@ private fun CompactCourseContent(
 }
 
 @Composable
-private fun CourseCover(
-    image: String,
-    course: CourseUiModel,
-    onFavouriteClick: (() -> Unit)?,
-) {
+private fun CourseCover(image: String, course: CourseUiModel, onFavouriteClick: (() -> Unit)?) {
     val scrim = WeBeepTheme.colors.mediaScrim
     Box(
         modifier = Modifier
@@ -168,7 +150,7 @@ private fun CourseCover(
             model = image,
             contentDescription = null,
             modifier = Modifier.fillMaxSize(),
-            contentScale = ContentScale.Crop,
+            contentScale = ContentScale.Crop
         )
         Box(
             modifier = Modifier
@@ -195,18 +177,14 @@ private fun CourseCover(
 }
 
 @Composable
-private fun CourseInfo(
-    text: CourseCardText,
-    progress: Float?,
-    modifier: Modifier = Modifier,
-) {
+private fun CourseInfo(text: CourseCardText, progress: Float?, modifier: Modifier = Modifier) {
     Column(modifier = modifier) {
         if (text.code.isNotBlank()) {
             Text(
                 text = text.code,
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.primary,
-                maxLines = 1,
+                maxLines = 1
             )
             Spacer(modifier = Modifier.height(WeBeepSpacing.xxs))
         }
@@ -215,7 +193,7 @@ private fun CourseInfo(
             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
             color = MaterialTheme.colorScheme.onSurface,
             maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
+            overflow = TextOverflow.Ellipsis
         )
         if (text.subtitle.isNotBlank()) {
             Spacer(modifier = Modifier.height(WeBeepSpacing.xxs))
@@ -224,7 +202,7 @@ private fun CourseInfo(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
+                overflow = TextOverflow.Ellipsis
             )
         }
         if (progress != null) {
@@ -235,7 +213,7 @@ private fun CourseInfo(
                     .fillMaxWidth()
                     .clip(CircleShape),
                 color = MaterialTheme.colorScheme.secondary,
-                trackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                trackColor = MaterialTheme.colorScheme.surfaceContainerHighest
             )
         }
     }
@@ -248,7 +226,7 @@ private fun CourseMonogram(key: String, initials: String) {
     val palette = listOf(
         scheme.primaryContainer to scheme.onPrimaryContainer,
         scheme.secondaryContainer to scheme.onSecondaryContainer,
-        scheme.tertiaryContainer to scheme.onTertiaryContainer,
+        scheme.tertiaryContainer to scheme.onTertiaryContainer
     )
     val (container, content) = palette[Math.floorMod(key.hashCode(), palette.size)]
     Box(
@@ -256,40 +234,35 @@ private fun CourseMonogram(key: String, initials: String) {
             .size(CourseMonogramSize)
             .clip(MaterialTheme.shapes.medium)
             .background(container),
-        contentAlignment = Alignment.Center,
+        contentAlignment = Alignment.Center
     ) {
         if (initials.isNotEmpty()) {
             Text(
                 text = initials,
                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                 color = content,
-                maxLines = 1,
+                maxLines = 1
             )
         } else {
             Icon(
                 imageVector = Icons.Outlined.School,
                 contentDescription = null,
-                tint = content,
+                tint = content
             )
         }
     }
 }
 
 @Composable
-private fun FavouriteButton(
-    isFavourite: Boolean,
-    onClick: () -> Unit,
-    onMedia: Boolean,
-    modifier: Modifier = Modifier,
-) {
+private fun FavouriteButton(isFavourite: Boolean, onClick: () -> Unit, onMedia: Boolean, modifier: Modifier = Modifier) {
     val colors = WeBeepTheme.colors
     val idleTint = if (onMedia) colors.onMedia else MaterialTheme.colorScheme.onSurfaceVariant
     IconButton(
         onClick = onClick,
         modifier = modifier,
         colors = IconButtonDefaults.iconButtonColors(
-            containerColor = if (onMedia) colors.mediaScrim.copy(alpha = 0.4f) else Color.Transparent,
-        ),
+            containerColor = if (onMedia) colors.mediaScrim.copy(alpha = 0.4f) else Color.Transparent
+        )
     ) {
         Icon(
             imageVector = if (isFavourite) Icons.Rounded.Star else Icons.Outlined.StarOutline,
@@ -298,14 +271,14 @@ private fun FavouriteButton(
             } else {
                 stringResource(R.string.cd_add_fav)
             },
-            tint = if (isFavourite) colors.favourite else idleTint,
+            tint = if (isFavourite) colors.favourite else idleTint
         )
     }
 }
 
 private val InitialsStopWords = setOf(
     "and", "for", "the", "with", "of", "in", "to",
-    "di", "del", "della", "dei", "delle", "degli", "e", "per", "con", "la", "il", "lo", "le", "gli",
+    "di", "del", "della", "dei", "delle", "degli", "e", "per", "con", "la", "il", "lo", "le", "gli"
 )
 
 private fun CourseUiModel.toCardText(): CourseCardText {
@@ -356,10 +329,10 @@ private fun CourseCardCompactPreview() {
                     fullname = "052537 - TECHNOLOGIES FOR INFORMATION SYSTEMS (TANCA LETIZIA) [2025-26]",
                     courseImage = null,
                     progress = 0.65f,
-                    isFavourite = true,
+                    isFavourite = true
                 ),
                 onClick = {},
-                onFavouriteClick = {},
+                onFavouriteClick = {}
             )
         }
     }
@@ -376,10 +349,10 @@ private fun CourseCardImagePreview() {
                     shortname = "097683 - MAT",
                     fullname = "097683 - Analisi Matematica 1 (Rossi Mario) [2025-26]",
                     courseImage = "https://example.invalid/cover.png",
-                    progress = null,
+                    progress = null
                 ),
                 onClick = {},
-                onFavouriteClick = {},
+                onFavouriteClick = {}
             )
         }
     }
@@ -396,9 +369,9 @@ private fun CourseCardDarkPreview() {
                     shortname = "054309 - LOC",
                     fullname = "054309 - LOCALIZATION, NAVIGATION AND SMART MOBILITY (NICOLI MONICA) [2025-26]",
                     courseImage = null,
-                    progress = 0.3f,
+                    progress = 0.3f
                 ),
-                onClick = {},
+                onClick = {}
             )
         }
     }

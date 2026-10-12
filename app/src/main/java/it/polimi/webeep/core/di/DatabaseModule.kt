@@ -43,13 +43,9 @@ object DatabaseModule {
 
     @Provides
     @Singleton
-    fun provideCourseDao(database: WeBeepDatabase): CourseDao {
-        return database.courseDao()
-    }
+    fun provideCourseDao(database: WeBeepDatabase): CourseDao = database.courseDao()
 
     @Provides
     @Singleton
-    fun provideCourseContentDao(database: WeBeepDatabase): CourseContentDao {
-        return database.courseContentDao()
-    }
+    fun provideCourseContentDao(database: WeBeepDatabase): CourseContentDao = database.courseContentDao()
 }

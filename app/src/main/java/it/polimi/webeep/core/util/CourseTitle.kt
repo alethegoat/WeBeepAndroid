@@ -6,12 +6,7 @@ import java.util.Locale
  * Structured view of a WeBeep/Polimi course full name such as
  * `"052537 - TECHNOLOGIES FOR INFORMATION SYSTEMS (TANCA LETIZIA) [2026-27]"`.
  */
-data class CourseTitle(
-    val code: String?,
-    val name: String,
-    val teacher: String?,
-    val academicYear: String?
-)
+data class CourseTitle(val code: String?, val name: String, val teacher: String?, val academicYear: String?)
 
 /**
  * Splits a raw Moodle course title into code, name, teacher and academic year.
@@ -114,6 +109,5 @@ object CourseTitleParser {
         }
     }
 
-    private fun capitalize(word: String): String =
-        word.replaceFirstChar { it.titlecase(Locale.ROOT) }
+    private fun capitalize(word: String): String = word.replaceFirstChar { it.titlecase(Locale.ROOT) }
 }

@@ -1,17 +1,15 @@
 package it.polimi.webeep.core.network
 
 import it.polimi.webeep.core.datastore.TokenProvider
+import javax.inject.Inject
 import okhttp3.Interceptor
 import okhttp3.Response
-import javax.inject.Inject
 
 /**
  * Appends Moodle pluginfile `token=` on webeep.polimi.it file requests.
  * Does not clear the session on HTTP errors.
  */
-class PluginFileAuthInterceptor @Inject constructor(
-    private val tokenProvider: TokenProvider
-) : Interceptor {
+class PluginFileAuthInterceptor @Inject constructor(private val tokenProvider: TokenProvider) : Interceptor {
 
     constructor(
         tokenProvider: TokenProvider,

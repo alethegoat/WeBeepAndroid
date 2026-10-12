@@ -1,5 +1,7 @@
 package it.polimi.webeep.feature.download.data
 
+import java.io.IOException
+import kotlin.coroutines.resumeWithException
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.coroutineScope
@@ -8,8 +10,6 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 import okhttp3.Call
 import okhttp3.Callback
 import okhttp3.Response
-import java.io.IOException
-import kotlin.coroutines.resumeWithException
 
 /**
  * Awaits the response headers; cancelling the coroutine cancels the [Call].

@@ -1,8 +1,11 @@
 package it.polimi.webeep.feature.download.presentation
 
 import androidx.compose.animation.Crossfade
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Download
@@ -10,26 +13,18 @@ import androidx.compose.material.icons.rounded.ErrorOutline
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.background
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.draw.clip
-import it.polimi.webeep.core.ui.theme.WeBeepSpacing
-import it.polimi.webeep.core.ui.util.bouncyClickable
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
+import it.polimi.webeep.core.ui.theme.WeBeepSpacing
 import it.polimi.webeep.core.ui.theme.WeBeepTheme
+import it.polimi.webeep.core.ui.util.bouncyClickable
 import it.polimi.webeep.feature.course.presentation.DownloadState
 
 @Composable
-fun DownloadProgressIndicator(
-    state: DownloadState,
-    onDownloadClick: () -> Unit,
-    onOpenClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
+fun DownloadProgressIndicator(state: DownloadState, onDownloadClick: () -> Unit, onOpenClick: () -> Unit, modifier: Modifier = Modifier) {
     Crossfade(
         targetState = state,
         label = "download_progress_crossfade",

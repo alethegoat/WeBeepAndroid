@@ -5,6 +5,9 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import it.polimi.webeep.core.di.IoDispatcher
 import it.polimi.webeep.feature.sync.FileChangeDetector.FileChange
 import it.polimi.webeep.feature.sync.FileChangeDetector.FileEntry
+import java.io.File
+import javax.inject.Inject
+import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -16,9 +19,6 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
-import java.io.File
-import javax.inject.Inject
-import javax.inject.Singleton
 
 @Serializable
 data class CourseChanges(val courseId: Int, val courseName: String, val changes: List<FileChange>)
@@ -46,10 +46,7 @@ data class SyncState(
  * immediate sync never interleave a read-modify-write.
  */
 @Singleton
-class SyncStateStore internal constructor(
-    private val fileProvider: () -> File,
-    private val ioDispatcher: CoroutineDispatcher
-) {
+class SyncStateStore internal constructor(private val fileProvider: () -> File, private val ioDispatcher: CoroutineDispatcher) {
     @Inject
     constructor(
         @ApplicationContext context: Context,

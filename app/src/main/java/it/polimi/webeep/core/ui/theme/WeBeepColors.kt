@@ -32,7 +32,7 @@ data class WeBeepColors(
     val glassHighlight: Color,
     val auroraPrimary: Color,
     val auroraSecondary: Color,
-    val auroraTertiary: Color,
+    val auroraTertiary: Color
 )
 
 val LightWeBeepColors = WeBeepColors(
@@ -56,7 +56,7 @@ val LightWeBeepColors = WeBeepColors(
     glassHighlight = GlassHighlight,
     auroraPrimary = AuroraPrimaryLight,
     auroraSecondary = AuroraSecondaryLight,
-    auroraTertiary = AuroraTertiaryLight,
+    auroraTertiary = AuroraTertiaryLight
 )
 
 val DarkWeBeepColors = WeBeepColors(
@@ -80,7 +80,7 @@ val DarkWeBeepColors = WeBeepColors(
     glassHighlight = GlassHighlight,
     auroraPrimary = AuroraPrimaryDark,
     auroraSecondary = AuroraSecondaryDark,
-    auroraTertiary = AuroraTertiaryDark,
+    auroraTertiary = AuroraTertiaryDark
 )
 
 val LocalWeBeepColors = staticCompositionLocalOf { LightWeBeepColors }

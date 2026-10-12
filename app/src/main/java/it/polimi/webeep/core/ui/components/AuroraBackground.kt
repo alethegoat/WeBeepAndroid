@@ -32,7 +32,7 @@ import it.polimi.webeep.core.ui.theme.WeBeepTheme
 import it.polimi.webeep.core.ui.util.LocalReduceMotion
 
 /** Glow strength on screens where the aurora is only a calm backdrop. */
-private const val StaticAuroraIntensity = 0.7f
+private const val STATIC_AURORA_INTENSITY = 0.7f
 
 /**
  * Opaque aurora/glow background that adapts to light/dark mode. Each screen that
@@ -62,16 +62,13 @@ fun AuroraBackground(
 }
 
 @Composable
-private fun AuroraLayer(
-    animated: Boolean,
-    isDark: Boolean
-) {
+private fun AuroraLayer(animated: Boolean, isDark: Boolean) {
     val lifecycleState by LocalLifecycleOwner.current.lifecycle.currentStateAsState()
     val reduceMotion = LocalReduceMotion.current
     val animateAurora = animated && !reduceMotion && lifecycleState.isAtLeast(Lifecycle.State.RESUMED)
     val motion = if (animateAurora) animatedAuroraMotion() else StaticAuroraMotion
 
-    val intensity = if (animated) 1f else StaticAuroraIntensity
+    val intensity = if (animated) 1f else STATIC_AURORA_INTENSITY
     val colors = WeBeepTheme.colors
     val primary = colors.auroraPrimary.copy(alpha = (if (isDark) 0.38f else 0.42f) * intensity)
     val secondary = colors.auroraSecondary.copy(alpha = (if (isDark) 0.22f else 0.28f) * intensity)
@@ -146,13 +143,12 @@ private fun animatedAuroraMotion(): AuroraMotion {
 }
 
 @Composable
-private fun InfiniteTransition.drift(from: Float, to: Float, durationMs: Int, label: String): State<Float> =
-    animateFloat(
-        initialValue = from,
-        targetValue = to,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMs, easing = WeBeepMotion.SoftInOut),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = label
-    )
+private fun InfiniteTransition.drift(from: Float, to: Float, durationMs: Int, label: String): State<Float> = animateFloat(
+    initialValue = from,
+    targetValue = to,
+    animationSpec = infiniteRepeatable(
+        animation = tween(durationMs, easing = WeBeepMotion.SoftInOut),
+        repeatMode = RepeatMode.Reverse
+    ),
+    label = label
+)

@@ -4,11 +4,11 @@ import it.polimi.webeep.core.util.ConnectivityObserver
 import it.polimi.webeep.core.util.Resource
 import it.polimi.webeep.core.util.toDataError
 import it.polimi.webeep.feature.course.domain.model.Section
+import javax.inject.Inject
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
 /**
  * Loads the course sections tree: cache first, then network when online.

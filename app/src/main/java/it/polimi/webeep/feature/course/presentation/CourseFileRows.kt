@@ -60,13 +60,13 @@ internal val RowIconSize = 24.dp
 private val FolderIndentStep = WeBeepSpacing.sm
 
 /** Deeper levels stop indenting so long file names stay readable. */
-private const val MaxVisualIndentLevels = 3
+private const val MAX_VISUAL_INDENT_LEVELS = 3
 
-private const val FileIconBackgroundAlpha = 0.14f
+private const val FILE_ICON_BACKGROUND_ALPHA = 0.14f
 
 private val ProgressStrokeWidth = 2.dp
 
-internal fun indentFor(depth: Int): Dp = FolderIndentStep * depth.coerceIn(0, MaxVisualIndentLevels)
+internal fun indentFor(depth: Int): Dp = FolderIndentStep * depth.coerceIn(0, MAX_VISUAL_INDENT_LEVELS)
 
 internal fun fileIconAndColor(filename: String, colors: WeBeepColors): Pair<ImageVector, Color> {
     val ext = filename.substringAfterLast('.', "").lowercase()
@@ -82,16 +82,12 @@ internal fun fileIconAndColor(filename: String, colors: WeBeepColors): Pair<Imag
 
 /** Tinted rounded square with a file-type glyph; decorative, so no content description. */
 @Composable
-internal fun FileTypeIcon(
-    icon: ImageVector,
-    tint: Color,
-    modifier: Modifier = Modifier
-) {
+internal fun FileTypeIcon(icon: ImageVector, tint: Color, modifier: Modifier = Modifier) {
     Box(
         modifier = modifier
             .size(FileIconContainerSize)
             .clip(MaterialTheme.shapes.small)
-            .background(tint.copy(alpha = FileIconBackgroundAlpha)),
+            .background(tint.copy(alpha = FILE_ICON_BACKGROUND_ALPHA)),
         contentAlignment = Alignment.Center
     ) {
         Icon(
@@ -105,11 +101,7 @@ internal fun FileTypeIcon(
 
 /** Chevron that rotates when [expanded] changes, instant when reduce-motion is on. */
 @Composable
-internal fun ExpandChevron(
-    expanded: Boolean,
-    contentDescription: String?,
-    modifier: Modifier = Modifier
-) {
+internal fun ExpandChevron(expanded: Boolean, contentDescription: String?, modifier: Modifier = Modifier) {
     val reduceMotion = LocalReduceMotion.current
     val rotation by animateFloatAsState(
         targetValue = if (expanded) 180f else 0f,
@@ -137,12 +129,7 @@ internal fun ExpandChevron(
  * changes rarely.
  */
 @Composable
-internal fun FileActionButton(
-    state: DownloadState,
-    onDownloadClick: () -> Unit,
-    onOpenClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
+internal fun FileActionButton(state: DownloadState, onDownloadClick: () -> Unit, onOpenClick: () -> Unit, modifier: Modifier = Modifier) {
     when (state) {
         DownloadState.NOT_STARTED -> FileActionIcon(
             icon = Icons.Rounded.Download,
@@ -184,13 +171,7 @@ internal fun FileActionButton(
 }
 
 @Composable
-private fun FileActionIcon(
-    icon: ImageVector,
-    tint: Color,
-    contentDescription: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
+private fun FileActionIcon(icon: ImageVector, tint: Color, contentDescription: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
     IconButton(onClick = onClick, modifier = modifier) {
         Icon(
             imageVector = icon,
@@ -203,11 +184,7 @@ private fun FileActionIcon(
 
 /** Name (max 2 lines) plus optional metadata line, shared by module and file rows. */
 @Composable
-internal fun RowLabels(
-    title: String,
-    meta: String?,
-    modifier: Modifier = Modifier
-) {
+internal fun RowLabels(title: String, meta: String?, modifier: Modifier = Modifier) {
     Column(modifier = modifier) {
         Text(
             text = title,
@@ -270,11 +247,7 @@ internal fun FileItemRow(
 
 /** A sub-folder of a folder module; its content rows follow it when expanded. */
 @Composable
-internal fun SubfolderItemRow(
-    item: CourseListItem.Subfolder,
-    onToggleFolder: (String) -> Unit,
-    modifier: Modifier = Modifier
-) {
+internal fun SubfolderItemRow(item: CourseListItem.Subfolder, onToggleFolder: (String) -> Unit, modifier: Modifier = Modifier) {
     GroupedListItem(position = item.position, modifier = modifier) {
         Row(
             verticalAlignment = Alignment.CenterVertically,

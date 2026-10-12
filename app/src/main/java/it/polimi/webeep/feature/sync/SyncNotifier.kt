@@ -83,13 +83,12 @@ object SyncNotifier {
         activeNotificationIds(context).forEach { manager.cancel(it) }
     }
 
-    private fun activeNotificationIds(context: Context): Set<Int> =
-        context.getSystemService(NotificationManager::class.java)
-            ?.activeNotifications
-            ?.filter { it.notification.channelId == CHANNEL_ID }
-            ?.map { it.id }
-            ?.toSet()
-            .orEmpty()
+    private fun activeNotificationIds(context: Context): Set<Int> = context.getSystemService(NotificationManager::class.java)
+        ?.activeNotifications
+        ?.filter { it.notification.channelId == CHANNEL_ID }
+        ?.map { it.id }
+        ?.toSet()
+        .orEmpty()
 
     private fun canPostNotifications(context: Context): Boolean {
         val permissionGranted = Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
@@ -184,9 +183,8 @@ object SyncNotifier {
     }
 
     /** Lock-screen variant: no course or file names. */
-    private fun buildPublicNotification(context: Context) =
-        NotificationCompat.Builder(context, CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_stat_notify)
-            .setContentTitle(context.getString(R.string.sync_completed_title))
-            .build()
+    private fun buildPublicNotification(context: Context) = NotificationCompat.Builder(context, CHANNEL_ID)
+        .setSmallIcon(R.drawable.ic_stat_notify)
+        .setContentTitle(context.getString(R.string.sync_completed_title))
+        .build()
 }

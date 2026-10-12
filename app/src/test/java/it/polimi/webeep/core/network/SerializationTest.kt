@@ -31,7 +31,7 @@ class SerializationTest {
         assertEquals(105, course.id)
         assertEquals("ALGO-2026", course.shortname)
         assertEquals("Algoritmi e Principi dell'Informatica", course.fullname)
-        
+
         // Verifica che i valori di default per le chiavi assenti vengano applicati
         assertNull("Summary should be null when missing", course.summary)
         assertEquals(0L, course.startdate)

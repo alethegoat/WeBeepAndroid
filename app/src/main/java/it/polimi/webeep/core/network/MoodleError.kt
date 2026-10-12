@@ -1,8 +1,8 @@
 package it.polimi.webeep.core.network
 
+import java.io.IOException
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import java.io.IOException
 
 /** Error envelope returned by Moodle web services (usually with HTTP 200). */
 @Serializable

@@ -4,8 +4,10 @@ import android.app.Application
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
 import androidx.test.core.app.ApplicationProvider
-import kotlinx.coroutines.flow.first
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import java.io.File
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -13,9 +15,7 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
-import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.runner.RunWith
-import java.io.File
 
 @RunWith(AndroidJUnit4::class)
 class TokenManagerTest {
@@ -95,10 +95,10 @@ class TokenManagerTest {
     fun `clearSessionSync clears all token data synchronously`() = runBlocking {
         // Given
         tokenManager.saveAuthData("token", null, 1, "Name")
-        
+
         // When
         tokenManager.clearSessionSync()
-        
+
         // Then
         assertNull("Token sincrono deve essere null", tokenManager.getTokenSync())
         assertNull("Token asincrono deve essere null", tokenManager.getToken())
@@ -110,10 +110,10 @@ class TokenManagerTest {
     fun `clearAll clears all persisted data from DataStore`() = runBlocking {
         // Given
         tokenManager.saveAuthData("token", null, 1, "Name")
-        
+
         // When
         tokenManager.clearAll()
-        
+
         // Then
         assertNull("Token must be null", tokenManager.getToken())
         assertNull("UserId must be null", tokenManager.getUserId())

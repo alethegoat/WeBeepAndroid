@@ -22,7 +22,4 @@ data class SiteInfoDto(
 )
 
 @Serializable
-data class FunctionDto(
-    @SerialName("name") val name: String = "",
-    @SerialName("version") val version: String? = null
-)
+data class FunctionDto(@SerialName("name") val name: String = "", @SerialName("version") val version: String? = null)

@@ -8,6 +8,8 @@ import io.ktor.serialization.kotlinx.json.json
 import io.mockk.every
 import io.mockk.mockk
 import it.polimi.webeep.core.datastore.TokenProvider
+import java.io.IOException
+import java.util.concurrent.TimeUnit
 import kotlinx.serialization.json.Json
 import okhttp3.OkHttpClient
 import okhttp3.mockwebserver.MockResponse
@@ -21,8 +23,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
 import org.junit.Before
 import org.junit.Test
-import java.io.IOException
-import java.util.concurrent.TimeUnit
 
 class MoodleApiServiceTest {
 
@@ -142,11 +142,13 @@ class MoodleApiServiceTest {
                 url(mockWebServer.url("/").toString())
             }
             install(ContentNegotiation) {
-                json(Json {
-                    ignoreUnknownKeys = true
-                    isLenient = true
-                    coerceInputValues = true
-                })
+                json(
+                    Json {
+                        ignoreUnknownKeys = true
+                        isLenient = true
+                        coerceInputValues = true
+                    }
+                )
             }
         }
 

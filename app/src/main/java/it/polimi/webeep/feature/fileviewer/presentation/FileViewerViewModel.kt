@@ -16,6 +16,8 @@ import it.polimi.webeep.feature.fileviewer.data.localFile
 import it.polimi.webeep.feature.fileviewer.domain.ViewerFile
 import it.polimi.webeep.feature.fileviewer.domain.findSiblings
 import it.polimi.webeep.navigation.Screen
+import java.io.File
+import javax.inject.Inject
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -26,8 +28,6 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import okhttp3.Call
 import okhttp3.OkHttpClient
-import java.io.File
-import javax.inject.Inject
 
 /** The files the pager can show and where it starts. */
 data class ViewerFiles(val files: List<ViewerFile>, val initialIndex: Int)

@@ -76,11 +76,7 @@ private val LoginButtonHeight = 56.dp
  * is too short for it and stays centered otherwise.
  */
 @Composable
-fun LoginScreen(
-    viewModel: LoginViewModel,
-    onLoginSuccess: () -> Unit,
-    modifier: Modifier = Modifier
-) {
+fun LoginScreen(viewModel: LoginViewModel, onLoginSuccess: () -> Unit, modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -172,8 +168,8 @@ fun LoginScreen(
 private fun BrandHeader(visible: Boolean, modifier: Modifier = Modifier) {
     AnimatedVisibility(
         visible = visible,
-        enter = fadeIn(WeBeepMotion.enter(WeBeepMotion.LongMs)) +
-            slideInVertically(WeBeepMotion.enter(WeBeepMotion.LongMs)) { -36 },
+        enter = fadeIn(WeBeepMotion.enter(WeBeepMotion.LONG_MS)) +
+            slideInVertically(WeBeepMotion.enter(WeBeepMotion.LONG_MS)) { -36 },
         modifier = modifier
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -208,27 +204,22 @@ private fun BrandHeader(visible: Boolean, modifier: Modifier = Modifier) {
 
 /** Glass card with the SSO button, plus the "unofficial app" disclaimer under it. */
 @Composable
-private fun LoginPanel(
-    visible: Boolean,
-    isLoading: Boolean,
-    onLoginClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
+private fun LoginPanel(visible: Boolean, isLoading: Boolean, onLoginClick: () -> Unit, modifier: Modifier = Modifier) {
     Column(
         modifier = modifier.widthIn(max = LoginCardMaxWidth),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         AnimatedVisibility(
             visible = visible,
-            enter = fadeIn(WeBeepMotion.enter(WeBeepMotion.LongMs)) +
-                slideInVertically(WeBeepMotion.enter(WeBeepMotion.LongMs)) { 40 }
+            enter = fadeIn(WeBeepMotion.enter(WeBeepMotion.LONG_MS)) +
+                slideInVertically(WeBeepMotion.enter(WeBeepMotion.LONG_MS)) { 40 }
         ) {
             LoginCard(isLoading = isLoading, onLoginClick = onLoginClick)
         }
 
         AnimatedVisibility(
             visible = visible,
-            enter = fadeIn(WeBeepMotion.enter(WeBeepMotion.LongMs))
+            enter = fadeIn(WeBeepMotion.enter(WeBeepMotion.LONG_MS))
         ) {
             Text(
                 text = stringResource(R.string.login_disclaimer),
@@ -301,7 +292,7 @@ private fun LoginCard(isLoading: Boolean, onLoginClick: () -> Unit) {
         ) {
             Crossfade(
                 targetState = isLoading,
-                animationSpec = WeBeepMotion.smooth(WeBeepMotion.ShortMs),
+                animationSpec = WeBeepMotion.smooth(WeBeepMotion.SHORT_MS),
                 label = "login_cta"
             ) { loading ->
                 if (loading) {

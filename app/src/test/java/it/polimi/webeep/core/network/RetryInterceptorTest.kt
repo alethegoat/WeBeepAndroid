@@ -1,5 +1,6 @@
 package it.polimi.webeep.core.network
 
+import java.io.IOException
 import okhttp3.Interceptor
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
@@ -14,7 +15,6 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertThrows
 import org.junit.Before
 import org.junit.Test
-import java.io.IOException
 
 class RetryInterceptorTest {
 

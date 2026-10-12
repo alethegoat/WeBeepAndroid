@@ -28,7 +28,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
-private const val PressedScale = 0.98f
+private const val PRESSED_SCALE = 0.98f
 
 /**
  * Clickable with immediate visual ack (ripple + a slight press scale), debounce, and
@@ -71,9 +71,7 @@ fun Modifier.bouncyClickable(
         )
 }
 
-private data class PressScaleElement(
-    val interactionSource: InteractionSource
-) : ModifierNodeElement<PressScaleNode>() {
+private data class PressScaleElement(val interactionSource: InteractionSource) : ModifierNodeElement<PressScaleNode>() {
     override fun create() = PressScaleNode(interactionSource)
 
     override fun update(node: PressScaleNode) = node.update(interactionSource)
@@ -83,9 +81,10 @@ private data class PressScaleElement(
  * Scales its content while pressed. The animation runs in the node's own scope and
  * is applied in a placement layer, so pressing never recomposes anything.
  */
-private class PressScaleNode(
-    private var interactionSource: InteractionSource
-) : Modifier.Node(), LayoutModifierNode, CompositionLocalConsumerModifierNode {
+private class PressScaleNode(private var interactionSource: InteractionSource) :
+    Modifier.Node(),
+    LayoutModifierNode,
+    CompositionLocalConsumerModifierNode {
 
     private val scale = Animatable(1f)
     private var collectJob: Job? = null
@@ -105,7 +104,7 @@ private class PressScaleNode(
                 if (currentValueOf(LocalReduceMotion)) return@collectLatest
                 when (interaction) {
                     is PressInteraction.Press -> scale.animateTo(
-                        targetValue = PressedScale,
+                        targetValue = PRESSED_SCALE,
                         animationSpec = spring(
                             dampingRatio = Spring.DampingRatioNoBouncy,
                             stiffness = Spring.StiffnessMedium

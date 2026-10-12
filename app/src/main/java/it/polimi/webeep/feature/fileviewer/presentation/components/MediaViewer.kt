@@ -4,20 +4,20 @@ import android.content.Intent
 import android.net.Uri
 import androidx.annotation.OptIn
 import androidx.compose.foundation.background
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.VideocamOff
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.VideocamOff
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -37,18 +37,13 @@ import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.ui.PlayerView
 import it.polimi.webeep.R
 import it.polimi.webeep.core.network.MoodleFileUrlBuilder
-import okhttp3.Call
 import it.polimi.webeep.core.ui.components.EmptyStateView
 import it.polimi.webeep.core.ui.theme.WeBeepTheme
+import okhttp3.Call
 
 @OptIn(UnstableApi::class)
 @Composable
-fun MediaViewer(
-    url: String,
-    callFactory: Call.Factory,
-    modifier: Modifier = Modifier,
-    isCurrentPage: Boolean = true
-) {
+fun MediaViewer(url: String, callFactory: Call.Factory, modifier: Modifier = Modifier, isCurrentPage: Boolean = true) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
 
@@ -146,10 +141,7 @@ fun MediaViewer(
 
 /** Opaque themed surface over the player so the empty state keeps its contrast. */
 @Composable
-private fun MediaErrorState(
-    url: String,
-    modifier: Modifier = Modifier
-) {
+private fun MediaErrorState(url: String, modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val externalUrl = remember(url) { MoodleFileUrlBuilder.stripAuthFromUrl(url) }
     val canOpenExternally = remember(externalUrl) { !MoodleFileUrlBuilder.isPluginFilePath(externalUrl) }

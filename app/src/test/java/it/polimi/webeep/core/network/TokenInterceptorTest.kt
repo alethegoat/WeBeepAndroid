@@ -42,11 +42,10 @@ class TokenInterceptorTest {
         mockWebServer.shutdown()
     }
 
-    private fun formPost(path: String, form: String): Request =
-        Request.Builder()
-            .url(mockWebServer.url(path))
-            .post(form.toRequestBody("application/x-www-form-urlencoded; charset=UTF-8".toMediaType()))
-            .build()
+    private fun formPost(path: String, form: String): Request = Request.Builder()
+        .url(mockWebServer.url(path))
+        .post(form.toRequestBody("application/x-www-form-urlencoded; charset=UTF-8".toMediaType()))
+        .build()
 
     @Test
     fun `adds wstoken to form body and not to url on moodle rest path`() {

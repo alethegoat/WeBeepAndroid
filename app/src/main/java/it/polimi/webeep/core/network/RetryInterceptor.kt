@@ -1,9 +1,9 @@
 package it.polimi.webeep.core.network
 
-import okhttp3.Interceptor
-import okhttp3.Response
 import java.io.IOException
 import javax.inject.Inject
+import okhttp3.Interceptor
+import okhttp3.Response
 
 /**
  * okhttp interceptor for automatic retry with exponential backoff.
@@ -13,10 +13,7 @@ import javax.inject.Inject
  * in NetworkModule. Only idempotent GET/HEAD/OPTIONS and POSTs marked with
  * [MoodleApiServiceImpl.READ_ONLY_WS_HEADER] are retried; canceled calls stop early.
  */
-class RetryInterceptor @Inject constructor(
-    private val maxRetries: Int = 3,
-    private val initialDelayMs: Long = 1000L
-) : Interceptor {
+class RetryInterceptor @Inject constructor(private val maxRetries: Int = 3, private val initialDelayMs: Long = 1000L) : Interceptor {
 
     companion object {
         private val IDEMPOTENT_METHODS = setOf("GET", "HEAD", "OPTIONS")

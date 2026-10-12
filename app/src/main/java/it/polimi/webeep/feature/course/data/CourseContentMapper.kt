@@ -151,8 +151,7 @@ object CourseContentMapper {
         )
     }
 
-    private fun isPhantomIndex(content: it.polimi.webeep.core.network.dto.ModuleContentDto): Boolean {
-        return content.filename.equals("index.html", ignoreCase = true) &&
+    private fun isPhantomIndex(content: it.polimi.webeep.core.network.dto.ModuleContentDto): Boolean =
+        content.filename.equals("index.html", ignoreCase = true) &&
             (content.filesize <= 0L || content.fileurl.isNullOrBlank())
-    }
 }

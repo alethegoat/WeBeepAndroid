@@ -47,7 +47,7 @@ fun EmptyStateView(
     modifier: Modifier = Modifier,
     subtitle: String? = null,
     actionLabel: String? = null,
-    onAction: (() -> Unit)? = null,
+    onAction: (() -> Unit)? = null
 ) {
     val reduceMotion = LocalReduceMotion.current
     val visibleState = remember {
@@ -59,18 +59,18 @@ fun EmptyStateView(
     AnimatedVisibility(
         visibleState = visibleState,
         enter = fadeIn(
-            animationSpec = WeBeepMotion.enter(reduceMotion = reduceMotion),
+            animationSpec = WeBeepMotion.enter(reduceMotion = reduceMotion)
         ) + slideInVertically(
             initialOffsetY = { it / 12 },
-            animationSpec = WeBeepMotion.enter(reduceMotion = reduceMotion),
-        ),
+            animationSpec = WeBeepMotion.enter(reduceMotion = reduceMotion)
+        )
     ) {
         Column(
             modifier = modifier
                 .fillMaxSize()
                 .padding(horizontal = WeBeepSpacing.xl, vertical = WeBeepSpacing.lg),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
+            verticalArrangement = Arrangement.Center
         ) {
             EmptyStateIcon(icon = icon)
 
@@ -80,7 +80,7 @@ fun EmptyStateView(
                 text = title,
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurface,
-                textAlign = TextAlign.Center,
+                textAlign = TextAlign.Center
             )
 
             if (subtitle != null) {
@@ -89,7 +89,7 @@ fun EmptyStateView(
                     text = subtitle,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center,
+                    textAlign = TextAlign.Center
                 )
             }
 
@@ -98,7 +98,7 @@ fun EmptyStateView(
                 FilledTonalButton(onClick = onAction) {
                     Text(
                         text = actionLabel,
-                        style = MaterialTheme.typography.labelLarge,
+                        style = MaterialTheme.typography.labelLarge
                     )
                 }
             }
@@ -113,13 +113,13 @@ private fun EmptyStateIcon(icon: ImageVector) {
             .size(EmptyStateIconContainerSize)
             .clip(MaterialTheme.shapes.extraLarge)
             .background(MaterialTheme.colorScheme.secondaryContainer),
-        contentAlignment = Alignment.Center,
+        contentAlignment = Alignment.Center
     ) {
         Icon(
             imageVector = icon,
             contentDescription = null,
             modifier = Modifier.size(EmptyStateIconSize),
-            tint = MaterialTheme.colorScheme.onSecondaryContainer,
+            tint = MaterialTheme.colorScheme.onSecondaryContainer
         )
     }
 }
@@ -135,7 +135,7 @@ private fun EmptyStateNoCoursePreview() {
             title = "Nessun corso trovato",
             subtitle = "Non sei iscritto a nessun corso su WeBeep.\nControlla le iscrizioni sul portale.",
             actionLabel = "Aggiorna",
-            onAction = {},
+            onAction = {}
         )
     }
 }
@@ -147,7 +147,7 @@ private fun EmptyStateNoResultPreview() {
         EmptyStateView(
             icon = Icons.Outlined.SearchOff,
             title = "Nessun risultato",
-            subtitle = "Prova a modificare i criteri di ricerca.",
+            subtitle = "Prova a modificare i criteri di ricerca."
         )
     }
 }
@@ -161,7 +161,7 @@ private fun EmptyStateDarkPreview() {
             title = "Nessun corso trovato",
             subtitle = "Non sei iscritto a nessun corso.",
             actionLabel = "Riprova",
-            onAction = {},
+            onAction = {}
         )
     }
 }

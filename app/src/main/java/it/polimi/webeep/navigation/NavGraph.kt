@@ -48,11 +48,7 @@ import it.polimi.webeep.feature.settings.presentation.SettingsViewModel
  */
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
-fun NavGraph(
-    startDestination: String,
-    modifier: Modifier = Modifier,
-    navController: NavHostController = rememberNavController()
-) {
+fun NavGraph(startDestination: String, modifier: Modifier = Modifier, navController: NavHostController = rememberNavController()) {
     val reduceMotion = LocalReduceMotion.current
     val transitions = remember(reduceMotion) { NavTransitions(reduceMotion) }
     // Opaque base: screens fading in/out never show the window behind them.

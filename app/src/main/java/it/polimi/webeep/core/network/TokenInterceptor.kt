@@ -1,24 +1,22 @@
 package it.polimi.webeep.core.network
 
 import it.polimi.webeep.core.datastore.TokenProvider
+import java.net.HttpURLConnection
+import java.net.URLEncoder
+import javax.inject.Inject
 import okhttp3.Interceptor
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Response
 import okio.Buffer
-import java.net.HttpURLConnection
-import java.net.URLEncoder
-import javax.inject.Inject
 
 /**
  * Injects wstoken into the POST form body (never the URL) and handles Moodle
  * auth errors only for REST API calls on the trusted host.
  * File/image requests must not log the user out on 403.
  */
-class TokenInterceptor @Inject constructor(
-    private val tokenProvider: TokenProvider
-) : Interceptor {
+class TokenInterceptor @Inject constructor(private val tokenProvider: TokenProvider) : Interceptor {
 
     constructor(
         tokenProvider: TokenProvider,

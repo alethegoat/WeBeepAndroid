@@ -14,12 +14,12 @@ import com.google.crypto.tink.KeyTemplates
 import com.google.crypto.tink.RegistryConfiguration
 import com.google.crypto.tink.aead.AeadConfig
 import com.google.crypto.tink.integration.android.AndroidKeysetManager
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.runBlocking
 import java.io.File
 import java.security.GeneralSecurityException
 import java.security.KeyStore
 import java.util.Base64
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 
 /**
  * Encrypted key-value store for credentials.
@@ -131,13 +131,12 @@ internal class SecureStore(context: Context) {
         private var sharedDataStore: DataStore<Preferences>? = null
 
         // DataStore allows a single active instance per file in a process.
-        private fun dataStoreFor(context: Context): DataStore<Preferences> =
-            sharedDataStore ?: synchronized(this) {
-                sharedDataStore ?: PreferenceDataStoreFactory.create(
-                    corruptionHandler = ReplaceFileCorruptionHandler { emptyPreferences() },
-                    produceFile = { File(context.noBackupFilesDir, FILE_NAME) }
-                ).also { sharedDataStore = it }
-            }
+        private fun dataStoreFor(context: Context): DataStore<Preferences> = sharedDataStore ?: synchronized(this) {
+            sharedDataStore ?: PreferenceDataStoreFactory.create(
+                corruptionHandler = ReplaceFileCorruptionHandler { emptyPreferences() },
+                produceFile = { File(context.noBackupFilesDir, FILE_NAME) }
+            ).also { sharedDataStore = it }
+        }
     }
 }
 

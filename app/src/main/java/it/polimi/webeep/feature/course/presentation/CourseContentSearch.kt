@@ -1,9 +1,6 @@
 package it.polimi.webeep.feature.course.presentation
 
-internal fun filterSections(
-    sections: List<SectionUiModel>,
-    query: String,
-): List<SectionUiModel> {
+internal fun filterSections(sections: List<SectionUiModel>, query: String): List<SectionUiModel> {
     val needle = query.trim()
     if (needle.isEmpty()) return sections
     return sections.mapNotNull { section ->
@@ -20,7 +17,7 @@ internal fun filterSections(
             sectionMatch -> section.copy(isExpanded = true)
             filteredModules.isNotEmpty() -> section.copy(
                 modules = filteredModules,
-                isExpanded = true,
+                isExpanded = true
             )
             else -> null
         }

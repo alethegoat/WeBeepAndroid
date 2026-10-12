@@ -9,13 +9,13 @@ import it.polimi.webeep.core.datastore.ThemePreference
 import it.polimi.webeep.feature.auth.domain.AuthRepository
 import it.polimi.webeep.feature.sync.SyncScheduler
 import it.polimi.webeep.feature.sync.SyncStateStore
+import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
 data class SettingsUiState(
     val themePreference: ThemePreference = ThemePreference.SYSTEM_DEFAULT,

@@ -8,19 +8,19 @@ import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.impl.annotations.MockK
 import it.polimi.webeep.R
+import it.polimi.webeep.core.ui.components.GroupPosition
 import it.polimi.webeep.core.util.DataError
-import it.polimi.webeep.feature.course.domain.CourseRepository
 import it.polimi.webeep.core.util.Resource
+import it.polimi.webeep.feature.course.domain.CourseRepository
 import it.polimi.webeep.feature.course.domain.GetCourseContentsUseCase
 import it.polimi.webeep.feature.course.domain.model.FileResource
 import it.polimi.webeep.feature.course.domain.model.Module
 import it.polimi.webeep.feature.course.domain.model.Section
-import it.polimi.webeep.core.ui.components.GroupPosition
 import it.polimi.webeep.feature.course.presentation.CourseDetailUiState
-import it.polimi.webeep.feature.course.presentation.CourseListItem
-import it.polimi.webeep.feature.course.presentation.ModuleKind
 import it.polimi.webeep.feature.course.presentation.CourseDetailViewModel
+import it.polimi.webeep.feature.course.presentation.CourseListItem
 import it.polimi.webeep.feature.course.presentation.DownloadState
+import it.polimi.webeep.feature.course.presentation.ModuleKind
 import it.polimi.webeep.feature.dashboard.MainDispatcherRule
 import it.polimi.webeep.feature.download.domain.DownloadFileUseCase
 import it.polimi.webeep.feature.download.domain.DownloadRepository
@@ -88,14 +88,12 @@ class CourseDetailViewModelTest {
         )
     )
 
-
-
     @Before
     fun setup() {
         MockKAnnotations.init(this, relaxUnitFun = true)
 
         savedStateHandle = SavedStateHandle(mapOf("courseId" to 5))
-        
+
         coEvery { courseRepository.getCourseName(5) } returns "Informatica 1"
         coEvery { getCourseContentsUseCase(5) } returns flowOf(Resource.Success(sampleSections))
         every { downloadRepository.isFileDownloaded(any()) } returns false
@@ -162,7 +160,7 @@ class CourseDetailViewModelTest {
             assertTrue(successState.sections.first().isExpanded) // Espansa di default la prima
 
             viewModel.toggleSection(10)
-            
+
             val state2 = awaitItem() as CourseDetailUiState.Success
             assertFalse(state2.sections.first().isExpanded)
         }
@@ -275,13 +273,14 @@ class CourseDetailViewModelTest {
                 successState = awaitItem()
             }
             val file = (successState as CourseDetailUiState.Success).sections.first().modules.first().files.first()
-            
+
             viewModel.downloadFile(file)
-            
+
             // Skip intermediate DOWNLOADING state and wait for COMPLETED
             var finalState = awaitItem()
-            while (finalState !is CourseDetailUiState.Success || 
-                   finalState.sections.first().modules.first().files.first().downloadState != DownloadState.COMPLETED) {
+            while (finalState !is CourseDetailUiState.Success ||
+                finalState.sections.first().modules.first().files.first().downloadState != DownloadState.COMPLETED
+            ) {
                 finalState = awaitItem()
             }
             val finalFile = (finalState as CourseDetailUiState.Success).sections.first().modules.first().files.first()
@@ -313,12 +312,13 @@ class CourseDetailViewModelTest {
                 successState = awaitItem()
             }
             val file = (successState as CourseDetailUiState.Success).sections.first().modules.first().files.first()
-            
+
             viewModel.downloadFile(file)
-            
+
             var finalState = awaitItem()
-            while (finalState !is CourseDetailUiState.Success || 
-                   finalState.sections.first().modules.first().files.first().downloadState != DownloadState.FAILED) {
+            while (finalState !is CourseDetailUiState.Success ||
+                finalState.sections.first().modules.first().files.first().downloadState != DownloadState.FAILED
+            ) {
                 finalState = awaitItem()
             }
             val finalFile = (finalState as CourseDetailUiState.Success).sections.first().modules.first().files.first()
@@ -329,16 +329,16 @@ class CourseDetailViewModelTest {
     @Test
     fun `openFile delegates to downloadRepository`() = runTest {
         initViewModel()
-        
+
         viewModel.uiState.test {
             var successState = awaitItem()
             while (successState !is CourseDetailUiState.Success) {
                 successState = awaitItem()
             }
             val file = (successState as CourseDetailUiState.Success).sections.first().modules.first().files.first()
-            
+
             viewModel.openFile(file)
-            
+
             coVerify(exactly = 1) {
                 downloadRepository.openFile(match { it.startsWith("syllabus-") && it.endsWith(".pdf") })
             }
@@ -391,6 +391,5 @@ class CourseDetailViewModelTest {
         assertEquals(DownloadState.COMPLETED, firstFile().downloadState)
     }
 
-    private fun firstFile() =
-        (viewModel.uiState.value as CourseDetailUiState.Success).sections.first().modules.first().files.first()
+    private fun firstFile() = (viewModel.uiState.value as CourseDetailUiState.Success).sections.first().modules.first().files.first()
 }

@@ -1,10 +1,10 @@
 package it.polimi.webeep.feature.fileviewer.presentation.components
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -15,17 +15,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import it.polimi.webeep.core.ui.theme.WeBeepSpacing
 
 @Composable
-fun CodeViewer(
-    content: String,
-    modifier: Modifier = Modifier,
-    contentPadding: PaddingValues = PaddingValues(),
-    onTap: () -> Unit = {}
-) {
+fun CodeViewer(content: String, modifier: Modifier = Modifier, contentPadding: PaddingValues = PaddingValues(), onTap: () -> Unit = {}) {
     val lazyListState = rememberLazyListState()
     val lines = remember(content) { content.lines() }
 
@@ -62,4 +56,3 @@ fun CodeViewer(
         }
     }
 }
-

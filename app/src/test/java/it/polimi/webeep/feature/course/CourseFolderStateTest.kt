@@ -27,18 +27,18 @@ class CourseFolderStateTest {
                     url = null,
                     files = listOf(
                         file("readme.txt", "/"),
-                        file("sol1.pdf", "/Esercizi/Soluzioni/"),
-                    ),
-                ),
-            ),
-        ),
+                        file("sol1.pdf", "/Esercizi/Soluzioni/")
+                    )
+                )
+            )
+        )
     )
 
     @Test
     fun matchOpensEveryFolderOnItsPath() {
         assertEquals(
             setOf(folderRootKey(30), folderKey(30, "/Esercizi"), folderKey(30, "/Esercizi/Soluzioni")),
-            foldersWithMatches(sections, "sol1"),
+            foldersWithMatches(sections, "sol1")
         )
     }
 
@@ -59,6 +59,6 @@ class CourseFolderStateTest {
         fileUrl = "https://webeep.polimi.it/pluginfile.php/1$path$name",
         fileSize = 1L,
         mimeType = "application/octet-stream",
-        formattedSize = "1 B",
+        formattedSize = "1 B"
     )
 }

@@ -2,6 +2,8 @@ package it.polimi.webeep.core.session
 
 import it.polimi.webeep.core.datastore.TokenProvider
 import it.polimi.webeep.feature.auth.domain.AuthRepository
+import javax.inject.Inject
+import javax.inject.Singleton
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -10,18 +12,13 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.runningFold
 import kotlinx.coroutines.withContext
-import javax.inject.Inject
-import javax.inject.Singleton
 
 /**
  * Turns the loss of an authenticated session (401/invalidtoken or manual logout)
  * into a full local wipe. Collectors are expected to route back to the login screen.
  */
 @Singleton
-class SessionExpiryHandler @Inject constructor(
-    private val tokenProvider: TokenProvider,
-    private val authRepository: AuthRepository
-) {
+class SessionExpiryHandler @Inject constructor(private val tokenProvider: TokenProvider, private val authRepository: AuthRepository) {
 
     /** Emits once per true -> false transition of [TokenProvider.isLoggedIn], after the wipe. */
     val sessionLost: Flow<Unit> = tokenProvider.isLoggedIn

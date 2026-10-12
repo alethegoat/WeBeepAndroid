@@ -12,7 +12,7 @@ class CourseFiltersTest {
     private val courses = listOf(
         course(1, "Informatica", "INFO-1", endDate = 0L),
         course(2, "Analisi Matematica", "MAT-1", endDate = now + 10_000),
-        course(3, "Fisica Sperimentale", "FIS-1", endDate = now - 10_000),
+        course(3, "Fisica Sperimentale", "FIS-1", endDate = now - 10_000)
     )
 
     @Test
@@ -41,15 +41,10 @@ class CourseFiltersTest {
         assertEquals(3, result.size)
     }
 
-    private fun course(
-        id: Int,
-        fullname: String,
-        shortname: String,
-        endDate: Long,
-    ) = CourseUiModel(
+    private fun course(id: Int, fullname: String, shortname: String, endDate: Long) = CourseUiModel(
         id = id,
         shortname = shortname,
         fullname = fullname,
-        endDate = endDate,
+        endDate = endDate
     )
 }

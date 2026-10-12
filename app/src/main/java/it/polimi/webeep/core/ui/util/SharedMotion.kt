@@ -51,7 +51,7 @@ fun Modifier.courseSharedBounds(courseId: Int, isScreen: Boolean): Modifier = co
         this
     } else {
         val corner = visibilityScope.transition.animateDp(
-            transitionSpec = { WeBeepMotion.enter(WeBeepMotion.ContainerTransformMs) },
+            transitionSpec = { WeBeepMotion.enter(WeBeepMotion.CONTAINER_TRANSFORM_MS) },
             label = "course_container_corner"
         ) { state ->
             // The card is rounded while it is the one on screen, the screen is square.
@@ -65,12 +65,12 @@ fun Modifier.courseSharedBounds(courseId: Int, isScreen: Boolean): Modifier = co
                 animatedVisibilityScope = visibilityScope,
                 enter = fadeIn(WeBeepMotion.enter()),
                 exit = fadeOut(WeBeepMotion.exit()),
-                boundsTransform = { _, _ -> WeBeepMotion.enter(WeBeepMotion.ContainerTransformMs) },
+                boundsTransform = { _, _ -> WeBeepMotion.enter(WeBeepMotion.CONTAINER_TRANSFORM_MS) },
                 resizeMode = SharedTransitionScope.ResizeMode.scaleToBounds(
                     contentScale = ContentScale.FillWidth,
                     alignment = Alignment.TopCenter
                 ),
-                clipInOverlayDuringTransition = clip,
+                clipInOverlayDuringTransition = clip
             )
         }
     }

@@ -18,8 +18,8 @@ class CourseContentSearchTest {
             isExpanded = false,
             modules = listOf(
                 module(10, "Slide PDF", files = listOf(file("intro.pdf"))),
-                module(11, "Esercizi", files = listOf(file("esercizi.docx"))),
-            ),
+                module(11, "Esercizi", files = listOf(file("esercizi.docx")))
+            )
         ),
         SectionUiModel(
             id = 2,
@@ -27,9 +27,9 @@ class CourseContentSearchTest {
             summary = null,
             isExpanded = false,
             modules = listOf(
-                module(20, "Codice", files = listOf(file("main.kt"))),
-            ),
-        ),
+                module(20, "Codice", files = listOf(file("main.kt")))
+            )
+        )
     )
 
     @Test
@@ -61,18 +61,14 @@ class CourseContentSearchTest {
         assertTrue(filterSections(sections, "xyz-not-found").isEmpty())
     }
 
-    private fun module(
-        id: Int,
-        name: String,
-        files: List<FileUiModel>,
-    ) = ModuleUiModel(
+    private fun module(id: Int, name: String, files: List<FileUiModel>) = ModuleUiModel(
         id = id,
         name = name,
         type = "resource",
         iconUrl = null,
         description = null,
         url = null,
-        files = files,
+        files = files
     )
 
     private fun file(name: String) = FileUiModel(
@@ -82,6 +78,6 @@ class CourseContentSearchTest {
         fileUrl = "https://webeep.polimi.it/$name",
         fileSize = 1L,
         mimeType = "application/octet-stream",
-        formattedSize = "1 B",
+        formattedSize = "1 B"
     )
 }
