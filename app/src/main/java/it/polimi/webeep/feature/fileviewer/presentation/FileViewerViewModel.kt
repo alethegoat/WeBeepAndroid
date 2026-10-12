@@ -6,14 +6,11 @@ import androidx.lifecycle.viewModelScope
 import androidx.navigation.toRoute
 import dagger.hilt.android.lifecycle.HiltViewModel
 import it.polimi.webeep.core.common.FileUtils
-import it.polimi.webeep.core.common.Resource
 import it.polimi.webeep.core.common.runCatchingCancellable
 import it.polimi.webeep.core.network.MoodleFileUrlBuilder
 import it.polimi.webeep.feature.course.domain.CourseRepository
-import it.polimi.webeep.feature.download.domain.DownloadFileUseCase
 import it.polimi.webeep.feature.download.domain.DownloadRepository
-import it.polimi.webeep.feature.download.domain.DownloadRepository.Companion.PROGRESS_COMPLETE
-import it.polimi.webeep.feature.download.domain.DownloadRepository.Companion.PROGRESS_FAILED
+import it.polimi.webeep.feature.download.domain.DownloadTracker
 import it.polimi.webeep.feature.download.domain.model.DownloadState
 import it.polimi.webeep.feature.fileviewer.domain.FileContentRepository
 import it.polimi.webeep.feature.fileviewer.domain.ViewerFile
@@ -44,7 +41,7 @@ import kotlinx.coroutines.launch
 class FileViewerViewModel @Inject constructor(
     private val loader: FileContentRepository,
     private val courseRepository: CourseRepository,
-    private val downloadFileUseCase: DownloadFileUseCase,
+    private val downloadTracker: DownloadTracker,
     private val downloadRepository: DownloadRepository,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
@@ -141,23 +138,12 @@ class FileViewerViewModel @Inject constructor(
     private fun download(file: ViewerFile) {
         if (_uiState.value.downloadStates[file.url] == DownloadState.DOWNLOADING) return
         viewModelScope.launch {
-            setDownloadState(file, DownloadState.DOWNLOADING)
-            val started = downloadFileUseCase(
+            downloadTracker.track(
                 url = file.url,
                 localFileName = localName(file),
                 displayName = file.title,
                 mimeType = file.mimeType.ifBlank { null }
-            )
-            when (started) {
-                is Resource.Error -> setDownloadState(file, DownloadState.FAILED)
-                is Resource.Success -> downloadRepository.getDownloadProgress(started.data).collect { progress ->
-                    when (progress) {
-                        PROGRESS_COMPLETE -> setDownloadState(file, DownloadState.COMPLETED)
-                        PROGRESS_FAILED -> setDownloadState(file, DownloadState.FAILED)
-                        else -> Unit
-                    }
-                }
-            }
+            ).collect { setDownloadState(file, it) }
         }
     }
 

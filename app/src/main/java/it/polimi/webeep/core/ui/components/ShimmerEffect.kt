@@ -7,24 +7,16 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
@@ -32,20 +24,11 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import it.polimi.webeep.core.ui.theme.WeBeepSpacing
-import it.polimi.webeep.core.ui.theme.WeBeepTheme
 import it.polimi.webeep.core.ui.util.LocalReduceMotion
 
 private const val SHIMMER_GRADIENT_SPAN = 500f
-
-/** Number of section placeholders shown while a course loads. */
-private const val SECTION_PLACEHOLDER_COUNT = 5
-
-/** Rows inside the first (expanded) placeholder section. */
-private const val ROW_PLACEHOLDER_COUNT = 3
 
 /**
  * Everything a placeholder needs to draw. One instance is shared by a whole list, so
@@ -110,83 +93,4 @@ fun ShimmerEffect(
             .height(height)
             .shimmerPlaceholder(style, shape)
     )
-}
-
-/**
- * Course-content placeholder shaped like the real list: the search field, then
- * grouped sections, the first one expanded with a few file rows.
- */
-@Composable
-fun ShimmerCourseSections(modifier: Modifier = Modifier) {
-    val style = rememberShimmerStyle()
-    val small = MaterialTheme.shapes.extraSmall
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = WeBeepSpacing.md),
-        verticalArrangement = Arrangement.spacedBy(GroupedListGap)
-    ) {
-        Box(
-            modifier = Modifier
-                .padding(top = WeBeepSpacing.xs)
-                .fillMaxWidth()
-                .height(WeBeepSpacing.searchHeight)
-                .shimmerPlaceholder(style, CircleShape)
-        )
-        repeat(SECTION_PLACEHOLDER_COUNT) { section ->
-            val count = 1 + if (section == 0) ROW_PLACEHOLDER_COUNT else 0
-            GroupedListItem(
-                position = groupPosition(index = 0, count = count),
-                modifier = Modifier.padding(top = GroupedListSectionGap)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .padding(WeBeepSpacing.md)
-                        .fillMaxWidth(if (section % 2 == 0) 0.55f else 0.7f)
-                        .height(18.dp)
-                        .shimmerPlaceholder(style, small)
-                )
-            }
-            repeat(count - 1) { row ->
-                GroupedListItem(position = groupPosition(index = row + 1, count = count)) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = WeBeepSpacing.md, vertical = WeBeepSpacing.sm),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(40.dp)
-                                .shimmerPlaceholder(style, MaterialTheme.shapes.small)
-                        )
-                        Spacer(modifier = Modifier.width(WeBeepSpacing.sm))
-                        Column(modifier = Modifier.weight(1f)) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth(0.75f)
-                                    .height(14.dp)
-                                    .shimmerPlaceholder(style, small)
-                            )
-                            Spacer(modifier = Modifier.height(WeBeepSpacing.xs))
-                            Box(
-                                modifier = Modifier
-                                    .width(48.dp)
-                                    .height(10.dp)
-                                    .shimmerPlaceholder(style, small)
-                            )
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-// ── previews ─────────────────────────────────────────────────────────
-
-@Preview(showBackground = true, name = "Shimmer Sections – Light")
-@Composable
-private fun ShimmerCourseSectionsPreview() {
-    WeBeepTheme(darkTheme = false) {
-        ShimmerCourseSections()
-    }
 }

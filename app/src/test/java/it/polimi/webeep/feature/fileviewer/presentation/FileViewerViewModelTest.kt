@@ -13,6 +13,7 @@ import it.polimi.webeep.core.network.MoodleFileUrlBuilder
 import it.polimi.webeep.feature.course.domain.CourseRepository
 import it.polimi.webeep.feature.download.domain.DownloadFileUseCase
 import it.polimi.webeep.feature.download.domain.DownloadRepository
+import it.polimi.webeep.feature.download.domain.DownloadTracker
 import it.polimi.webeep.feature.download.domain.model.DownloadState
 import it.polimi.webeep.feature.fileviewer.domain.FileContentRepository
 import it.polimi.webeep.feature.fileviewer.domain.LoadedContent
@@ -51,7 +52,7 @@ class FileViewerViewModelTest {
         return FileViewerViewModel(
             loader = loader,
             courseRepository = courseRepository,
-            downloadFileUseCase = downloadFileUseCase,
+            downloadTracker = DownloadTracker(downloadFileUseCase, downloadRepository),
             downloadRepository = downloadRepository,
             savedStateHandle = SavedStateHandle(mapOf("url" to url, "title" to file.title, "mimeType" to file.mimeType))
         )

@@ -29,3 +29,25 @@ private fun folderKeysOnPath(moduleId: Int, filepath: String): List<String> {
     val paths = segments.runningReduce { path, segment -> "$path/$segment" }
     return listOf(folderRootKey(moduleId)) + paths.map { folderKey(moduleId, "/$it") }
 }
+
+internal data class FolderNode(
+    val name: String,
+    val fullPath: String,
+    val files: MutableList<FileUiModel> = mutableListOf(),
+    val subfolders: MutableMap<String, FolderNode> = mutableMapOf()
+)
+
+internal fun buildFolderTree(files: List<FileUiModel>): FolderNode {
+    val root = FolderNode("", "")
+    files.forEach { file ->
+        val segments = file.filepath.trim('/').split('/').filter { it.isNotEmpty() }
+        var current = root
+        var pathAccumulator = ""
+        for (segment in segments) {
+            pathAccumulator += "/$segment"
+            current = current.subfolders.getOrPut(segment) { FolderNode(segment, pathAccumulator) }
+        }
+        current.files.add(file)
+    }
+    return root
+}

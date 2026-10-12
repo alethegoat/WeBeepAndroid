@@ -1,4 +1,4 @@
-package it.polimi.webeep.feature.course.presentation
+package it.polimi.webeep.feature.course.presentation.components
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column

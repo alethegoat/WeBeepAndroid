@@ -1,4 +1,4 @@
-package it.polimi.webeep.feature.course.presentation
+package it.polimi.webeep.feature.course.presentation.components
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -20,76 +20,23 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.style.TextOverflow
 import it.polimi.webeep.R
 import it.polimi.webeep.core.ui.components.GroupedListItem
+import it.polimi.webeep.core.ui.theme.WeBeepColors
 import it.polimi.webeep.core.ui.theme.WeBeepSpacing
 import it.polimi.webeep.core.ui.theme.WeBeepTheme
+import it.polimi.webeep.feature.course.presentation.CourseListItem
+import it.polimi.webeep.feature.course.presentation.FileUiModel
+import it.polimi.webeep.feature.course.presentation.ModuleKind
+import it.polimi.webeep.feature.course.presentation.ModuleUiModel
+import it.polimi.webeep.feature.course.presentation.folderRootKey
 
 /** Start inset that lines text up with row labels (after the file-type icon). */
 private val RowTextInset = WeBeepSpacing.md + FileIconContainerSize + WeBeepSpacing.sm
-
-/** Tappable title of a course section; its rows follow it while expanded. */
-@Composable
-internal fun SectionHeaderRow(item: CourseListItem.SectionHeader, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    GroupedListItem(position = item.position, modifier = modifier) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable(role = Role.Button, onClick = onClick)
-                .padding(
-                    start = WeBeepSpacing.md,
-                    end = WeBeepSpacing.xxs,
-                    top = WeBeepSpacing.sm,
-                    bottom = WeBeepSpacing.sm
-                )
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = item.name,
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.semantics { heading() }
-                )
-                if (item.summary != null) {
-                    Text(
-                        text = item.summary,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.padding(top = WeBeepSpacing.xxs)
-                    )
-                }
-            }
-            ExpandChevron(
-                expanded = item.isExpanded,
-                contentDescription = stringResource(
-                    if (item.isExpanded) R.string.cd_collapse_section else R.string.cd_expand_section
-                )
-            )
-        }
-    }
-}
-
-@Composable
-internal fun SectionEmptyRow(item: CourseListItem.SectionEmpty, modifier: Modifier = Modifier) {
-    GroupedListItem(position = item.position, modifier = modifier) {
-        Text(
-            text = stringResource(R.string.no_materials_section),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(horizontal = WeBeepSpacing.md, vertical = WeBeepSpacing.md)
-        )
-    }
-}
 
 /**
  * One module: a folder (tap toggles it), a single file (tap previews it), a link
@@ -106,14 +53,7 @@ internal fun ModuleItemRow(
 ) {
     val module = item.module
     val hasLinkPreview = item.kind == ModuleKind.LINK && !module.url.isNullOrBlank()
-
-    val fileColors = WeBeepTheme.colors
-    val (moduleIcon, moduleColor) = when (item.kind) {
-        ModuleKind.FOLDER -> Icons.Rounded.Folder to fileColors.fileFolder
-        ModuleKind.LINK -> Icons.Rounded.Link to fileColors.fileLink
-        ModuleKind.SINGLE_FILE -> fileIconAndColor(module.files.first().filename, fileColors)
-        ModuleKind.MULTI_FILE, ModuleKind.OTHER -> Icons.Rounded.Description to fileColors.fileGeneric
-    }
+    val (moduleIcon, moduleColor) = moduleIconAndColor(item.kind, module, WeBeepTheme.colors)
     val onClick: (() -> Unit)? = when {
         item.kind == ModuleKind.FOLDER -> {
             { onToggleFolder(folderRootKey(module.id)) }
@@ -133,32 +73,14 @@ internal fun ModuleItemRow(
                 .fillMaxWidth()
                 .then(if (onClick != null) Modifier.clickable(role = Role.Button, onClick = onClick) else Modifier)
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(
-                        start = WeBeepSpacing.md,
-                        end = WeBeepSpacing.xxs,
-                        top = WeBeepSpacing.xxs,
-                        bottom = WeBeepSpacing.xxs
-                    )
-            ) {
-                FileTypeIcon(icon = moduleIcon, tint = moduleColor)
-                Spacer(modifier = Modifier.width(WeBeepSpacing.sm))
-                RowLabels(
-                    title = module.name,
-                    meta = if (item.kind == ModuleKind.SINGLE_FILE) module.files.first().formattedSize else null,
-                    modifier = Modifier.weight(1f)
-                )
-                ModuleTrailing(
-                    item = item,
-                    hasLinkPreview = hasLinkPreview,
-                    onDownloadClick = onDownloadClick,
-                    onOpenClick = onOpenClick
-                )
-            }
-
+            ModuleMainRow(
+                item = item,
+                icon = moduleIcon,
+                tint = moduleColor,
+                hasLinkPreview = hasLinkPreview,
+                onDownloadClick = onDownloadClick,
+                onOpenClick = onOpenClick
+            )
             if (module.description != null) {
                 Text(
                     text = module.description,
@@ -168,6 +90,50 @@ internal fun ModuleItemRow(
                 )
             }
         }
+    }
+}
+
+private fun moduleIconAndColor(kind: ModuleKind, module: ModuleUiModel, colors: WeBeepColors): Pair<ImageVector, Color> = when (kind) {
+    ModuleKind.FOLDER -> Icons.Rounded.Folder to colors.fileFolder
+    ModuleKind.LINK -> Icons.Rounded.Link to colors.fileLink
+    ModuleKind.SINGLE_FILE -> fileIconAndColor(module.files.first().filename, colors)
+    ModuleKind.MULTI_FILE, ModuleKind.OTHER -> Icons.Rounded.Description to colors.fileGeneric
+}
+
+@Composable
+private fun ModuleMainRow(
+    item: CourseListItem.Module,
+    icon: ImageVector,
+    tint: Color,
+    hasLinkPreview: Boolean,
+    onDownloadClick: (FileUiModel) -> Unit,
+    onOpenClick: (FileUiModel) -> Unit
+) {
+    val module = item.module
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(
+                start = WeBeepSpacing.md,
+                end = WeBeepSpacing.xxs,
+                top = WeBeepSpacing.xxs,
+                bottom = WeBeepSpacing.xxs
+            )
+    ) {
+        FileTypeIcon(icon = icon, tint = tint)
+        Spacer(modifier = Modifier.width(WeBeepSpacing.sm))
+        RowLabels(
+            title = module.name,
+            meta = if (item.kind == ModuleKind.SINGLE_FILE) module.files.first().formattedSize else null,
+            modifier = Modifier.weight(1f)
+        )
+        ModuleTrailing(
+            item = item,
+            hasLinkPreview = hasLinkPreview,
+            onDownloadClick = onDownloadClick,
+            onOpenClick = onOpenClick
+        )
     }
 }
 
