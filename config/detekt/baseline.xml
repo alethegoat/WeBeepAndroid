@@ -6,21 +6,14 @@
     <ID>CompositionLocalAllowlist:SharedMotion.kt$LocalNavAnimatedVisibilityScope</ID>
     <ID>CompositionLocalAllowlist:SharedMotion.kt$LocalNavSharedTransitionScope</ID>
     <ID>CompositionLocalAllowlist:WeBeepColors.kt$LocalWeBeepColors</ID>
-    <ID>LambdaParameterInRestartableEffect:FileViewerScreen.kt$onZoomedChange</ID>
     <ID>LambdaParameterInRestartableEffect:LoginScreen.kt$onLoginSuccess</ID>
-    <ID>LambdaParameterInRestartableEffect:PdfViewer.kt$onZoomedChange</ID>
     <ID>LambdaParameterInRestartableEffect:WeBeepApp.kt$onNavControllerReady</ID>
     <ID>ModifierComposed:BouncyClickable.kt$bouncyClickable</ID>
     <ID>ModifierComposed:SharedMotion.kt$courseSharedBounds</ID>
     <ID>ModifierMissing:SettingsScreen.kt$SettingsScreen</ID>
     <ID>ModifierMissing:WeBeepApp.kt$WeBeepApp</ID>
-    <ID>MultipleEmitters:FileViewerScreen.kt$FileActions</ID>
     <ID>ParameterNaming:SettingsScreen.kt$onFrequencySelected</ID>
     <ID>ParameterNaming:SettingsScreen.kt$onThemeSelected</ID>
-    <ID>ViewModelForwarding:FileViewerScreen.kt$FileActions(file = file, viewModel = viewModel)</ID>
-    <ID>ViewModelForwarding:FileViewerScreen.kt$FileViewerPage( file = file, viewModel = viewModel, isCurrentPage = isCurrent, contentPadding = contentPadding, onToggleChrome = toggleChrome, onZoomedChange = { zoomed -&gt; if (isCurrent) currentPageZoomed = zoomed } )</ID>
-    <ID>ViewModelForwarding:FileViewerScreen.kt$ViewerTopBar( visible = chromeVisible, file = currentFile, subtitle = listOfNotNull(position, kind).joinToString(" · ").ifEmpty { null }, state = currentState, viewModel = viewModel, onBackClick = onBackClick )</ID>
-    <ID>ViewModelForwarding:FileViewerScreen.kt$ViewerTopBar( visible = chromeVisible, file = viewModel.initialFile, subtitle = null, state = null, viewModel = viewModel, onBackClick = onBackClick )</ID>
     <ID>ViewModelInjection:NavGraph.kt$viewModel</ID>
   </CurrentIssues>
 </SmellBaseline>
