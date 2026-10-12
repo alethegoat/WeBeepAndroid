@@ -10,20 +10,14 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
@@ -118,79 +112,6 @@ fun ShimmerEffect(
     )
 }
 
-@Composable
-fun ShimmerCourseCard(modifier: Modifier = Modifier, style: ShimmerStyle = rememberShimmerStyle()) {
-    val small = MaterialTheme.shapes.extraSmall
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.large,
-        colors = CardDefaults.cardColors(
-            containerColor = groupedListContainerColor()
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(WeBeepSpacing.md),
-            verticalAlignment = Alignment.Top
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(56.dp)
-                    .shimmerPlaceholder(style, MaterialTheme.shapes.medium)
-            )
-            Spacer(modifier = Modifier.width(WeBeepSpacing.md))
-            Column(modifier = Modifier.weight(1f)) {
-                Box(
-                    modifier = Modifier
-                        .width(56.dp)
-                        .height(12.dp)
-                        .shimmerPlaceholder(style, small)
-                )
-                Spacer(modifier = Modifier.height(WeBeepSpacing.xs))
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth(0.9f)
-                        .height(18.dp)
-                        .shimmerPlaceholder(style, small)
-                )
-                Spacer(modifier = Modifier.height(WeBeepSpacing.xxs))
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth(0.6f)
-                        .height(18.dp)
-                        .shimmerPlaceholder(style, small)
-                )
-                Spacer(modifier = Modifier.height(WeBeepSpacing.xs))
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth(0.45f)
-                        .height(12.dp)
-                        .shimmerPlaceholder(style, small)
-                )
-            }
-        }
-    }
-}
-
-@Composable
-fun ShimmerCourseList(modifier: Modifier = Modifier, itemCount: Int = 6, columns: Int = 1) {
-    val style = rememberShimmerStyle()
-    LazyVerticalGrid(
-        columns = GridCells.Fixed(columns),
-        modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(WeBeepSpacing.md),
-        verticalArrangement = Arrangement.spacedBy(WeBeepSpacing.sm),
-        horizontalArrangement = Arrangement.spacedBy(WeBeepSpacing.sm),
-        userScrollEnabled = false
-    ) {
-        items(itemCount) {
-            ShimmerCourseCard(style = style)
-        }
-    }
-}
-
 /**
  * Course-content placeholder shaped like the real list: the search field, then
  * grouped sections, the first one expanded with a few file rows.
@@ -261,34 +182,6 @@ fun ShimmerCourseSections(modifier: Modifier = Modifier) {
 }
 
 // ── previews ─────────────────────────────────────────────────────────
-
-@Preview(showBackground = true, name = "Shimmer Card – Light")
-@Composable
-private fun ShimmerCourseCardLightPreview() {
-    WeBeepTheme(darkTheme = false) {
-        Box(modifier = Modifier.padding(WeBeepSpacing.md)) {
-            ShimmerCourseCard()
-        }
-    }
-}
-
-@Preview(showBackground = true, backgroundColor = 0xFF0D1117, name = "Shimmer Card – Dark")
-@Composable
-private fun ShimmerCourseCardDarkPreview() {
-    WeBeepTheme(darkTheme = true) {
-        Box(modifier = Modifier.padding(WeBeepSpacing.md)) {
-            ShimmerCourseCard()
-        }
-    }
-}
-
-@Preview(showBackground = true, name = "Shimmer List – Light")
-@Composable
-private fun ShimmerCourseListPreview() {
-    WeBeepTheme(darkTheme = false) {
-        ShimmerCourseList(itemCount = 4)
-    }
-}
 
 @Preview(showBackground = true, name = "Shimmer Sections – Light")
 @Composable

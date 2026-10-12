@@ -1,7 +1,6 @@
 package it.polimi.webeep.feature.dashboard.presentation
 
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.dropUnlessResumed
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
@@ -13,8 +12,7 @@ import it.polimi.webeep.navigation.dropUnlessResumedWith
 fun NavGraphBuilder.dashboardDestination(onOpenCourse: (courseId: Int) -> Unit, onOpenSettings: () -> Unit) {
     composable<Dashboard> {
         CompositionLocalProvider(LocalNavAnimatedVisibilityScope provides this) {
-            DashboardScreen(
-                viewModel = hiltViewModel(),
+            DashboardRoute(
                 onCourseClick = dropUnlessResumedWith(onOpenCourse),
                 onSettingsClick = dropUnlessResumed(block = onOpenSettings)
             )

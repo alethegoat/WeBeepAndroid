@@ -6,6 +6,9 @@ enum class CourseFilter {
     ALL
 }
 
+/** The filter shown when nothing has been chosen yet. */
+internal val DEFAULT_COURSE_FILTER = CourseFilter.ACTIVE
+
 internal fun filterCourses(courses: List<CourseUiModel>, query: String, filter: CourseFilter, nowEpochSeconds: Long): List<CourseUiModel> {
     val needle = query.trim()
     return courses.filter { course ->
