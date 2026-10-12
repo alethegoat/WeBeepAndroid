@@ -1,0 +1,58 @@
+name: Bug report
+description: Something does not work as expected
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Do not share secrets or personal data
+        **Never paste tokens, `wstoken` values or URLs containing them. Never attach screenshots that show personal data or course materials.** Redact or crop first. For security problems, do not open an issue: see [SECURITY.md](https://github.com/alethegoat/WeBeepAndroid/blob/master/SECURITY.md).
+  - type: input
+    id: app_version
+    attributes:
+      label: App version
+      description: Settings > About, or the GitHub release you installed.
+      placeholder: "1.0.1"
+    validations:
+      required: true
+  - type: input
+    id: android_version
+    attributes:
+      label: Android version
+      placeholder: "Android 14"
+    validations:
+      required: true
+  - type: input
+    id: device
+    attributes:
+      label: Device
+      placeholder: "Pixel 7"
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open ...
+        2. Tap ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: Relevant logcat lines or a stack trace. Remove tokens and personal data first.
+      render: text

@@ -60,7 +60,7 @@ Keep a backup of the upload keystore. Losing it means you cannot update the app 
 
 ### Tech Stack
 
-This project follows Clean Architecture and MVVM (StateFlow + Compose). Version `1.0.1` (`versionCode` 2), `minSdk` 26. Layers, data flow and conventions are described in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md); how to contribute is in [CONTRIBUTING.md](CONTRIBUTING.md). CI enforces ktlint, detekt (with Compose rules) and a Kover line-coverage floor.
+This project follows Clean Architecture and MVVM (StateFlow + Compose). Version `1.1.0` (`versionCode` 3), `minSdk` 26. Layers, data flow and conventions are described in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md); how to contribute is in [CONTRIBUTING.md](CONTRIBUTING.md), with the [security policy](SECURITY.md) and the [code of conduct](CODE_OF_CONDUCT.md). CI enforces ktlint, detekt (with Compose rules) and a Kover line-coverage floor.
 
 * **UI**: Jetpack Compose, Material 3; Outfit + Inter fonts bundled (SIL OFL 1.1, texts in `app/src/main/assets/licenses`)
 * **State**: Kotlin Coroutines & StateFlow
@@ -125,7 +125,7 @@ Tieni un backup del keystore di upload. Senza quello non puoi aggiornare l'app s
 
 ### Tech Stack
 
-Il progetto segue Clean Architecture e MVVM (StateFlow + Compose). Versione `1.0.1` (`versionCode` 2), `minSdk` 26. Livelli, flusso dei dati e convenzioni sono in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md); come contribuire è in [CONTRIBUTING.md](CONTRIBUTING.md). La CI impone ktlint, detekt (con regole Compose) e una soglia minima di copertura Kover.
+Il progetto segue Clean Architecture e MVVM (StateFlow + Compose). Versione `1.1.0` (`versionCode` 3), `minSdk` 26. Livelli, flusso dei dati e convenzioni sono in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md); come contribuire è in [CONTRIBUTING.md](CONTRIBUTING.md), insieme alla [policy di sicurezza](SECURITY.md) e al [codice di condotta](CODE_OF_CONDUCT.md). La CI impone ktlint, detekt (con regole Compose) e una soglia minima di copertura Kover.
 
 * **UI**: Jetpack Compose, Material 3; font Outfit + Inter inclusi (SIL OFL 1.1, testi in `app/src/main/assets/licenses`)
 * **State**: Kotlin Coroutines & StateFlow
