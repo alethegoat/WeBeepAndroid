@@ -1,7 +1,7 @@
 package it.polimi.webeep.feature.auth
 
 import it.polimi.webeep.R
-import it.polimi.webeep.core.util.DataError
+import it.polimi.webeep.core.common.DataError
 import it.polimi.webeep.feature.auth.domain.LoginError
 import it.polimi.webeep.feature.auth.presentation.toMessageRes
 import org.junit.Assert.assertEquals

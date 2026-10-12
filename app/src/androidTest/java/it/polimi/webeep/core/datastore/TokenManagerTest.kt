@@ -33,7 +33,7 @@ class TokenManagerTest {
 
     @Test
     fun `ensureLoaded restores a persisted session in a new instance`() = runBlocking {
-        tokenManager.saveAuthData("persisted", 7, "Name")
+        tokenManager.saveAuthData("persisted", 7)
 
         val restored = TokenManager(application, Dispatchers.IO)
         assertFalse("Not loaded before ensureLoaded", restored.isLoggedIn.first())
@@ -46,7 +46,7 @@ class TokenManagerTest {
 
     @Test
     fun `getToken works without ensureLoaded`() = runBlocking {
-        tokenManager.saveAuthData("token", 1, "Name")
+        tokenManager.saveAuthData("token", 1)
 
         val fresh = TokenManager(application, Dispatchers.IO)
 
@@ -72,13 +72,11 @@ class TokenManagerTest {
         // Given
         val dummyToken = "abc123securetoken"
         val userId = 999
-        val fullName = "Mario Rossi"
 
         // When
         tokenManager.saveAuthData(
             token = dummyToken,
-            userId = userId,
-            fullName = fullName
+            userId = userId
         )
 
         // Then
@@ -92,7 +90,7 @@ class TokenManagerTest {
     @Test
     fun `clearSessionSync clears all token data synchronously`() = runBlocking {
         // Given
-        tokenManager.saveAuthData("token", 1, "Name")
+        tokenManager.saveAuthData("token", 1)
 
         // When
         tokenManager.clearSessionSync()
@@ -107,7 +105,7 @@ class TokenManagerTest {
     @Test
     fun `clearAll clears all persisted data from DataStore`() = runBlocking {
         // Given
-        tokenManager.saveAuthData("token", 1, "Name")
+        tokenManager.saveAuthData("token", 1)
 
         // When
         tokenManager.clearAll()
@@ -120,12 +118,11 @@ class TokenManagerTest {
 
     @Test
     fun `persisted values are not stored in clear`() = runBlocking {
-        tokenManager.saveAuthData("plaintext-token-marker", 3, "Plaintext Name Marker")
+        tokenManager.saveAuthData("plaintext-token-marker", 3)
 
         val raw = String(File(application.noBackupFilesDir, "webeep_secure.preferences_pb").readBytes(), Charsets.ISO_8859_1)
 
         assertFalse(raw.contains("plaintext-token-marker"))
-        assertFalse(raw.contains("Plaintext Name Marker"))
     }
 
     // Legacy migration, remove after next release.

@@ -14,14 +14,14 @@ import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavHostController
 import dagger.hilt.android.AndroidEntryPoint
-import it.polimi.webeep.core.datastore.SettingsManager
 import it.polimi.webeep.core.datastore.TokenProvider
 import it.polimi.webeep.core.session.SessionExpiryHandler
 import it.polimi.webeep.feature.auth.domain.LoginUseCase
 import it.polimi.webeep.feature.auth.domain.SsoCallbackParser
 import it.polimi.webeep.feature.auth.domain.SsoCallbackRelay
-import it.polimi.webeep.feature.sync.CourseSyncWorker
-import it.polimi.webeep.feature.sync.SyncScheduler
+import it.polimi.webeep.feature.settings.domain.SettingsRepository
+import it.polimi.webeep.feature.sync.domain.SyncExtras
+import it.polimi.webeep.feature.sync.domain.SyncScheduling
 import it.polimi.webeep.navigation.Screen
 import it.polimi.webeep.navigation.navigateToLogin
 import javax.inject.Inject
@@ -34,10 +34,10 @@ class MainActivity : AppCompatActivity() {
     lateinit var tokenProvider: TokenProvider
 
     @Inject
-    lateinit var settingsManager: SettingsManager
+    lateinit var settingsRepository: SettingsRepository
 
     @Inject
-    lateinit var syncScheduler: SyncScheduler
+    lateinit var syncScheduler: SyncScheduling
 
     @Inject
     lateinit var ssoCallbackRelay: SsoCallbackRelay
@@ -72,7 +72,7 @@ class MainActivity : AppCompatActivity() {
         setContent {
             WeBeepApp(
                 tokenProvider = tokenProvider,
-                settingsManager = settingsManager,
+                settingsRepository = settingsRepository,
                 sessionExpiryHandler = sessionExpiryHandler,
                 startAtLogin = startAtLogin,
                 onNavControllerReady = { controller ->
@@ -142,17 +142,17 @@ class MainActivity : AppCompatActivity() {
     private fun consumeSsoDeepLink(intent: Intent): Boolean {
         val data = intent.data ?: return false
         if (data.scheme !in SSO_CALLBACK_SCHEMES) return false
-        val token = SsoCallbackParser.extractToken(data)
+        val token = SsoCallbackParser.extractToken(data.toString())
         intent.data = null
         token?.let(ssoCallbackRelay::offer)
         return token != null
     }
 
     private fun checkCourseIntent(intent: Intent) {
-        val courseId = intent.getIntExtra(CourseSyncWorker.EXTRA_COURSE_ID, -1)
+        val courseId = intent.getIntExtra(SyncExtras.COURSE_ID, -1)
         if (courseId > 0) {
             pendingCourseId = courseId
-            intent.removeExtra(CourseSyncWorker.EXTRA_COURSE_ID)
+            intent.removeExtra(SyncExtras.COURSE_ID)
         }
     }
 

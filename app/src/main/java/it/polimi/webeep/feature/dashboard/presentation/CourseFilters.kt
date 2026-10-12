@@ -1,6 +1,10 @@
 package it.polimi.webeep.feature.dashboard.presentation
 
-import it.polimi.webeep.core.ui.components.CourseUiModel
+enum class CourseFilter {
+    Active,
+    Past,
+    All
+}
 
 internal fun filterCourses(courses: List<CourseUiModel>, query: String, filter: CourseFilter, nowEpochSeconds: Long): List<CourseUiModel> {
     val needle = query.trim()

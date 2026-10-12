@@ -21,13 +21,13 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
-import it.polimi.webeep.core.datastore.SettingsManager
-import it.polimi.webeep.core.datastore.ThemePreference
 import it.polimi.webeep.core.datastore.TokenProvider
 import it.polimi.webeep.core.session.SessionExpiryHandler
 import it.polimi.webeep.core.ui.theme.InterFamily
 import it.polimi.webeep.core.ui.theme.OutfitFamily
 import it.polimi.webeep.core.ui.theme.WeBeepTheme
+import it.polimi.webeep.feature.settings.domain.SettingsRepository
+import it.polimi.webeep.feature.settings.domain.model.ThemePreference
 import it.polimi.webeep.navigation.NavGraph
 import it.polimi.webeep.navigation.Screen
 import it.polimi.webeep.navigation.navigateToLogin
@@ -36,15 +36,15 @@ import kotlinx.coroutines.flow.first
 @Composable
 fun WeBeepApp(
     tokenProvider: TokenProvider,
-    settingsManager: SettingsManager,
+    settingsRepository: SettingsRepository,
     sessionExpiryHandler: SessionExpiryHandler,
     startAtLogin: Boolean,
     onNavControllerReady: (NavHostController) -> Unit = {}
 ) {
-    val themePreference by settingsManager.themePreference.collectAsStateWithLifecycle(
+    val themePreference by settingsRepository.themePreference.collectAsStateWithLifecycle(
         initialValue = ThemePreference.SYSTEM_DEFAULT
     )
-    val dynamicColor by settingsManager.dynamicColorPreference.collectAsStateWithLifecycle(
+    val dynamicColor by settingsRepository.dynamicColorPreference.collectAsStateWithLifecycle(
         initialValue = false
     )
 

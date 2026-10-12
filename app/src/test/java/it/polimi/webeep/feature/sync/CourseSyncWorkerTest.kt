@@ -13,15 +13,16 @@ import androidx.work.testing.TestListenableWorkerBuilder
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
-import it.polimi.webeep.core.database.dao.CourseDao
-import it.polimi.webeep.core.database.entity.CourseEntity
+import it.polimi.webeep.core.common.Resource
 import it.polimi.webeep.core.datastore.TokenProvider
-import it.polimi.webeep.core.util.Resource
 import it.polimi.webeep.feature.course.domain.CourseRepository
 import it.polimi.webeep.feature.course.domain.model.FileResource
 import it.polimi.webeep.feature.course.domain.model.Module
 import it.polimi.webeep.feature.course.domain.model.Section
 import it.polimi.webeep.feature.dashboard.domain.DashboardRepository
+import it.polimi.webeep.feature.dashboard.domain.model.Course
+import it.polimi.webeep.feature.sync.data.SyncNotifier
+import it.polimi.webeep.feature.sync.data.SyncStateStore
 import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.flowOf
@@ -55,7 +56,6 @@ class CourseSyncWorkerTest {
     private var cachedContents: List<Section> = emptyList()
     private var remoteContents: List<Section> = emptyList()
 
-    private val courseDao: CourseDao = mockk()
     private val dashboardRepository: DashboardRepository = mockk()
     private val tokenProvider: TokenProvider = mockk()
 
@@ -66,7 +66,7 @@ class CourseSyncWorkerTest {
         courseRepository = mockk()
         every { courseRepository.getCachedCourseContents(COURSE_ID) } answers { flowOf(cachedContents) }
         coEvery { courseRepository.getCourseContents(COURSE_ID) } answers { Resource.Success(remoteContents) }
-        every { courseDao.getAllCourses() } returns flowOf(listOf(course()))
+        every { dashboardRepository.getCoursesFromCache() } returns flowOf(listOf(course()))
         coEvery { dashboardRepository.syncCourses() } returns Resource.Success(emptyList())
         coEvery { tokenProvider.getToken() } returns "token"
         shadowOf(context).grantPermissions(Manifest.permission.POST_NOTIFICATIONS)
@@ -137,11 +137,11 @@ class CourseSyncWorkerTest {
                 ): ListenableWorker = CourseSyncWorker(
                     appContext,
                     workerParameters,
-                    courseDao,
                     courseRepository,
                     dashboardRepository,
                     tokenProvider,
-                    store
+                    store,
+                    SyncNotifier(context, store)
                 )
             })
             .build()
@@ -162,19 +162,17 @@ class CourseSyncWorkerTest {
             .map { it.toString() }
     }
 
-    private fun course() = CourseEntity(
+    private fun course() = Course(
         id = COURSE_ID,
         shortname = "AN1",
         fullname = "Analisi 1",
-        displayname = null,
         summary = null,
-        startdate = 0L,
-        enddate = 0L,
-        progress = null,
         courseImage = null,
-        category = null,
+        progress = null,
         isFavourite = false,
-        lastSyncTimestamp = 0L
+        category = null,
+        startDate = 0L,
+        endDate = 0L
     )
 
     private fun contents(vararg files: FileResource) = listOf(

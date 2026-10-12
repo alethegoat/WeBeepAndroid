@@ -9,8 +9,8 @@ class FakeTokenProvider : TokenProvider {
     override val isLoggedIn: Flow<Boolean> = MutableStateFlow(false)
     override val wsToken: Flow<String?> = MutableStateFlow(null)
     override fun getTokenSync(): String? = null
-    override suspend fun saveAuthData(token: String, userId: Int, fullName: String) = Unit
-    override suspend fun updateUserProfile(userId: Int, fullName: String) = Unit
+    override suspend fun saveAuthData(token: String, userId: Int) = Unit
+    override suspend fun updateUserId(userId: Int) = Unit
     override suspend fun getToken(): String? = null
     override suspend fun getUserId(): Int? = null
     override suspend fun clearAll() = Unit

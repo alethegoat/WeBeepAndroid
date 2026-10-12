@@ -1,7 +1,7 @@
 package it.polimi.webeep.util.fakes
 
-import it.polimi.webeep.core.util.DataError
-import it.polimi.webeep.core.util.Resource
+import it.polimi.webeep.core.common.DataError
+import it.polimi.webeep.core.common.Resource
 import it.polimi.webeep.feature.auth.domain.AuthRepository
 import it.polimi.webeep.feature.auth.domain.UserSession
 

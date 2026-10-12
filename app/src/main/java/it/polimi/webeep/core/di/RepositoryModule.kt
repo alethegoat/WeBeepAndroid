@@ -4,8 +4,10 @@ import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
-import it.polimi.webeep.core.util.ConnectivityObserver
-import it.polimi.webeep.core.util.NetworkMonitor
+import it.polimi.webeep.core.common.ConnectivityObserver
+import it.polimi.webeep.core.network.NetworkMonitor
+import it.polimi.webeep.core.session.SessionDataCleaner
+import it.polimi.webeep.core.session.data.SessionDataCleanerImpl
 import it.polimi.webeep.feature.auth.data.AuthRepositoryImpl
 import it.polimi.webeep.feature.auth.domain.AuthRepository
 import it.polimi.webeep.feature.course.data.CourseRepositoryImpl
@@ -14,6 +16,8 @@ import it.polimi.webeep.feature.dashboard.data.DashboardRepositoryImpl
 import it.polimi.webeep.feature.dashboard.domain.DashboardRepository
 import it.polimi.webeep.feature.download.data.DownloadRepositoryImpl
 import it.polimi.webeep.feature.download.domain.DownloadRepository
+import it.polimi.webeep.feature.fileviewer.data.FileContentRepositoryImpl
+import it.polimi.webeep.feature.fileviewer.domain.FileContentRepository
 import javax.inject.Singleton
 
 @Module
@@ -26,6 +30,10 @@ abstract class RepositoryModule {
 
     @Binds
     @Singleton
+    abstract fun bindSessionDataCleaner(impl: SessionDataCleanerImpl): SessionDataCleaner
+
+    @Binds
+    @Singleton
     abstract fun bindDashboardRepository(impl: DashboardRepositoryImpl): DashboardRepository
 
     @Binds
@@ -35,6 +43,9 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindDownloadRepository(impl: DownloadRepositoryImpl): DownloadRepository
+
+    @Binds
+    abstract fun bindFileContentRepository(impl: FileContentRepositoryImpl): FileContentRepository
 
     @Binds
     @Singleton

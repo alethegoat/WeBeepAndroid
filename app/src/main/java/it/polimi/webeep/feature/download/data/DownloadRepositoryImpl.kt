@@ -1,18 +1,15 @@
 package it.polimi.webeep.feature.download.data
 
 import android.app.Application
-import android.content.Intent
-import android.net.Uri
-import android.webkit.MimeTypeMap
-import androidx.core.content.FileProvider
+import it.polimi.webeep.core.common.AppDirectories
+import it.polimi.webeep.core.common.DataError
+import it.polimi.webeep.core.common.FileUtils
+import it.polimi.webeep.core.common.Resource
+import it.polimi.webeep.core.common.runCatchingCancellable
 import it.polimi.webeep.core.di.IoDispatcher
 import it.polimi.webeep.core.network.MoodleBinaryDownload
 import it.polimi.webeep.core.network.MoodleFileUrlBuilder
-import it.polimi.webeep.core.util.AppDirectories
-import it.polimi.webeep.core.util.DataError
-import it.polimi.webeep.core.util.FileUtils
-import it.polimi.webeep.core.util.Resource
-import it.polimi.webeep.core.util.runCatchingCancellable
+import it.polimi.webeep.core.storage.LocalFileStore
 import it.polimi.webeep.feature.download.domain.DownloadRepository
 import it.polimi.webeep.feature.download.domain.DownloadRepository.Companion.PROGRESS_COMPLETE
 import it.polimi.webeep.feature.download.domain.DownloadRepository.Companion.PROGRESS_FAILED
@@ -55,14 +52,15 @@ class DownloadRepositoryImpl @Inject constructor(
     private val progress = ConcurrentHashMap<Long, MutableStateFlow<Int>>()
     private val jobs = ConcurrentHashMap<Long, Job>()
     private val calls = ConcurrentHashMap<Long, Call>()
-    private val downloadsDir: File by lazy { File(context.filesDir, AppDirectories.DOWNLOADS) }
+    private val store: LocalFileStore by lazy {
+        LocalFileStore(File(context.filesDir, AppDirectories.DOWNLOADS), MAX_DOWNLOADS_BYTES)
+    }
     private val migrationJob: Job = scope.launch { migrateLegacyDownloads() }
 
     override fun downloadFile(url: String, token: String?, localFileName: String, displayName: String, mimeType: String?): Resource<Long> {
-        val directory = getDownloadsDirectory()
         val safeLocalFileName = sanitizeFileName(localFileName)
-        val destination = containedFile(directory, safeLocalFileName) ?: return Resource.Error(DataError.Storage)
-        val part = containedFile(directory, "$safeLocalFileName.part") ?: return Resource.Error(DataError.Storage)
+        val destination = store.containedFile(safeLocalFileName) ?: return Resource.Error(DataError.Storage)
+        val part = store.partFileFor(destination)
 
         val call = try {
             okHttpClient.newCall(Request.Builder().url(requestUrl(url, token)).build())
@@ -75,23 +73,14 @@ class DownloadRepositoryImpl @Inject constructor(
         progress[id] = state
         // Registered before launching so an immediate cancelDownload() reaches the network call.
         calls[id] = call
-        jobs[id] = scope.launch { runDownload(id, call, directory, part, destination, state) }
+        jobs[id] = scope.launch { runDownload(id, call, part, destination, state) }
         return Resource.Success(id)
     }
 
-    private suspend fun CoroutineScope.runDownload(
-        id: Long,
-        call: Call,
-        directory: File,
-        part: File,
-        destination: File,
-        state: MutableStateFlow<Int>
-    ) {
+    private suspend fun CoroutineScope.runDownload(id: Long, call: Call, part: File, destination: File, state: MutableStateFlow<Int>) {
         try {
             migrationJob.join()
-            if (!directory.exists()) {
-                directory.mkdirs()
-            }
+            store.ensureDirectory()
             if (part.exists()) {
                 part.delete()
             }
@@ -100,8 +89,8 @@ class DownloadRepositoryImpl @Inject constructor(
                 part.outputStream().use { output -> body.copyTo(output, state) }
             }
             ensureActive()
-            moveIntoPlace(part, destination)
-            evictDownloadsIfNeeded(keep = destination)
+            store.commit(part, destination)
+            store.evict(keep = destination)
             state.value = PROGRESS_COMPLETE
         } catch (e: CancellationException) {
             part.delete()
@@ -135,16 +124,6 @@ class DownloadRepositoryImpl @Inject constructor(
         }
     }
 
-    private fun moveIntoPlace(part: File, destination: File) {
-        if (destination.exists()) {
-            destination.delete()
-        }
-        if (!part.renameTo(destination)) {
-            part.copyTo(destination, overwrite = true)
-            part.delete()
-        }
-    }
-
     private fun requestUrl(url: String, token: String?): String {
         val cleanUrl = MoodleFileUrlBuilder.stripAuthFromUrl(url)
         return if (token != null) MoodleFileUrlBuilder.buildAuthenticatedUrl(cleanUrl, token) else cleanUrl
@@ -174,68 +153,15 @@ class DownloadRepositoryImpl @Inject constructor(
         jobs.values.forEach { it.cancel() }
         jobs.clear()
         progress.clear()
-        val directory = getDownloadsDirectory()
-        if (directory.exists()) {
-            directory.listFiles()?.forEach { it.delete() }
-        }
-    }
-
-    override fun openFile(fileName: String): Boolean {
-        val safeFileName = sanitizeFileName(fileName)
-        val fileUri = getDownloadedFileUri(safeFileName) ?: return false
-        val viewIntent = Intent(Intent.ACTION_VIEW).apply {
-            setDataAndType(fileUri, getMimeType(safeFileName))
-            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-        }
-        val chooser = Intent.createChooser(viewIntent, null).apply {
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        }
-        return runCatchingCancellable { context.startActivity(chooser) }.isSuccess
+        store.directory.listFiles()?.forEach { it.delete() }
     }
 
     override fun isFileDownloaded(fileName: String): Boolean {
-        val directory = getDownloadsDirectory()
-        val file = containedFile(directory, sanitizeFileName(fileName)) ?: return false
+        val file = store.containedFile(sanitizeFileName(fileName)) ?: return false
         return file.exists() && file.length() > 0
     }
 
-    override fun getDownloadedFileUri(fileName: String): Uri? {
-        val directory = getDownloadsDirectory()
-        val file = containedFile(directory, sanitizeFileName(fileName)) ?: return null
-        return if (file.exists()) {
-            FileProvider.getUriForFile(
-                context,
-                "${context.packageName}.fileprovider",
-                file
-            )
-        } else {
-            null
-        }
-    }
-
-    private fun evictDownloadsIfNeeded(keep: File) {
-        val directory = getDownloadsDirectory()
-        val files = directory.listFiles() ?: return
-        var total = files.sumOf { it.length() }
-        if (total <= MAX_DOWNLOADS_BYTES) return
-        files
-            .filter { it != keep && !it.name.endsWith(".part") }
-            .sortedBy { it.lastModified() }
-            .forEach { file ->
-                if (total <= MAX_DOWNLOADS_BYTES) return
-                val size = file.length()
-                if (file.delete()) {
-                    total -= size
-                }
-            }
-    }
-
-    private fun getMimeType(fileName: String): String {
-        val extension = MimeTypeMap.getFileExtensionFromUrl(fileName)
-        return MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension) ?: "*/*"
-    }
-
-    private fun getDownloadsDirectory(): File = downloadsDir
+    override fun downloadedFile(fileName: String): File? = store.containedFile(sanitizeFileName(fileName))?.takeIf { it.exists() }
 
     private fun scheduleProgressCleanup(id: Long, state: MutableStateFlow<Int>) {
         scope.launch {
@@ -253,31 +179,12 @@ class DownloadRepositoryImpl @Inject constructor(
         // Best effort: a failed migration is retried on the next launch because the marker is not written.
         runCatchingCancellable {
             val externalRoot = context.getExternalFilesDir(null) ?: return
-            LegacyDownloadsMigration.migrate(File(externalRoot, AppDirectories.DOWNLOADS), getDownloadsDirectory())
+            LegacyDownloadsMigration.migrate(File(externalRoot, AppDirectories.DOWNLOADS), store.directory)
             marker.createNewFile()
         }
     }
 
     private fun sanitizeFileName(fileName: String): String = FileUtils.sanitizeFileName(fileName).take(MAX_FILE_NAME_LENGTH)
-
-    /**
-     * Defense in depth against path traversal: sanitize() already strips
-     * separators, but verify the resolved file stays inside [directory].
-     */
-    private fun containedFile(directory: File, safeName: String): File? = try {
-        val dirCanonical = directory.canonicalPath
-        val file = File(directory, safeName)
-        val fileCanonical = file.canonicalPath
-        if (fileCanonical == dirCanonical ||
-            fileCanonical.startsWith("$dirCanonical${File.separator}")
-        ) {
-            file
-        } else {
-            null
-        }
-    } catch (_: Exception) {
-        null
-    }
 
     private companion object {
         const val MAX_FILE_NAME_LENGTH = 120

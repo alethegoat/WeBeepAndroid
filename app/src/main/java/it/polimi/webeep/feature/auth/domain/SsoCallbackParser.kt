@@ -1,6 +1,5 @@
 package it.polimi.webeep.feature.auth.domain
 
-import android.net.Uri
 import java.net.URLDecoder
 
 /**
@@ -8,8 +7,6 @@ import java.net.URLDecoder
  * hierarchical Uri parser splits the value. Always read the raw string after `token=`.
  */
 object SsoCallbackParser {
-
-    fun extractToken(data: Uri): String? = extractToken(data.toString())
 
     fun extractToken(rawUri: String): String? {
         val marker = "token="

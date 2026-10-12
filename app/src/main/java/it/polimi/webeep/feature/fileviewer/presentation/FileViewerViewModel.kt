@@ -4,19 +4,17 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import it.polimi.webeep.core.common.FileUtils
+import it.polimi.webeep.core.common.Resource
+import it.polimi.webeep.core.common.runCatchingCancellable
 import it.polimi.webeep.core.network.MoodleFileUrlBuilder
-import it.polimi.webeep.core.util.FileUtils
-import it.polimi.webeep.core.util.Resource
-import it.polimi.webeep.core.util.runCatchingCancellable
 import it.polimi.webeep.feature.course.domain.CourseRepository
-import it.polimi.webeep.feature.course.presentation.DownloadState
 import it.polimi.webeep.feature.download.domain.DownloadFileUseCase
 import it.polimi.webeep.feature.download.domain.DownloadRepository
 import it.polimi.webeep.feature.download.domain.DownloadRepository.Companion.PROGRESS_COMPLETE
 import it.polimi.webeep.feature.download.domain.DownloadRepository.Companion.PROGRESS_FAILED
-import it.polimi.webeep.feature.fileviewer.data.FileContentLoader
-import it.polimi.webeep.feature.fileviewer.data.FileContentState
-import it.polimi.webeep.feature.fileviewer.data.localFile
+import it.polimi.webeep.feature.download.domain.model.DownloadState
+import it.polimi.webeep.feature.fileviewer.domain.FileContentRepository
 import it.polimi.webeep.feature.fileviewer.domain.ViewerFile
 import it.polimi.webeep.feature.fileviewer.domain.findSiblings
 import it.polimi.webeep.navigation.Screen
@@ -45,7 +43,7 @@ data class ViewerFiles(val files: List<ViewerFile>, val initialIndex: Int)
  */
 @HiltViewModel
 class FileViewerViewModel @Inject constructor(
-    private val loader: FileContentLoader,
+    private val loader: FileContentRepository,
     private val courseRepository: CourseRepository,
     private val downloadFileUseCase: DownloadFileUseCase,
     private val downloadRepository: DownloadRepository,
@@ -141,7 +139,7 @@ class FileViewerViewModel @Inject constructor(
         if (_downloadStates.value[file.url] == DownloadState.DOWNLOADING) return
         viewModelScope.launch {
             setDownloadState(file, DownloadState.DOWNLOADING)
-            val started = downloadFileUseCase.execute(
+            val started = downloadFileUseCase(
                 url = file.url,
                 localFileName = localName(file),
                 displayName = file.title,
@@ -178,7 +176,7 @@ class FileViewerViewModel @Inject constructor(
         val state = MutableStateFlow<FileContentState>(FileContentState.Downloading(0L, null))
         contents[file.url] = state
         loadJobs[file.url] = viewModelScope.launch {
-            loader.load(file).collect { state.value = it }
+            loader.load(file).collect { state.value = it.toContentState() }
         }
         return state
     }

@@ -4,12 +4,11 @@ import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import it.polimi.webeep.core.ui.components.CourseUiModel
+import it.polimi.webeep.core.common.ConnectivityObserver
+import it.polimi.webeep.core.common.Resource
+import it.polimi.webeep.core.common.onSuccess
 import it.polimi.webeep.core.ui.util.STOP_TIMEOUT_MILLIS
-import it.polimi.webeep.core.util.ConnectivityObserver
-import it.polimi.webeep.core.util.Resource
-import it.polimi.webeep.core.util.onSuccess
-import it.polimi.webeep.core.util.toMessageRes
+import it.polimi.webeep.core.ui.util.toMessageRes
 import it.polimi.webeep.feature.dashboard.domain.DashboardRepository
 import it.polimi.webeep.feature.dashboard.domain.GetCoursesUseCase
 import it.polimi.webeep.feature.dashboard.domain.SyncCoursesUseCase

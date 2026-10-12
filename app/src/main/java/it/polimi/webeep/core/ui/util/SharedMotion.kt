@@ -30,11 +30,11 @@ import it.polimi.webeep.core.ui.theme.WeBeepMotion
 val LocalNavSharedTransitionScope = staticCompositionLocalOf<SharedTransitionScope?> { null }
 val LocalNavAnimatedVisibilityScope = staticCompositionLocalOf<AnimatedVisibilityScope?> { null }
 
-/** Corner radius of [it.polimi.webeep.core.ui.components.CourseCard] (MaterialTheme.shapes.large). */
+/** Corner radius of [it.polimi.webeep.feature.dashboard.presentation.components.CourseCard] (MaterialTheme.shapes.large). */
 private val CourseCardCorner = 24.dp
 
 /**
- * Container transform between a dashboard [it.polimi.webeep.core.ui.components.CourseCard]
+ * Container transform between a dashboard [it.polimi.webeep.feature.dashboard.presentation.components.CourseCard]
  * ([isScreen] false) and the whole course-detail screen ([isScreen] true).
  *
  * The screen is measured once at full size and scaled into the animating bounds, so

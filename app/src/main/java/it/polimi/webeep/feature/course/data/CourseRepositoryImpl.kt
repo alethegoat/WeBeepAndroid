@@ -1,17 +1,14 @@
 package it.polimi.webeep.feature.course.data
 
+import it.polimi.webeep.core.common.MissingTokenException
+import it.polimi.webeep.core.common.Resource
+import it.polimi.webeep.core.common.resourceOf
 import it.polimi.webeep.core.database.dao.CourseContentDao
 import it.polimi.webeep.core.database.dao.CourseDao
-import it.polimi.webeep.core.datastore.MissingTokenException
 import it.polimi.webeep.core.datastore.TokenProvider
 import it.polimi.webeep.core.di.DefaultDispatcher
 import it.polimi.webeep.core.network.MoodleApiService
-import it.polimi.webeep.core.network.MoodleFileUrlBuilder
-import it.polimi.webeep.core.util.Resource
-import it.polimi.webeep.core.util.resourceOf
 import it.polimi.webeep.feature.course.domain.CourseRepository
-import it.polimi.webeep.feature.course.domain.model.FileResource
-import it.polimi.webeep.feature.course.domain.model.Module
 import it.polimi.webeep.feature.course.domain.model.Section
 import javax.inject.Inject
 import kotlinx.coroutines.CoroutineDispatcher
@@ -48,42 +45,9 @@ class CourseRepositoryImpl @Inject constructor(
         mapped.sections
     }
 
-    override fun getCachedCourseContents(courseId: Int): Flow<List<Section>> =
-        contentDao.getSectionsByCourse(courseId).map { sectionWithModulesList ->
-            sectionWithModulesList.map { swm ->
-                val sectionEntity = swm.section
-                val modules = swm.modules.map { mwc ->
-                    val moduleEntity = mwc.module
-                    val files = mwc.contents.map { ce ->
-                        FileResource(
-                            filename = ce.filename,
-                            filepath = ce.filepath ?: "/",
-                            fileUrl = MoodleFileUrlBuilder.stripAuthFromUrl(ce.fileUrl),
-                            fileSize = ce.fileSize ?: 0L,
-                            mimeType = ce.mimeType,
-                            timeModified = ce.timeModified
-                        )
-                    }
-                    Module(
-                        id = moduleEntity.id,
-                        name = moduleEntity.name,
-                        modName = moduleEntity.modName,
-                        iconUrl = moduleEntity.iconUrl?.let { MoodleFileUrlBuilder.stripAuthFromUrl(it) },
-                        description = moduleEntity.description,
-                        url = moduleEntity.url?.let { MoodleFileUrlBuilder.stripAuthFromUrl(it) },
-                        files = files
-                    )
-                }
-
-                Section(
-                    id = sectionEntity.id,
-                    name = sectionEntity.name,
-                    summary = sectionEntity.summary,
-                    sectionNumber = sectionEntity.section,
-                    modules = modules
-                )
-            }
-        }.flowOn(defaultDispatcher)
+    override fun getCachedCourseContents(courseId: Int): Flow<List<Section>> = contentDao.getSectionsByCourse(courseId)
+        .map { sections -> sections.map { it.toDomain() } }
+        .flowOn(defaultDispatcher)
 
     override suspend fun getCourseName(courseId: Int): String? = courseDao.getCourseById(courseId)?.fullname
 }

@@ -8,6 +8,7 @@ import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ParametersBuilder
 import io.ktor.http.isSuccess
 import io.ktor.http.parameters
+import it.polimi.webeep.core.common.MoodleException
 import it.polimi.webeep.core.network.dto.CourseDto
 import it.polimi.webeep.core.network.dto.CourseSectionDto
 import it.polimi.webeep.core.network.dto.SiteInfoDto

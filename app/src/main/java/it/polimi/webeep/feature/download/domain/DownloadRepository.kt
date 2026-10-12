@@ -1,7 +1,7 @@
 package it.polimi.webeep.feature.download.domain
 
-import android.net.Uri
-import it.polimi.webeep.core.util.Resource
+import it.polimi.webeep.core.common.Resource
+import java.io.File
 import kotlinx.coroutines.flow.Flow
 
 interface DownloadRepository {
@@ -18,14 +18,10 @@ interface DownloadRepository {
      */
     fun getDownloadProgress(downloadId: Long): Flow<Int>
 
-    fun openFile(fileName: String): Boolean
-
     fun isFileDownloaded(fileName: String): Boolean
 
-    /**
-     * FileProvider URI for the cached file.
-     */
-    fun getDownloadedFileUri(fileName: String): Uri?
+    /** The finished local copy, or null when it is not on disk. */
+    fun downloadedFile(fileName: String): File?
 
     fun clearAllDownloads()
 

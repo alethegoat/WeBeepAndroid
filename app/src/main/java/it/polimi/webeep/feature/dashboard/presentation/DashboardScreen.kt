@@ -78,7 +78,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import it.polimi.webeep.R
 import it.polimi.webeep.core.ui.components.AuroraBackground
-import it.polimi.webeep.core.ui.components.CourseCard
 import it.polimi.webeep.core.ui.components.EmptyStateView
 import it.polimi.webeep.core.ui.components.ShimmerCourseList
 import it.polimi.webeep.core.ui.components.WeBeepSearchField
@@ -88,6 +87,7 @@ import it.polimi.webeep.core.ui.util.LocalReduceMotion
 import it.polimi.webeep.core.ui.util.STAGGER_STEP_MS
 import it.polimi.webeep.core.ui.util.bouncyClickable
 import it.polimi.webeep.core.ui.util.staggeredEntrance
+import it.polimi.webeep.feature.dashboard.presentation.components.CourseCard
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.filter
 
@@ -523,10 +523,4 @@ private fun CourseFilterBar(selected: CourseFilter, onSelect: (CourseFilter) -> 
             }
         }
     }
-}
-
-enum class CourseFilter {
-    Active,
-    Past,
-    All
 }

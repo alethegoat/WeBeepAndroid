@@ -7,6 +7,7 @@ import io.ktor.client.plugins.defaultRequest
 import io.ktor.serialization.kotlinx.json.json
 import io.mockk.every
 import io.mockk.mockk
+import it.polimi.webeep.core.common.MoodleException
 import it.polimi.webeep.core.datastore.TokenProvider
 import java.io.IOException
 import java.util.concurrent.TimeUnit

@@ -1,9 +1,9 @@
 package it.polimi.webeep.feature.dashboard.domain
 
-import it.polimi.webeep.core.util.ConnectivityObserver
-import it.polimi.webeep.core.util.DataError
-import it.polimi.webeep.core.util.Resource
-import it.polimi.webeep.core.util.runCatchingCancellable
+import it.polimi.webeep.core.common.ConnectivityObserver
+import it.polimi.webeep.core.common.DataError
+import it.polimi.webeep.core.common.Resource
+import it.polimi.webeep.core.common.runCatchingCancellable
 import it.polimi.webeep.feature.dashboard.domain.model.Course
 import javax.inject.Inject
 import kotlinx.coroutines.flow.first

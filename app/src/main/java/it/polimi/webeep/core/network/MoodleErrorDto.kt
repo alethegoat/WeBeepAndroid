@@ -1,0 +1,12 @@
+package it.polimi.webeep.core.network
+
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+
+/** Error envelope returned by Moodle web services (usually with HTTP 200). */
+@Serializable
+data class MoodleErrorDto(
+    @SerialName("exception") val exception: String? = null,
+    @SerialName("errorcode") val errorcode: String? = null,
+    @SerialName("message") val message: String? = null
+)

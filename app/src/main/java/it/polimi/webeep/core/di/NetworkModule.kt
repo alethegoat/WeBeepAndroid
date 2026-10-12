@@ -13,6 +13,7 @@ import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.defaultRequest
 import io.ktor.serialization.kotlinx.json.json
 import it.polimi.webeep.BuildConfig
+import it.polimi.webeep.core.common.AppDirectories
 import it.polimi.webeep.core.datastore.TokenProvider
 import it.polimi.webeep.core.network.LogRedactor
 import it.polimi.webeep.core.network.MoodleApiService
@@ -21,7 +22,6 @@ import it.polimi.webeep.core.network.NoStoreAuthCacheInterceptor
 import it.polimi.webeep.core.network.PluginFileAuthInterceptor
 import it.polimi.webeep.core.network.RetryInterceptor
 import it.polimi.webeep.core.network.TokenInterceptor
-import it.polimi.webeep.core.util.AppDirectories
 import java.io.File
 import java.util.concurrent.TimeUnit
 import javax.inject.Singleton
@@ -37,7 +37,7 @@ import okhttp3.logging.HttpLoggingInterceptor
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
 
-    // Keep host in sync with LoginUseCase.SITE_WWWROOT via MoodleFileUrlBuilder.TRUSTED_HOST.
+    // Keep host in sync with LoginUseCase.SITE_WWWROOT (a unit test pins both to MoodleFileUrlBuilder.TRUSTED_HOST).
     private const val BASE_URL = "https://webeep.polimi.it/"
     private const val CONNECT_TIMEOUT_SECONDS = 30L
     private const val READ_TIMEOUT_SECONDS = 30L

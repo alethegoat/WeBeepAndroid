@@ -1,9 +1,9 @@
 package it.polimi.webeep.feature.dashboard
 
 import app.cash.turbine.test
-import it.polimi.webeep.core.util.ConnectivityObserver
-import it.polimi.webeep.core.util.DataError
-import it.polimi.webeep.core.util.Resource
+import it.polimi.webeep.core.common.ConnectivityObserver
+import it.polimi.webeep.core.common.DataError
+import it.polimi.webeep.core.common.Resource
 import it.polimi.webeep.feature.dashboard.domain.GetCoursesUseCase
 import it.polimi.webeep.feature.dashboard.domain.SyncCoursesUseCase
 import it.polimi.webeep.feature.dashboard.domain.model.Course

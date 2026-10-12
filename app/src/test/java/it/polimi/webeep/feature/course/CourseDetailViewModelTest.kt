@@ -7,10 +7,11 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.impl.annotations.MockK
+import io.mockk.verify
 import it.polimi.webeep.R
+import it.polimi.webeep.core.common.DataError
+import it.polimi.webeep.core.common.Resource
 import it.polimi.webeep.core.ui.components.GroupPosition
-import it.polimi.webeep.core.util.DataError
-import it.polimi.webeep.core.util.Resource
 import it.polimi.webeep.feature.course.domain.CourseRepository
 import it.polimi.webeep.feature.course.domain.GetCourseContentsUseCase
 import it.polimi.webeep.feature.course.domain.model.FileResource
@@ -19,11 +20,12 @@ import it.polimi.webeep.feature.course.domain.model.Section
 import it.polimi.webeep.feature.course.presentation.CourseDetailUiState
 import it.polimi.webeep.feature.course.presentation.CourseDetailViewModel
 import it.polimi.webeep.feature.course.presentation.CourseListItem
-import it.polimi.webeep.feature.course.presentation.DownloadState
 import it.polimi.webeep.feature.course.presentation.ModuleKind
 import it.polimi.webeep.feature.download.domain.DownloadFileUseCase
 import it.polimi.webeep.feature.download.domain.DownloadRepository
+import it.polimi.webeep.feature.download.domain.model.DownloadState
 import it.polimi.webeep.util.MainDispatcherRule
+import java.io.File
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -97,7 +99,6 @@ class CourseDetailViewModelTest {
         coEvery { courseRepository.getCourseName(5) } returns "Informatica 1"
         coEvery { getCourseContentsUseCase(5) } returns flowOf(Resource.Success(sampleSections))
         every { downloadRepository.isFileDownloaded(any()) } returns false
-        every { downloadRepository.openFile(any()) } returns true
     }
 
     private fun initViewModel() {
@@ -261,7 +262,7 @@ class CourseDetailViewModelTest {
     fun `downloadFile triggers download and monitors progress successfully`() = runTest {
         val fileUrl = "https://webeep.polimi.it/webservice/pluginfile.php/123/syllabus.pdf"
         coEvery {
-            downloadFileUseCase.execute(fileUrl, any(), "syllabus.pdf", "application/pdf")
+            downloadFileUseCase(fileUrl, any(), "syllabus.pdf", "application/pdf")
         } returns Resource.Success(999L)
         every { downloadRepository.getDownloadProgress(999L) } returns flowOf(50, 100)
 
@@ -288,7 +289,7 @@ class CourseDetailViewModelTest {
         }
 
         coVerify(exactly = 1) {
-            downloadFileUseCase.execute(
+            downloadFileUseCase(
                 fileUrl,
                 match { it.startsWith("syllabus-") && it.endsWith(".pdf") },
                 "syllabus.pdf",
@@ -301,7 +302,7 @@ class CourseDetailViewModelTest {
     fun `downloadFile transitions to FAILED state on download execution error`() = runTest {
         val fileUrl = "https://webeep.polimi.it/webservice/pluginfile.php/123/syllabus.pdf"
         coEvery {
-            downloadFileUseCase.execute(fileUrl, any(), "syllabus.pdf", "application/pdf")
+            downloadFileUseCase(fileUrl, any(), "syllabus.pdf", "application/pdf")
         } returns Resource.Error(DataError.Unauthorized)
 
         initViewModel()
@@ -327,7 +328,7 @@ class CourseDetailViewModelTest {
     }
 
     @Test
-    fun `openFile delegates to downloadRepository`() = runTest {
+    fun `downloadedFile delegates to downloadRepository`() = runTest {
         initViewModel()
 
         viewModel.uiState.test {
@@ -337,10 +338,12 @@ class CourseDetailViewModelTest {
             }
             val file = (successState as CourseDetailUiState.Success).sections.first().modules.first().files.first()
 
-            viewModel.openFile(file)
+            val local = File("syllabus.pdf")
+            every { downloadRepository.downloadedFile(any()) } returns local
 
-            coVerify(exactly = 1) {
-                downloadRepository.openFile(match { it.startsWith("syllabus-") && it.endsWith(".pdf") })
+            assertEquals(local, viewModel.downloadedFile(file))
+            verify(exactly = 1) {
+                downloadRepository.downloadedFile(match { it.startsWith("syllabus-") && it.endsWith(".pdf") })
             }
         }
     }
@@ -350,7 +353,7 @@ class CourseDetailViewModelTest {
         val fileUrl = "https://webeep.polimi.it/webservice/pluginfile.php/123/syllabus.pdf"
         val cache = MutableStateFlow(sampleSections)
         coEvery { getCourseContentsUseCase(5) } returns cache.map { Resource.Success(it) }
-        coEvery { downloadFileUseCase.execute(fileUrl, any(), any(), any()) } returns Resource.Success(7L)
+        coEvery { downloadFileUseCase(fileUrl, any(), any(), any()) } returns Resource.Success(7L)
         every { downloadRepository.getDownloadProgress(7L) } returns MutableSharedFlow<Int>()
 
         initViewModel()
@@ -373,7 +376,7 @@ class CourseDetailViewModelTest {
         val fileUrl = "https://webeep.polimi.it/webservice/pluginfile.php/123/syllabus.pdf"
         val cache = MutableStateFlow(sampleSections)
         coEvery { getCourseContentsUseCase(5) } returns cache.map { Resource.Success(it) }
-        coEvery { downloadFileUseCase.execute(fileUrl, any(), any(), any()) } returns Resource.Error(DataError.Unauthorized)
+        coEvery { downloadFileUseCase(fileUrl, any(), any(), any()) } returns Resource.Error(DataError.Unauthorized)
 
         initViewModel()
         advanceUntilIdle()

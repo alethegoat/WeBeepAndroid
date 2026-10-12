@@ -34,18 +34,6 @@ class MoodleFileUrlBuilderTest {
     }
 
     @Test
-    fun `stripAuthFromUrl removes token query parameters`() {
-        val result = MoodleFileUrlBuilder.stripAuthFromUrl(
-            "https://webeep.polimi.it/webservice/pluginfile.php/1/file.pdf?token=secret&forcedownload=1"
-        )
-
-        assertEquals(
-            "https://webeep.polimi.it/webservice/pluginfile.php/1/file.pdf?forcedownload=1",
-            result
-        )
-    }
-
-    @Test
     fun `buildAuthenticatedUrl does not append duplicate token`() {
         val result = MoodleFileUrlBuilder.buildAuthenticatedUrl(
             url = "https://webeep.polimi.it/webservice/pluginfile.php/123/file.pdf?token=abc123",

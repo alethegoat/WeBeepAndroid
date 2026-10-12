@@ -1,16 +1,16 @@
 package it.polimi.webeep.feature.dashboard.data
 
+import it.polimi.webeep.core.common.MissingTokenException
+import it.polimi.webeep.core.common.MoodleText
+import it.polimi.webeep.core.common.Resource
+import it.polimi.webeep.core.common.resourceOf
 import it.polimi.webeep.core.database.dao.CourseDao
 import it.polimi.webeep.core.database.entity.CourseEntity
-import it.polimi.webeep.core.datastore.MissingTokenException
 import it.polimi.webeep.core.datastore.TokenProvider
 import it.polimi.webeep.core.di.DefaultDispatcher
 import it.polimi.webeep.core.network.MoodleApiService
 import it.polimi.webeep.core.network.MoodleFileUrlBuilder
 import it.polimi.webeep.core.network.dto.CourseDto
-import it.polimi.webeep.core.util.MoodleText
-import it.polimi.webeep.core.util.Resource
-import it.polimi.webeep.core.util.resourceOf
 import it.polimi.webeep.feature.dashboard.domain.DashboardRepository
 import it.polimi.webeep.feature.dashboard.domain.model.Course
 import it.polimi.webeep.feature.dashboard.domain.model.UserProfile
@@ -44,7 +44,7 @@ class DashboardRepositoryImpl @Inject constructor(
         var userId = tokenProvider.getUserId()?.takeIf { it > 0 }
         if (userId == null) {
             val siteInfo = apiService.getSiteInfo()
-            tokenProvider.updateUserProfile(siteInfo.userid, siteInfo.fullname)
+            tokenProvider.updateUserId(siteInfo.userid)
             userId = siteInfo.userid
         }
 
@@ -64,7 +64,7 @@ class DashboardRepositoryImpl @Inject constructor(
         tokenProvider.getToken() ?: throw MissingTokenException()
         val siteInfo = apiService.getSiteInfo()
 
-        tokenProvider.updateUserProfile(siteInfo.userid, siteInfo.fullname)
+        tokenProvider.updateUserId(siteInfo.userid)
 
         val avatarUrl = MoodleFileUrlBuilder.stripAuthFromUrl(siteInfo.userpictureurl)
         UserProfile(fullName = siteInfo.fullname, avatarUrl = avatarUrl)

@@ -6,13 +6,13 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import it.polimi.webeep.core.common.FileUtils
+import it.polimi.webeep.core.common.MoodleText
+import it.polimi.webeep.core.common.Resource
 import it.polimi.webeep.core.di.DefaultDispatcher
 import it.polimi.webeep.core.di.IoDispatcher
 import it.polimi.webeep.core.ui.util.STOP_TIMEOUT_MILLIS
-import it.polimi.webeep.core.util.FileUtils
-import it.polimi.webeep.core.util.MoodleText
-import it.polimi.webeep.core.util.Resource
-import it.polimi.webeep.core.util.toMessageRes
+import it.polimi.webeep.core.ui.util.toMessageRes
 import it.polimi.webeep.feature.course.domain.CourseRepository
 import it.polimi.webeep.feature.course.domain.GetCourseContentsUseCase
 import it.polimi.webeep.feature.course.domain.model.FileResource
@@ -22,6 +22,8 @@ import it.polimi.webeep.feature.download.domain.DownloadFileUseCase
 import it.polimi.webeep.feature.download.domain.DownloadRepository
 import it.polimi.webeep.feature.download.domain.DownloadRepository.Companion.PROGRESS_COMPLETE
 import it.polimi.webeep.feature.download.domain.DownloadRepository.Companion.PROGRESS_FAILED
+import it.polimi.webeep.feature.download.domain.model.DownloadState
+import java.io.File
 import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import kotlinx.coroutines.CoroutineDispatcher
@@ -76,8 +78,6 @@ data class FileUiModel(
     val formattedSize: String,
     val downloadState: DownloadState = DownloadState.NOT_STARTED
 )
-
-enum class DownloadState { NOT_STARTED, DOWNLOADING, COMPLETED, FAILED }
 
 @HiltViewModel
 class CourseDetailViewModel @Inject constructor(
@@ -214,7 +214,7 @@ class CourseDetailViewModel @Inject constructor(
 
         val job = viewModelScope.launch {
             updateFileDownloadState(file.fileUrl, DownloadState.DOWNLOADING)
-            val started = downloadFileUseCase.execute(
+            val started = downloadFileUseCase(
                 url = file.fileUrl,
                 localFileName = file.localFileName,
                 displayName = file.filename,
@@ -243,9 +243,8 @@ class CourseDetailViewModel @Inject constructor(
         downloadIds.remove(fileUrl)
     }
 
-    fun openFile(file: FileUiModel) {
-        downloadRepository.openFile(file.localFileName)
-    }
+    /** Finished local copy of [file], for the screen to hand to another app; null if it is gone. */
+    fun downloadedFile(file: FileUiModel): File? = downloadRepository.downloadedFile(file.localFileName)
 
     private fun updateFileDownloadState(fileUrl: String, newState: DownloadState) {
         _uiState.update { state ->
