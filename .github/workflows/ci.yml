@@ -46,7 +46,7 @@ jobs:
           if-no-files-found: error
 
       - name: Run unit tests with coverage
-        run: ./gradlew test :app:koverXmlReportDebug --no-daemon
+        run: ./gradlew test :app:koverXmlReportDebug :app:koverVerifyDebug --no-daemon
 
       - name: Upload reports
         if: always()

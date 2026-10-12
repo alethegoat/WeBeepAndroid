@@ -31,10 +31,14 @@ androidxTestExtJunit = "1.3.0"
 appcompat = "1.8.0"
 coreSplashscreen = "1.2.0"
 detekt = "1.23.8"
+composeRules = "0.4.28"
 ktlintGradle = "14.2.0"
 kover = "0.9.9"
 
 [libraries]
+# Compose lint rules for detekt; 0.4.x is the last line targeting detekt 1.x (0.5+ needs detekt 2).
+detekt-compose-rules = { group = "io.nlopez.compose.rules", name = "detekt", version.ref = "composeRules" }
+
 # AndroidX Core
 core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }

@@ -2,14 +2,29 @@
 <SmellBaseline>
   <ManuallySuppressedIssues/>
   <CurrentIssues>
+    <ID>CompositionLocalAllowlist:ReduceMotion.kt$LocalReduceMotion</ID>
+    <ID>CompositionLocalAllowlist:SharedMotion.kt$LocalNavAnimatedVisibilityScope</ID>
+    <ID>CompositionLocalAllowlist:SharedMotion.kt$LocalNavSharedTransitionScope</ID>
+    <ID>CompositionLocalAllowlist:WeBeepColors.kt$LocalWeBeepColors</ID>
     <ID>CyclomaticComplexMethod:CourseContentMapper.kt$CourseContentMapper$fun map(courseId: Int, sectionDtos: List&lt;CourseSectionDto&gt;): MappedCourseContent</ID>
-    <ID>CyclomaticComplexMethod:CourseSyncWorker.kt$CourseSyncWorker$override suspend fun doWork(): Result</ID>
     <ID>CyclomaticComplexMethod:DownloadRepositoryImpl.kt$DownloadRepositoryImpl$override fun downloadFile(url: String, token: String?, localFileName: String, displayName: String, mimeType: String?): Long</ID>
-    <ID>CyclomaticComplexMethod:FileViewerViewModel.kt$FileViewerViewModel$fun load()</ID>
-    <ID>LongMethod:BouncyClickable.kt$fun Modifier.bouncyClickable( debounceMs: Long = 250L, enabled: Boolean = true, haptic: Boolean = false, role: Role? = Role.Button, onClickLabel: String? = null, onClick: () -&gt; Unit ): Modifier</ID>
+    <ID>LambdaParameterInRestartableEffect:FileViewerScreen.kt$onZoomedChange</ID>
+    <ID>LambdaParameterInRestartableEffect:LoginScreen.kt$onLoginSuccess</ID>
+    <ID>LambdaParameterInRestartableEffect:PdfViewer.kt$onZoomedChange</ID>
+    <ID>LambdaParameterInRestartableEffect:WeBeepApp.kt$onNavControllerReady</ID>
     <ID>LongMethod:CourseContentMapper.kt$CourseContentMapper$fun map(courseId: Int, sectionDtos: List&lt;CourseSectionDto&gt;): MappedCourseContent</ID>
-    <ID>LongMethod:CourseSyncWorker.kt$CourseSyncWorker$override suspend fun doWork(): Result</ID>
     <ID>LongMethod:DownloadRepositoryImpl.kt$DownloadRepositoryImpl$override fun downloadFile(url: String, token: String?, localFileName: String, displayName: String, mimeType: String?): Long</ID>
-    <ID>NestedBlockDepth:TokenManager.kt$TokenManager$private fun createEncryptedPrefsWithFallback(application: Application): SharedPreferences</ID>
+    <ID>ModifierComposed:BouncyClickable.kt$bouncyClickable</ID>
+    <ID>ModifierComposed:SharedMotion.kt$courseSharedBounds</ID>
+    <ID>ModifierMissing:SettingsScreen.kt$SettingsScreen</ID>
+    <ID>ModifierMissing:WeBeepApp.kt$WeBeepApp</ID>
+    <ID>MultipleEmitters:FileViewerScreen.kt$FileActions</ID>
+    <ID>ParameterNaming:SettingsScreen.kt$onFrequencySelected</ID>
+    <ID>ParameterNaming:SettingsScreen.kt$onThemeSelected</ID>
+    <ID>ViewModelForwarding:FileViewerScreen.kt$FileActions(file = file, viewModel = viewModel)</ID>
+    <ID>ViewModelForwarding:FileViewerScreen.kt$FileViewerPage( file = file, viewModel = viewModel, isCurrentPage = isCurrent, contentPadding = contentPadding, onToggleChrome = toggleChrome, onZoomedChange = { zoomed -&gt; if (isCurrent) currentPageZoomed = zoomed } )</ID>
+    <ID>ViewModelForwarding:FileViewerScreen.kt$ViewerTopBar( visible = chromeVisible, file = currentFile, subtitle = listOfNotNull(position, kind).joinToString(" · ").ifEmpty { null }, state = currentState, viewModel = viewModel, onBackClick = onBackClick )</ID>
+    <ID>ViewModelForwarding:FileViewerScreen.kt$ViewerTopBar( visible = chromeVisible, file = viewModel.initialFile, subtitle = null, state = null, viewModel = viewModel, onBackClick = onBackClick )</ID>
+    <ID>ViewModelInjection:NavGraph.kt$viewModel</ID>
   </CurrentIssues>
 </SmellBaseline>
