@@ -6,6 +6,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import it.polimi.webeep.core.datastore.SettingsManager
 import it.polimi.webeep.core.datastore.SyncFrequency
 import it.polimi.webeep.core.datastore.ThemePreference
+import it.polimi.webeep.core.ui.util.STOP_TIMEOUT_MILLIS
 import it.polimi.webeep.feature.auth.domain.AuthRepository
 import it.polimi.webeep.feature.sync.SyncScheduler
 import it.polimi.webeep.feature.sync.SyncStateStore
@@ -35,7 +36,7 @@ class SettingsViewModel @Inject constructor(
     /** When the background sync last checked the courses for new files (epoch millis). */
     val lastCheckAt: StateFlow<Long?> = syncStateStore.lastCheckAt.stateIn(
         scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5000),
+        started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS),
         initialValue = null
     )
 
@@ -49,7 +50,7 @@ class SettingsViewModel @Inject constructor(
         request != null && last == request.previousCheckAt
     }.stateIn(
         scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5000),
+        started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS),
         initialValue = false
     )
 
@@ -67,7 +68,7 @@ class SettingsViewModel @Inject constructor(
         )
     }.stateIn(
         scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5000),
+        started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS),
         initialValue = SettingsUiState()
     )
 

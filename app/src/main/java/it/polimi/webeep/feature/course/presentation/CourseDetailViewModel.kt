@@ -8,6 +8,7 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import it.polimi.webeep.core.di.DefaultDispatcher
 import it.polimi.webeep.core.di.IoDispatcher
+import it.polimi.webeep.core.ui.util.STOP_TIMEOUT_MILLIS
 import it.polimi.webeep.core.util.FileUtils
 import it.polimi.webeep.core.util.MoodleText
 import it.polimi.webeep.core.util.Resource
@@ -35,6 +36,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 sealed interface CourseDetailUiState {
     data object Loading : CourseDetailUiState
@@ -121,7 +123,7 @@ class CourseDetailViewModel @Inject constructor(
         (state as? CourseDetailUiState.Success)?.let { buildCourseListItems(it.sections, folders, query) }
     }
         .flowOn(defaultDispatcher)
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), null)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), null)
 
     private var courseName: String = ""
     private var contentsJob: Job? = null
@@ -151,13 +153,8 @@ class CourseDetailViewModel @Inject constructor(
             }
             getCourseContentsUseCase(courseId).collectLatest { resource ->
                 when (resource) {
-                    is Resource.Loading -> {
-                        if (_uiState.value !is CourseDetailUiState.Success) {
-                            _uiState.update { CourseDetailUiState.Loading }
-                        }
-                    }
                     is Resource.Success -> {
-                        val uiSections = kotlinx.coroutines.withContext(ioDispatcher) {
+                        val uiSections = withContext(ioDispatcher) {
                             val currentExpandedStates = if (_uiState.value is CourseDetailUiState.Success) {
                                 (_uiState.value as CourseDetailUiState.Success).sections.associate { it.id to it.isExpanded }
                             } else {
@@ -348,7 +345,6 @@ class CourseDetailViewModel @Inject constructor(
     private companion object {
         const val EXPANDED_FOLDERS_KEY = "expandedFolders"
         const val SEARCH_QUERY_KEY = "searchQuery"
-        const val STOP_TIMEOUT_MS = 5_000L
     }
 
     override fun onCleared() {

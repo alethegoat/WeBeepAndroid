@@ -1,14 +1,12 @@
 package it.polimi.webeep.feature.auth
 
-import it.polimi.webeep.core.datastore.TokenProvider
-import it.polimi.webeep.feature.auth.domain.AuthRepository
 import it.polimi.webeep.feature.auth.domain.LoginError
 import it.polimi.webeep.feature.auth.domain.LoginResult
 import it.polimi.webeep.feature.auth.domain.LoginUseCase
 import it.polimi.webeep.feature.auth.domain.UserSession
+import it.polimi.webeep.util.fakes.FakeAuthRepository
+import it.polimi.webeep.util.fakes.FakeTokenProvider
 import java.util.Base64
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -50,9 +48,8 @@ class LoginUseCaseTest {
         assertTrue(result is LoginResult.Success)
         assertEquals(sampleSession, (result as LoginResult.Success).session)
         assertEquals("wstoken_123", fakeAuthRepository.savedToken)
-        assertNull(fakeAuthRepository.savedPrivateToken)
         assertEquals(sampleSession, fakeAuthRepository.savedSession)
-        assertNull(fakeTokenProvider.getPendingPassportSync())
+        assertNull(fakeTokenProvider.getPendingPassportsSync().lastOrNull())
     }
 
     @Test
@@ -124,7 +121,7 @@ class LoginUseCaseTest {
 
         assertTrue(result is LoginResult.Success)
         assertEquals("wstoken_123", fakeAuthRepository.savedToken)
-        assertNull(fakeTokenProvider.getPendingPassportSync())
+        assertNull(fakeTokenProvider.getPendingPassportsSync().lastOrNull())
     }
 
     @Test
@@ -162,7 +159,7 @@ class LoginUseCaseTest {
         fakeTokenProvider.clearPendingPassportSync()
 
         val url = loginUseCase.generateSsoLaunchUrl()
-        val stored = fakeTokenProvider.getPendingPassportSync()
+        val stored = fakeTokenProvider.getPendingPassportsSync().lastOrNull()
 
         assertTrue(stored != null && stored.all { it.isDigit() })
         assertTrue(url.startsWith("${LoginUseCase.SITE_WWWROOT}/admin/tool/mobile/launch.php"))
@@ -195,54 +192,6 @@ class LoginUseCaseTest {
         assertTrue(error is LoginError.ValidationFailed)
         assertEquals("Token non valido", (error as LoginError.ValidationFailed).cause?.message)
         assertTrue(fakeAuthRepository.savedToken == null)
-    }
-
-    private class FakeAuthRepository : AuthRepository {
-        var validateResult: Result<UserSession> = Result.failure(Exception("Not initialized"))
-        var savedToken: String? = null
-        var savedPrivateToken: String? = null
-        var savedSession: UserSession? = null
-        var isLoggedInValue: Boolean = false
-
-        override suspend fun validateToken(token: String): Result<UserSession> = validateResult
-
-        override suspend fun saveAuthData(token: String, privateToken: String?, session: UserSession) {
-            savedToken = token
-            savedPrivateToken = privateToken
-            savedSession = session
-            isLoggedInValue = true
-        }
-
-        override suspend fun isLoggedIn(): Boolean = isLoggedInValue
-
-        override suspend fun logout() {
-            isLoggedInValue = false
-        }
-    }
-
-    private class FakeTokenProvider : TokenProvider {
-        private var passport: String? = null
-        private val passports = mutableListOf<String>()
-        override val isLoggedIn: Flow<Boolean> = MutableStateFlow(false)
-        override val wsToken: Flow<String?> = MutableStateFlow(null)
-        override fun getTokenSync(): String? = null
-        override suspend fun saveAuthData(token: String, privateToken: String?, userId: Int, fullName: String) = Unit
-        override suspend fun updateUserProfile(userId: Int, fullName: String) = Unit
-        override suspend fun getToken(): String? = null
-        override suspend fun getUserId(): Int? = null
-        override suspend fun getUserFullName(): String? = null
-        override suspend fun clearAll() = Unit
-        override fun clearSessionSync() = Unit
-        override fun savePendingPassportSync(passport: String) {
-            this.passport = passport
-            passports.add(passport)
-        }
-        override fun getPendingPassportSync(): String? = passport
-        override fun getPendingPassportsSync(): List<String> = passports.toList()
-        override fun clearPendingPassportSync() {
-            passport = null
-            passports.clear()
-        }
     }
 
     private fun encodeSsoPayload(hash: String, wsToken: String, privateToken: String): String {

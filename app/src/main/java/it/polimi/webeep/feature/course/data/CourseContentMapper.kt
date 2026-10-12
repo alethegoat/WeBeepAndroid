@@ -5,9 +5,11 @@ import it.polimi.webeep.core.database.entity.CourseSectionEntity
 import it.polimi.webeep.core.database.entity.ModuleContentEntity
 import it.polimi.webeep.core.network.MoodleFileUrlBuilder
 import it.polimi.webeep.core.network.dto.CourseSectionDto
+import it.polimi.webeep.core.network.dto.ModuleContentDto
 import it.polimi.webeep.core.util.MoodleText
 import it.polimi.webeep.feature.course.domain.model.FileResource
 import it.polimi.webeep.feature.course.domain.model.Module
+import it.polimi.webeep.feature.course.domain.model.ModuleType
 import it.polimi.webeep.feature.course.domain.model.Section
 
 /**
@@ -15,10 +17,6 @@ import it.polimi.webeep.feature.course.domain.model.Section
  * URLs are always persisted without auth query parameters.
  */
 object CourseContentMapper {
-
-    private val allowedModules = setOf("resource", "folder", "url", "lti", "webex")
-    private val fileModules = setOf("resource", "folder")
-    private val linkModules = setOf("url", "lti", "webex")
 
     data class MappedCourseContent(
         val sections: List<Section>,
@@ -30,9 +28,9 @@ object CourseContentMapper {
     fun map(courseId: Int, sectionDtos: List<CourseSectionDto>): MappedCourseContent {
         val sections = sectionDtos.map { sectionDto ->
             val filteredModules = sectionDto.modules
-                .filter { it.modname in allowedModules }
+                .filter { it.modname in ModuleType.Supported }
                 .map { moduleDto ->
-                    val files = if (moduleDto.modname in fileModules) {
+                    val files = if (moduleDto.modname in ModuleType.FileBearing) {
                         moduleDto.contents
                             ?.filter { content ->
                                 content.type != "dir" && !isPhantomIndex(content)
@@ -66,7 +64,7 @@ object CourseContentMapper {
                         )
                     }
 
-                    val directUrl = if (moduleDto.modname in linkModules) {
+                    val directUrl = if (moduleDto.modname in ModuleType.Link) {
                         moduleDto.contents
                             ?.firstOrNull { it.type == "url" || !it.fileurl.isNullOrBlank() }
                             ?.fileurl
@@ -151,7 +149,6 @@ object CourseContentMapper {
         )
     }
 
-    private fun isPhantomIndex(content: it.polimi.webeep.core.network.dto.ModuleContentDto): Boolean =
-        content.filename.equals("index.html", ignoreCase = true) &&
-            (content.filesize <= 0L || content.fileurl.isNullOrBlank())
+    private fun isPhantomIndex(content: ModuleContentDto): Boolean = content.filename.equals("index.html", ignoreCase = true) &&
+        (content.filesize <= 0L || content.fileurl.isNullOrBlank())
 }

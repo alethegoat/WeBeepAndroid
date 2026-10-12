@@ -1,5 +1,6 @@
 package it.polimi.webeep.feature.auth.presentation
 
+import android.app.Application
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -34,7 +35,7 @@ class LoginViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val syncScheduler: SyncScheduler,
     private val ssoCallbackRelay: SsoCallbackRelay,
-    private val application: android.app.Application
+    private val application: Application
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<LoginUiState>(LoginUiState.Idle)

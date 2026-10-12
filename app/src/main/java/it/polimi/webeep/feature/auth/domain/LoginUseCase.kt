@@ -1,11 +1,13 @@
 package it.polimi.webeep.feature.auth.domain
 
 import it.polimi.webeep.core.datastore.TokenProvider
+import it.polimi.webeep.core.network.MoodleFileUrlBuilder
 import java.net.URLDecoder
 import java.security.MessageDigest
 import java.security.SecureRandom
 import java.util.Base64
 import javax.inject.Inject
+import kotlinx.coroutines.CancellationException
 
 /**
  * Handles login via WeBeep SSO.
@@ -43,12 +45,12 @@ class LoginUseCase @Inject constructor(private val authRepository: AuthRepositor
                 return LoginResult.Failure(LoginError.InvalidPassport)
             }
 
-            // parts[2] is the autologin-capable private token: intentionally discarded.
+            // parts[2] is the private token. It grants a full web session, so it is deliberately dropped and never stored.
             parts[1].trim().ifEmpty { return LoginResult.Failure(LoginError.InvalidTokenFormat) }
         } catch (_: IllegalArgumentException) {
             return LoginResult.Failure(LoginError.InvalidAccessToken)
         } catch (e: Exception) {
-            if (e is kotlinx.coroutines.CancellationException) throw e
+            if (e is CancellationException) throw e
             return LoginResult.Failure(LoginError.TokenProcessingFailed)
         }
 
@@ -56,14 +58,14 @@ class LoginUseCase @Inject constructor(private val authRepository: AuthRepositor
             val result = authRepository.validateToken(wstoken)
             if (result.isSuccess) {
                 val siteInfo = result.getOrThrow()
-                authRepository.saveAuthData(wstoken, null, siteInfo)
+                authRepository.saveAuthData(wstoken, siteInfo)
                 tokenProvider.clearPendingPassportSync()
                 LoginResult.Success(siteInfo)
             } else {
                 LoginResult.Failure(LoginError.ValidationFailed(result.exceptionOrNull()))
             }
         } catch (e: Exception) {
-            if (e is kotlinx.coroutines.CancellationException) throw e
+            if (e is CancellationException) throw e
             LoginResult.Failure(LoginError.ValidationFailed(e))
         }
     }
@@ -73,14 +75,14 @@ class LoginUseCase @Inject constructor(private val authRepository: AuthRepositor
         return try {
             URLDecoder.decode(token.replace("+", "%2B"), Charsets.UTF_8.name())
         } catch (e: Exception) {
-            if (e is kotlinx.coroutines.CancellationException) throw e
+            if (e is CancellationException) throw e
             token
         }
     }
 
     companion object {
         // Single source for host: keep in sync with NetworkModule.BASE_URL.
-        const val SITE_WWWROOT = "https://" + it.polimi.webeep.core.network.MoodleFileUrlBuilder.TRUSTED_HOST
+        const val SITE_WWWROOT = "https://" + MoodleFileUrlBuilder.TRUSTED_HOST
         const val SSO_SERVICE = "moodle_mobile_app"
         const val SSO_URL_SCHEME = "webeepandroid"
 

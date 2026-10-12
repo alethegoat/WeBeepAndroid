@@ -1,6 +1,7 @@
 package it.polimi.webeep.feature.sync
 
 import android.content.Context
+import androidx.work.BackoffPolicy
 import androidx.work.Constraints
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.ExistingWorkPolicy
@@ -56,7 +57,7 @@ class SyncScheduler internal constructor(
         val request = PeriodicWorkRequestBuilder<CourseSyncWorker>(interval, unit)
             .setConstraints(networkConstraints())
             .setBackoffCriteria(
-                androidx.work.BackoffPolicy.EXPONENTIAL,
+                BackoffPolicy.EXPONENTIAL,
                 BACKOFF_DELAY_MINUTES,
                 TimeUnit.MINUTES
             )
@@ -80,7 +81,7 @@ class SyncScheduler internal constructor(
         val request = OneTimeWorkRequestBuilder<CourseSyncWorker>()
             .setConstraints(networkConstraints())
             .setBackoffCriteria(
-                androidx.work.BackoffPolicy.EXPONENTIAL,
+                BackoffPolicy.EXPONENTIAL,
                 BACKOFF_DELAY_MINUTES,
                 TimeUnit.MINUTES
             )
@@ -116,7 +117,6 @@ class SyncScheduler internal constructor(
     companion object {
         const val UNIQUE_PERIODIC_WORK = "CourseSyncWorker"
         const val UNIQUE_ONE_SHOT_WORK = "CourseSyncWorkerImmediate"
-        const val UNIQUE_WORK_NAME = UNIQUE_PERIODIC_WORK
         private const val FIFTEEN_MINUTES_INTERVAL = 15L
         private const val TWELVE_HOURS_INTERVAL = 12L
         private const val BACKOFF_DELAY_MINUTES = 10L

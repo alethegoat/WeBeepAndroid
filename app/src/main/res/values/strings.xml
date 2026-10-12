@@ -8,12 +8,6 @@
     <string name="update_frequency">Frequenza aggiornamenti</string>
     <string name="open_in_browser">Apri nel Browser</string>
     <string name="sync_more_files">+ altri %1$d file</string>
-    <string name="empty_state">Nessun elemento disponibile</string>
-    <string name="close">Chiudi</string>
-    <string name="go_back">Indietro</string>
-    <string name="download_file">Scarica file</string>
-    <string name="file_icon">Icona file</string>
-    <string name="profile_picture">Immagine profilo</string>
     <string name="cd_settings">Impostazioni</string>
     <string name="student_placeholder">Studente</string>
     <string name="offline_cache_message">Sei offline. Stai visualizzando i dati in cache.</string>
@@ -62,11 +56,6 @@
     <string name="file_viewer_page_hint">Pagina (1–%1$d)</string>
     <string name="file_viewer_go">Vai</string>
     <string name="cancel">Annulla</string>
-    
-    <plurals name="downloaded_files_count">
-        <item quantity="one">%d file scaricato</item>
-        <item quantity="other">%d file scaricati</item>
-    </plurals>
     
     <plurals name="file_viewer_pdf_pages">
         <item quantity="one">%d pagina</item>

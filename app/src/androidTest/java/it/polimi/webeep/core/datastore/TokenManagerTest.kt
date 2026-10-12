@@ -33,7 +33,7 @@ class TokenManagerTest {
 
     @Test
     fun `ensureLoaded restores a persisted session in a new instance`() = runBlocking {
-        tokenManager.saveAuthData("persisted", "private", 7, "Name")
+        tokenManager.saveAuthData("persisted", 7, "Name")
 
         val restored = TokenManager(application, Dispatchers.IO)
         assertFalse("Not loaded before ensureLoaded", restored.isLoggedIn.first())
@@ -46,7 +46,7 @@ class TokenManagerTest {
 
     @Test
     fun `getToken works without ensureLoaded`() = runBlocking {
-        tokenManager.saveAuthData("token", null, 1, "Name")
+        tokenManager.saveAuthData("token", 1, "Name")
 
         val fresh = TokenManager(application, Dispatchers.IO)
 
@@ -60,7 +60,7 @@ class TokenManagerTest {
         tokenManager.savePendingPassportSync("222")
 
         assertEquals(listOf("111", "222"), tokenManager.getPendingPassportsSync())
-        assertEquals("222", tokenManager.getPendingPassportSync())
+        assertEquals("222", tokenManager.getPendingPassportsSync().lastOrNull())
 
         tokenManager.clearPendingPassportSync()
 
@@ -77,7 +77,6 @@ class TokenManagerTest {
         // When
         tokenManager.saveAuthData(
             token = dummyToken,
-            privateToken = null,
             userId = userId,
             fullName = fullName
         )
@@ -86,7 +85,6 @@ class TokenManagerTest {
         assertEquals("Token sincrono aggiornato", dummyToken, tokenManager.getTokenSync())
         assertEquals("Token asincrono letto da preferenze", dummyToken, tokenManager.getToken())
         assertEquals("UserId letto da preferenze", userId, tokenManager.getUserId())
-        assertEquals("FullName letto da preferenze", fullName, tokenManager.getUserFullName())
         assertTrue("isLoggedIn emit true", tokenManager.isLoggedIn.first())
         assertEquals("wsToken emit value", dummyToken, tokenManager.wsToken.first())
     }
@@ -94,7 +92,7 @@ class TokenManagerTest {
     @Test
     fun `clearSessionSync clears all token data synchronously`() = runBlocking {
         // Given
-        tokenManager.saveAuthData("token", null, 1, "Name")
+        tokenManager.saveAuthData("token", 1, "Name")
 
         // When
         tokenManager.clearSessionSync()
@@ -109,7 +107,7 @@ class TokenManagerTest {
     @Test
     fun `clearAll clears all persisted data from DataStore`() = runBlocking {
         // Given
-        tokenManager.saveAuthData("token", null, 1, "Name")
+        tokenManager.saveAuthData("token", 1, "Name")
 
         // When
         tokenManager.clearAll()
@@ -117,13 +115,12 @@ class TokenManagerTest {
         // Then
         assertNull("Token must be null", tokenManager.getToken())
         assertNull("UserId must be null", tokenManager.getUserId())
-        assertNull("FullName must be null", tokenManager.getUserFullName())
         assertFalse("State should be logged out", tokenManager.isLoggedIn.first())
     }
 
     @Test
     fun `persisted values are not stored in clear`() = runBlocking {
-        tokenManager.saveAuthData("plaintext-token-marker", null, 3, "Plaintext Name Marker")
+        tokenManager.saveAuthData("plaintext-token-marker", 3, "Plaintext Name Marker")
 
         val raw = String(File(application.noBackupFilesDir, "webeep_secure.preferences_pb").readBytes(), Charsets.ISO_8859_1)
 
@@ -155,7 +152,6 @@ class TokenManagerTest {
 
         assertEquals("legacy-token", migrated.getTokenSync())
         assertEquals(5, migrated.getUserId())
-        assertEquals("Legacy User", migrated.getUserFullName())
         assertFalse("Legacy file deleted", legacyPrefsFile().exists())
 
         val reloaded = TokenManager(application, Dispatchers.IO)

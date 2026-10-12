@@ -4,6 +4,7 @@ import android.graphics.Bitmap
 import android.graphics.Color
 import android.graphics.pdf.PdfRenderer
 import android.os.ParcelFileDescriptor
+import android.util.LruCache
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Image
@@ -50,6 +51,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color as ComposeColor
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
@@ -70,6 +72,7 @@ import it.polimi.webeep.core.ui.util.currentWindowSize
 import it.polimi.webeep.core.ui.util.rememberZoomState
 import it.polimi.webeep.core.ui.util.zoomable
 import java.io.File
+import kotlin.math.abs
 import kotlin.math.min
 import kotlin.math.roundToInt
 import kotlinx.coroutines.CancellationException
@@ -77,6 +80,7 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
@@ -102,7 +106,7 @@ fun PdfViewer(
         val cacheSize = (maxMemory / 10)
             .coerceAtLeast(MIN_CACHE_SIZE_KB)
             .coerceAtMost(MAX_CACHE_SIZE_KB)
-        object : android.util.LruCache<String, Bitmap>(cacheSize) {
+        object : LruCache<String, Bitmap>(cacheSize) {
             override fun sizeOf(key: String, bitmap: Bitmap): Int = bitmap.byteCount / 1024
         }
     }
@@ -174,7 +178,7 @@ private fun PdfPages(
     pageCount: Int,
     defaultAspectRatio: Float,
     highResWidth: Int,
-    memoryCache: android.util.LruCache<String, Bitmap>,
+    memoryCache: LruCache<String, Bitmap>,
     pdfMutex: Mutex,
     ioDispatcher: CoroutineDispatcher,
     onToggleFullScreen: () -> Unit,
@@ -202,7 +206,7 @@ private fun PdfPages(
                 val viewportCenter = (layoutInfo.viewportEndOffset + layoutInfo.viewportStartOffset) / 2
                 val closestItem = visibleItemsInfo.minByOrNull {
                     val itemCenter = it.offset + (it.size / 2)
-                    kotlin.math.abs(itemCenter - viewportCenter)
+                    abs(itemCenter - viewportCenter)
                 }
                 closestItem?.index ?: 0
             }
@@ -439,7 +443,7 @@ private fun PdfPageItem(
     pageIndex: Int,
     defaultAspectRatio: Float,
     highResWidth: Int,
-    memoryCache: android.util.LruCache<String, Bitmap>,
+    memoryCache: LruCache<String, Bitmap>,
     pdfMutex: Mutex,
     ioDispatcher: CoroutineDispatcher
 ) {
@@ -462,7 +466,7 @@ private fun PdfPageItem(
         }
 
         withContext(ioDispatcher) {
-            kotlinx.coroutines.delay(100)
+            delay(100)
             if (!isActive) return@withContext
 
             val cachedFast: Bitmap? = memoryCache.get(fastKey)
@@ -491,7 +495,7 @@ private fun PdfPageItem(
             // Screens narrower than the fast render gain nothing from an HD pass.
             if (highResWidth <= FAST_WIDTH) return@withContext
 
-            kotlinx.coroutines.delay(250)
+            delay(250)
             if (!isActive) return@withContext
 
             var highResBitmap: Bitmap? = memoryCache.get(highKey)
@@ -523,7 +527,7 @@ private fun PdfPageItem(
             .fillMaxWidth()
             .aspectRatio(pageResult.aspectRatio)
             .shadow(PageElevation, pageShape)
-            .background(androidx.compose.ui.graphics.Color.White, pageShape)
+            .background(ComposeColor.White, pageShape)
     ) {
         // Blank page -> fast render -> HD: each step fades in instead of popping.
         Crossfade(

@@ -8,6 +8,8 @@ import androidx.core.content.FileProvider
 import it.polimi.webeep.core.di.IoDispatcher
 import it.polimi.webeep.core.network.MoodleBinaryDownload
 import it.polimi.webeep.core.network.MoodleFileUrlBuilder
+import it.polimi.webeep.core.util.AppDirectories
+import it.polimi.webeep.core.util.FileUtils
 import it.polimi.webeep.feature.download.domain.DownloadRepository
 import java.io.File
 import java.util.concurrent.ConcurrentHashMap
@@ -46,7 +48,7 @@ class DownloadRepositoryImpl @Inject constructor(
     private val progress = ConcurrentHashMap<Long, MutableStateFlow<Int>>()
     private val jobs = ConcurrentHashMap<Long, Job>()
     private val calls = ConcurrentHashMap<Long, Call>()
-    private val downloadsDir: File by lazy { File(context.filesDir, DOWNLOADS_DIR) }
+    private val downloadsDir: File by lazy { File(context.filesDir, AppDirectories.DOWNLOADS) }
     private val migrationJob: Job = scope.launch { migrateLegacyDownloads() }
 
     override fun downloadFile(url: String, token: String?, localFileName: String, displayName: String, mimeType: String?): Long {
@@ -237,21 +239,14 @@ class DownloadRepositoryImpl @Inject constructor(
         if (marker.exists()) return
         try {
             val externalRoot = context.getExternalFilesDir(null) ?: return
-            LegacyDownloadsMigration.migrate(File(externalRoot, DOWNLOADS_DIR), getDownloadsDirectory())
+            LegacyDownloadsMigration.migrate(File(externalRoot, AppDirectories.DOWNLOADS), getDownloadsDirectory())
             marker.createNewFile()
         } catch (e: Exception) {
             if (e is CancellationException) throw e
         }
     }
 
-    private fun sanitizeFileName(fileName: String): String {
-        val sanitized = fileName
-            .replace(Regex("""[\\/:*?"<>|\p{Cntrl}]"""), "_")
-            .trim()
-            .trim('.')
-
-        return sanitized.ifBlank { "file" }.take(MAX_FILE_NAME_LENGTH)
-    }
+    private fun sanitizeFileName(fileName: String): String = FileUtils.sanitizeFileName(fileName).take(MAX_FILE_NAME_LENGTH)
 
     /**
      * Defense in depth against path traversal: sanitize() already strips
@@ -273,7 +268,6 @@ class DownloadRepositoryImpl @Inject constructor(
     }
 
     private companion object {
-        const val DOWNLOADS_DIR = "downloads"
         const val MAX_FILE_NAME_LENGTH = 120
         const val DOWNLOAD_BUFFER_SIZE = 32 * 1024
         const val MAX_DOWNLOADS_BYTES = 500L * 1024L * 1024L

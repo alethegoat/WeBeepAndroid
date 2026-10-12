@@ -3,12 +3,12 @@ package it.polimi.webeep.feature.auth.domain
 interface AuthRepository {
     suspend fun validateToken(token: String): Result<UserSession>
 
-    suspend fun saveAuthData(token: String, privateToken: String?, session: UserSession)
+    suspend fun saveAuthData(token: String, session: UserSession)
 
     suspend fun isLoggedIn(): Boolean
 
     suspend fun logout()
 
     /** Wipes cached course data, downloads and caches but keeps credentials and pending SSO state. */
-    suspend fun clearLocalData() {}
+    suspend fun clearLocalData()
 }

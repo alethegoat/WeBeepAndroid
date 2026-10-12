@@ -10,15 +10,13 @@ interface TokenProvider {
     val isLoggedIn: Flow<Boolean>
     val wsToken: Flow<String?>
     fun getTokenSync(): String?
-    suspend fun saveAuthData(token: String, privateToken: String?, userId: Int, fullName: String)
+    suspend fun saveAuthData(token: String, userId: Int, fullName: String)
     suspend fun updateUserProfile(userId: Int, fullName: String)
     suspend fun getToken(): String?
     suspend fun getUserId(): Int?
-    suspend fun getUserFullName(): String?
     suspend fun clearAll()
     fun clearSessionSync()
     fun savePendingPassportSync(passport: String)
-    fun getPendingPassportSync(): String?
     fun getPendingPassportsSync(): List<String>
     fun clearPendingPassportSync()
 

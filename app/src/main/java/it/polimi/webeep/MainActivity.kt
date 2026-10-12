@@ -17,6 +17,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import it.polimi.webeep.core.datastore.SettingsManager
 import it.polimi.webeep.core.datastore.TokenProvider
 import it.polimi.webeep.core.session.SessionExpiryHandler
+import it.polimi.webeep.feature.auth.domain.LoginUseCase
 import it.polimi.webeep.feature.auth.domain.SsoCallbackParser
 import it.polimi.webeep.feature.auth.domain.SsoCallbackRelay
 import it.polimi.webeep.feature.sync.CourseSyncWorker
@@ -156,6 +157,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     private companion object {
-        val SSO_CALLBACK_SCHEMES = setOf("webeepandroid", "moodlemobile")
+        val SSO_CALLBACK_SCHEMES = setOf(LoginUseCase.SSO_URL_SCHEME, "moodlemobile")
     }
 }

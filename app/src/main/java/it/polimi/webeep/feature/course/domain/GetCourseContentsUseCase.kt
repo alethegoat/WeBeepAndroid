@@ -5,6 +5,7 @@ import it.polimi.webeep.core.util.Resource
 import it.polimi.webeep.core.util.toDataError
 import it.polimi.webeep.feature.course.domain.model.Section
 import javax.inject.Inject
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.first
@@ -20,7 +21,7 @@ class GetCourseContentsUseCase @Inject constructor(
     operator fun invoke(courseId: Int): Flow<Resource<List<Section>>> = channelFlow {
         var isSyncing = true
         var lastCachedSections: List<Section>? = null
-        val cacheStarted = kotlinx.coroutines.CompletableDeferred<Unit>()
+        val cacheStarted = CompletableDeferred<Unit>()
 
         val cacheJob = launch {
             repository.getCachedCourseContents(courseId).collect { sections ->
