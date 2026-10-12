@@ -5,13 +5,15 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 
 class FakeTokenProvider : TokenProvider {
+    /** Token returned by [getToken]; null simulates a logged-out session. */
+    var token: String? = null
     private val passports = mutableListOf<String>()
     override val isLoggedIn: Flow<Boolean> = MutableStateFlow(false)
     override val wsToken: Flow<String?> = MutableStateFlow(null)
     override fun getTokenSync(): String? = null
     override suspend fun saveAuthData(token: String, userId: Int) = Unit
     override suspend fun updateUserId(userId: Int) = Unit
-    override suspend fun getToken(): String? = null
+    override suspend fun getToken(): String? = token
     override suspend fun getUserId(): Int? = null
     override suspend fun clearAll() = Unit
     override fun clearSessionSync() = Unit

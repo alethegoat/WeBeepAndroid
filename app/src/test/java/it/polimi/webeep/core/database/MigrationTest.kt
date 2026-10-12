@@ -1,9 +1,17 @@
 package it.polimi.webeep.core.database
 
+import android.app.Instrumentation
+import android.content.Context
+import android.content.ContextWrapper
+import android.content.res.AssetManager
 import androidx.room.Room
 import androidx.room.testing.MigrationTestHelper
+import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import androidx.test.platform.app.InstrumentationRegistry
+import io.mockk.every
+import io.mockk.mockk
+import java.io.File
+import java.io.FileNotFoundException
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -16,10 +24,7 @@ class MigrationTest {
     private val testDb = "migration-test"
 
     @get:Rule
-    val helper = MigrationTestHelper(
-        InstrumentationRegistry.getInstrumentation(),
-        WeBeepDatabase::class.java
-    )
+    val helper = MigrationTestHelper(schemaInstrumentation(), WeBeepDatabase::class.java)
 
     @Test
     fun migrate1To2() {
@@ -79,7 +84,7 @@ class MigrationTest {
         helper.createDatabase(testDb, 1).close()
 
         val database = Room.databaseBuilder(
-            InstrumentationRegistry.getInstrumentation().targetContext,
+            ApplicationProvider.getApplicationContext(),
             WeBeepDatabase::class.java,
             testDb
         )
@@ -88,5 +93,30 @@ class MigrationTest {
         // Opening validates the migrated schema against the Room entities.
         assertEquals(4, database.openHelper.writableDatabase.version)
         database.close()
+    }
+}
+
+/**
+ * AGP does not package a unit-test source set's assets, so the exported schemas under
+ * `app/schemas` are not reachable through the real asset manager. This instrumentation serves
+ * them from the module directory (the Gradle test working directory) through a mocked
+ * [AssetManager], which is the only seam [MigrationTestHelper] reads them from.
+ */
+private fun schemaInstrumentation(): Instrumentation {
+    val app = ApplicationProvider.getApplicationContext<Context>()
+    val assets = mockk<AssetManager>()
+    every { assets.open(any()) } answers {
+        val path = firstArg<String>()
+        val file = File("schemas", path)
+        if (!file.isFile) throw FileNotFoundException(path)
+        file.inputStream()
+    }
+    val schemaContext = object : ContextWrapper(app) {
+        override fun getAssets(): AssetManager = assets
+    }
+    return object : Instrumentation() {
+        override fun getContext(): Context = schemaContext
+
+        override fun getTargetContext(): Context = app
     }
 }
