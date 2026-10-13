@@ -4,40 +4,22 @@ import app.cash.turbine.test
 import it.polimi.webeep.R
 import it.polimi.webeep.core.datastore.MissingTokenException
 import it.polimi.webeep.core.util.ConnectivityObserver
-import it.polimi.webeep.feature.auth.domain.AuthRepository
-import it.polimi.webeep.feature.dashboard.domain.DashboardRepository
 import it.polimi.webeep.feature.dashboard.domain.GetCoursesUseCase
 import it.polimi.webeep.feature.dashboard.domain.SyncCoursesUseCase
 import it.polimi.webeep.feature.dashboard.domain.model.Course
 import it.polimi.webeep.feature.dashboard.presentation.DashboardUiState
 import it.polimi.webeep.feature.dashboard.presentation.DashboardViewModel
+import it.polimi.webeep.util.MainDispatcherRule
+import it.polimi.webeep.util.fakes.FakeDashboardRepository
 import java.io.IOException
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.test.UnconfinedTestDispatcher
-import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
-import kotlinx.coroutines.test.setMain
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
-import org.junit.rules.TestWatcher
-import org.junit.runner.Description
-
-@OptIn(ExperimentalCoroutinesApi::class)
-class MainDispatcherRule(val testDispatcher: kotlinx.coroutines.test.TestDispatcher = UnconfinedTestDispatcher()) : TestWatcher() {
-    override fun starting(description: Description) {
-        Dispatchers.setMain(testDispatcher)
-    }
-
-    override fun finished(description: Description) {
-        Dispatchers.resetMain()
-    }
-}
 
 class DashboardViewModelTest {
 
@@ -47,7 +29,6 @@ class DashboardViewModelTest {
     private lateinit var getCoursesUseCase: GetCoursesUseCase
     private lateinit var syncCoursesUseCase: SyncCoursesUseCase
     private lateinit var fakeDashboardRepository: FakeDashboardRepository
-    private lateinit var fakeAuthRepository: FakeAuthRepository
     private lateinit var fakeConnectivity: FakeConnectivityObserver
     private lateinit var viewModel: DashboardViewModel
 
@@ -69,7 +50,6 @@ class DashboardViewModelTest {
     @Before
     fun setup() {
         fakeDashboardRepository = FakeDashboardRepository()
-        fakeAuthRepository = FakeAuthRepository()
         fakeConnectivity = FakeConnectivityObserver()
 
         getCoursesUseCase = GetCoursesUseCase(fakeDashboardRepository, fakeConnectivity)
@@ -85,7 +65,6 @@ class DashboardViewModelTest {
             getCoursesUseCase,
             syncCoursesUseCase,
             fakeDashboardRepository,
-            fakeAuthRepository,
             fakeConnectivity
         )
     }
@@ -106,7 +85,7 @@ class DashboardViewModelTest {
 
     @Test
     fun `init emits Loading then Error on network failure`() = runTest {
-        // Se la cache è vuota e il sync fallisce, emette Error
+        // If the cache is empty and the sync fails, emit Error
         fakeDashboardRepository.cachedCoursesFlow.value = emptyList()
         fakeDashboardRepository.syncResult = Result.failure(IOException("timeout"))
 
@@ -154,13 +133,13 @@ class DashboardViewModelTest {
 
     @Test
     fun `refresh after error transitions correctly`() = runTest {
-        // Errore iniziale
+        // Initial error
         fakeDashboardRepository.cachedCoursesFlow.value = emptyList()
         fakeDashboardRepository.syncResult = Result.failure(Exception("Sync fallito"))
 
         initViewModel()
 
-        // Risolve l'errore per il refresh
+        // Resolve the error for the refresh
         fakeDashboardRepository.cachedCoursesFlow.value = sampleCourses
         fakeDashboardRepository.syncResult = Result.success(sampleCourses)
 
@@ -189,13 +168,6 @@ class DashboardViewModelTest {
             assertEquals(false, uiModel.isFavourite)
             assertEquals("Ingegneria", uiModel.category)
         }
-    }
-
-    @Test
-    fun `logout clears state`() = runTest {
-        initViewModel()
-        viewModel.logout()
-        assertTrue(fakeAuthRepository.logoutCalled)
     }
 
     @Test
@@ -263,32 +235,5 @@ class DashboardViewModelTest {
     private class FakeConnectivityObserver : ConnectivityObserver {
         val online = MutableStateFlow(true)
         override val isOnline: Flow<Boolean> = online
-    }
-
-    private class FakeDashboardRepository : DashboardRepository {
-        val cachedCoursesFlow = MutableStateFlow<List<Course>>(emptyList())
-        var syncResult: Result<List<Course>> = Result.success(emptyList())
-        var userInfoResult: Result<Pair<String, String>> = Result.success("" to "")
-
-        override fun getCoursesFromCache(): Flow<List<Course>> = cachedCoursesFlow
-        var syncCount = 0
-
-        override suspend fun syncCourses(): Result<List<Course>> {
-            syncCount++
-            return syncResult
-        }
-        override suspend fun getUserInfo(): Result<Pair<String, String>> = userInfoResult
-    }
-
-    private class FakeAuthRepository : AuthRepository {
-        var logoutCalled = false
-        override suspend fun validateToken(token: String): Result<it.polimi.webeep.feature.auth.domain.UserSession> =
-            Result.failure(Exception())
-        override suspend fun saveAuthData(token: String, privateToken: String?, session: it.polimi.webeep.feature.auth.domain.UserSession) =
-            Unit
-        override suspend fun isLoggedIn(): Boolean = false
-        override suspend fun logout() {
-            logoutCalled = true
-        }
     }
 }

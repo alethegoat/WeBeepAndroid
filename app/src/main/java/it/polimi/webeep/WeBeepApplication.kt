@@ -9,6 +9,7 @@ import coil.disk.DiskCache
 import coil.memory.MemoryCache
 import dagger.hilt.android.HiltAndroidApp
 import it.polimi.webeep.core.datastore.TokenProvider
+import it.polimi.webeep.core.util.AppDirectories
 import it.polimi.webeep.feature.sync.SyncNotifier
 import javax.inject.Inject
 import kotlinx.coroutines.CoroutineScope
@@ -57,7 +58,7 @@ class WeBeepApplication :
         }
         .diskCache {
             DiskCache.Builder()
-                .directory(cacheDir.resolve("image_cache"))
+                .directory(cacheDir.resolve(AppDirectories.IMAGE_CACHE))
                 .maxSizePercent(DISK_CACHE_PERCENT)
                 .build()
         }

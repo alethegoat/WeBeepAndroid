@@ -1,8 +1,11 @@
 package it.polimi.webeep.core.di
 
+import android.content.Context
+import android.util.Log
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
+import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.okhttp.OkHttp
@@ -18,9 +21,12 @@ import it.polimi.webeep.core.network.NoStoreAuthCacheInterceptor
 import it.polimi.webeep.core.network.PluginFileAuthInterceptor
 import it.polimi.webeep.core.network.RetryInterceptor
 import it.polimi.webeep.core.network.TokenInterceptor
+import it.polimi.webeep.core.util.AppDirectories
+import java.io.File
 import java.util.concurrent.TimeUnit
 import javax.inject.Singleton
 import kotlinx.serialization.json.Json
+import okhttp3.Cache
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 
@@ -42,7 +48,7 @@ object NetworkModule {
     @Singleton
     fun provideLoggingInterceptor(): HttpLoggingInterceptor {
         val logger = HttpLoggingInterceptor.Logger { message ->
-            android.util.Log.d("OkHttp", LogRedactor.redact(message))
+            Log.d("OkHttp", LogRedactor.redact(message))
         }
         return HttpLoggingInterceptor(logger).apply {
             level = if (BuildConfig.DEBUG) {
@@ -72,7 +78,7 @@ object NetworkModule {
     @Provides
     @Singleton
     fun provideOkHttpClient(
-        @dagger.hilt.android.qualifiers.ApplicationContext context: android.content.Context,
+        @ApplicationContext context: Context,
         loggingInterceptor: HttpLoggingInterceptor,
         tokenInterceptor: TokenInterceptor,
         pluginFileAuthInterceptor: PluginFileAuthInterceptor,
@@ -80,9 +86,9 @@ object NetworkModule {
         retryInterceptor: RetryInterceptor
     ): OkHttpClient {
         val cacheSize = HTTP_CACHE_SIZE_BYTES
-        val cacheDir = java.io.File(context.cacheDir, "http_cache")
+        val cacheDir = File(context.cacheDir, AppDirectories.HTTP_CACHE)
         return OkHttpClient.Builder()
-            .cache(okhttp3.Cache(cacheDir, cacheSize))
+            .cache(Cache(cacheDir, cacheSize))
             .addInterceptor(retryInterceptor)
             .addInterceptor(pluginFileAuthInterceptor)
             .addInterceptor(tokenInterceptor)

@@ -1,5 +1,6 @@
 package it.polimi.webeep.feature.sync
 
+import it.polimi.webeep.feature.course.domain.model.ModuleType
 import it.polimi.webeep.feature.course.domain.model.Section
 import kotlinx.serialization.Serializable
 
@@ -20,14 +21,12 @@ object FileChangeDetector {
     @Serializable
     data class FileChange(val moduleId: Int, val filepath: String, val filename: String, val type: ChangeType)
 
-    private val fileModules = setOf("resource", "folder")
-
     private data class FileIdentity(val moduleId: Int, val filepath: String, val filename: String)
 
     /** Notifiable files of a course: links and other module types are left out. */
     fun snapshot(sections: List<Section>): List<FileEntry> = sections.flatMap { section ->
         section.modules
-            .filter { it.modName in fileModules }
+            .filter { it.modName in ModuleType.FileBearing }
             .flatMap { module ->
                 module.files.map { file ->
                     FileEntry(module.id, file.filepath, file.filename, file.timeModified ?: 0L, file.fileSize)

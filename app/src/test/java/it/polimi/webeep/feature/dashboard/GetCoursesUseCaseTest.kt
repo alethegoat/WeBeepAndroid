@@ -4,13 +4,12 @@ import app.cash.turbine.test
 import it.polimi.webeep.core.util.ConnectivityObserver
 import it.polimi.webeep.core.util.DataError
 import it.polimi.webeep.core.util.Resource
-import it.polimi.webeep.feature.dashboard.domain.DashboardRepository
 import it.polimi.webeep.feature.dashboard.domain.GetCoursesUseCase
 import it.polimi.webeep.feature.dashboard.domain.SyncCoursesUseCase
 import it.polimi.webeep.feature.dashboard.domain.model.Course
+import it.polimi.webeep.util.fakes.FakeDashboardRepository
 import java.io.IOException
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -109,18 +108,5 @@ class GetCoursesUseCaseTest {
 
     private fun connectivity(online: Boolean) = object : ConnectivityObserver {
         override val isOnline: Flow<Boolean> = flowOf(online)
-    }
-
-    private class FakeDashboardRepository : DashboardRepository {
-        val cachedCoursesFlow = MutableStateFlow<List<Course>>(emptyList())
-        var syncResult: Result<List<Course>> = Result.success(emptyList())
-        var syncCalled = false
-
-        override fun getCoursesFromCache(): Flow<List<Course>> = cachedCoursesFlow
-        override suspend fun syncCourses(): Result<List<Course>> {
-            syncCalled = true
-            return syncResult
-        }
-        override suspend fun getUserInfo(): Result<Pair<String, String>> = Result.success("" to "")
     }
 }

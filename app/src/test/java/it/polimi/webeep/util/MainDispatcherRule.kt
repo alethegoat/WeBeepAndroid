@@ -10,16 +10,16 @@ import org.junit.rules.TestWatcher
 import org.junit.runner.Description
 
 /**
- * Regola JUnit che sostituisce [Dispatchers.Main] con un [TestDispatcher]
- * per consentire l'esecuzione dei test delle coroutine in modo deterministico.
+ * JUnit rule that replaces [Dispatchers.Main] with a [TestDispatcher]
+ * so coroutine tests run deterministically.
  *
- * Utilizzo:
+ * Usage:
  * ```
  * @get:Rule val mainDispatcherRule = MainDispatcherRule()
  * ```
  */
 @OptIn(ExperimentalCoroutinesApi::class)
-class MainDispatcherRule(private val testDispatcher: TestDispatcher = UnconfinedTestDispatcher()) : TestWatcher() {
+class MainDispatcherRule(val testDispatcher: TestDispatcher = UnconfinedTestDispatcher()) : TestWatcher() {
 
     override fun starting(description: Description) {
         Dispatchers.setMain(testDispatcher)

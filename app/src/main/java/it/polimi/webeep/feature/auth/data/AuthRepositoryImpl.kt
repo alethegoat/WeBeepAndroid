@@ -3,14 +3,17 @@ package it.polimi.webeep.feature.auth.data
 import android.app.Application
 import android.webkit.CookieManager
 import android.webkit.WebStorage
+import it.polimi.webeep.core.database.WeBeepDatabase
 import it.polimi.webeep.core.datastore.TokenProvider
 import it.polimi.webeep.core.di.IoDispatcher
 import it.polimi.webeep.core.di.MainDispatcher
 import it.polimi.webeep.core.network.MoodleApiService
 import it.polimi.webeep.core.network.MoodleFileUrlBuilder
 import it.polimi.webeep.core.network.dto.SiteInfoDto
+import it.polimi.webeep.core.util.AppDirectories
 import it.polimi.webeep.feature.auth.domain.AuthRepository
 import it.polimi.webeep.feature.auth.domain.UserSession
+import it.polimi.webeep.feature.download.domain.DownloadRepository
 import it.polimi.webeep.feature.sync.SyncNotifier
 import it.polimi.webeep.feature.sync.SyncScheduler
 import it.polimi.webeep.feature.sync.SyncStateStore
@@ -28,8 +31,8 @@ class AuthRepositoryImpl @Inject constructor(
     private val application: Application,
     private val syncScheduler: SyncScheduler,
     private val syncStateStore: SyncStateStore,
-    private val weBeepDatabase: it.polimi.webeep.core.database.WeBeepDatabase,
-    private val downloadRepository: it.polimi.webeep.feature.download.domain.DownloadRepository,
+    private val weBeepDatabase: WeBeepDatabase,
+    private val downloadRepository: DownloadRepository,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
     @MainDispatcher private val mainDispatcher: CoroutineDispatcher
 ) : AuthRepository {
@@ -41,10 +44,9 @@ class AuthRepositoryImpl @Inject constructor(
         apiService.getSiteInfo(wsToken = token).toUserSession()
     }
 
-    override suspend fun saveAuthData(token: String, privateToken: String?, session: UserSession) {
+    override suspend fun saveAuthData(token: String, session: UserSession) {
         tokenProvider.saveAuthData(
             token = token,
-            privateToken = privateToken,
             userId = session.userId,
             fullName = session.fullName
         )
@@ -80,9 +82,9 @@ class AuthRepositoryImpl @Inject constructor(
             WebStorage.getInstance().deleteAllData()
         }
         withContext(ioDispatcher) {
-            deleteQuietly(File(application.cacheDir, "http_cache"))
-            deleteQuietly(File(application.cacheDir, "viewer"))
-            deleteQuietly(File(application.cacheDir, "image_cache"))
+            deleteQuietly(File(application.cacheDir, AppDirectories.HTTP_CACHE))
+            deleteQuietly(File(application.cacheDir, AppDirectories.VIEWER_CACHE))
+            deleteQuietly(File(application.cacheDir, AppDirectories.IMAGE_CACHE))
         }
     }
 

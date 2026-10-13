@@ -78,8 +78,7 @@ class TokenManager @Inject constructor(private val application: Application, @Io
 
     override fun getTokenSync(): String? = cachedWsToken
 
-    /** [privateToken] is intentionally ignored: it grants a full web session and is never used. */
-    override suspend fun saveAuthData(token: String, privateToken: String?, userId: Int, fullName: String) {
+    override suspend fun saveAuthData(token: String, userId: Int, fullName: String) {
         withContext(ioDispatcher) {
             synchronized(clearLock) {
                 val updated = AuthRecord(token = token, userId = userId, fullName = fullName)
@@ -118,11 +117,6 @@ class TokenManager @Inject constructor(private val application: Application, @Io
         synchronized(clearLock) { record.userId }
     }
 
-    override suspend fun getUserFullName(): String? = withContext(ioDispatcher) {
-        loadIfNeeded()
-        synchronized(clearLock) { record.fullName }
-    }
-
     override suspend fun clearAll() {
         withContext(ioDispatcher) {
             clearInternal()
@@ -140,12 +134,6 @@ class TokenManager @Inject constructor(private val application: Application, @Io
             val entries = PendingPassports.add(PendingPassports.parse(record.passports, now), passport, now)
             record = record.copy(passports = PendingPassports.serialize(entries))
             persist(record)
-        }
-    }
-
-    override fun getPendingPassportSync(): String? {
-        synchronized(clearLock) {
-            return readPassportList().lastOrNull()
         }
     }
 

@@ -8,6 +8,7 @@ import dagger.hilt.components.SingletonComponent
 import it.polimi.webeep.core.datastore.TokenManager
 import it.polimi.webeep.core.datastore.TokenProvider
 import javax.inject.Singleton
+import kotlinx.coroutines.CoroutineDispatcher
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -15,7 +16,7 @@ object DataStoreModule {
 
     @Provides
     @Singleton
-    fun provideTokenManager(application: Application, @IoDispatcher ioDispatcher: kotlinx.coroutines.CoroutineDispatcher): TokenManager =
+    fun provideTokenManager(application: Application, @IoDispatcher ioDispatcher: CoroutineDispatcher): TokenManager =
         TokenManager(application, ioDispatcher)
 
     /**

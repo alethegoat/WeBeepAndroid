@@ -152,7 +152,7 @@ class DashboardRepositoryTest {
 
         assertTrue(result.isSuccess)
         coVerify(exactly = 1) { tokenProvider.updateUserProfile(12345, "Mario Rossi") }
-        coVerify(exactly = 0) { tokenProvider.saveAuthData(any(), any(), any(), any()) }
+        coVerify(exactly = 0) { tokenProvider.saveAuthData(any(), any(), any()) }
     }
 
     @Test

@@ -3,16 +3,14 @@ package it.polimi.webeep.feature.course.presentation
 import androidx.compose.runtime.Immutable
 import it.polimi.webeep.core.ui.components.GroupPosition
 import it.polimi.webeep.core.ui.components.groupPosition
-
-/** Moodle module types that are links rather than files. */
-private val LinkModuleTypes = setOf("url", "lti", "webex")
+import it.polimi.webeep.feature.course.domain.model.ModuleType
 
 /** How a module row looks and what tapping it does. */
 enum class ModuleKind { Folder, Link, SingleFile, MultiFile, Other }
 
 internal fun ModuleUiModel.kind(): ModuleKind = when {
-    type == "folder" -> ModuleKind.Folder
-    type in LinkModuleTypes -> ModuleKind.Link
+    type == ModuleType.FOLDER -> ModuleKind.Folder
+    type in ModuleType.Link -> ModuleKind.Link
     files.size == 1 -> ModuleKind.SingleFile
     files.size > 1 -> ModuleKind.MultiFile
     else -> ModuleKind.Other

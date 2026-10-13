@@ -3,9 +3,8 @@ package it.polimi.webeep.feature.fileviewer.domain
 import it.polimi.webeep.core.network.MoodleFileUrlBuilder
 import it.polimi.webeep.feature.course.domain.model.FileResource
 import it.polimi.webeep.feature.course.domain.model.Module
+import it.polimi.webeep.feature.course.domain.model.ModuleType
 import it.polimi.webeep.feature.course.domain.model.Section
-
-private val LINK_MODULE_TYPES = setOf("url", "lti", "webex")
 
 /**
  * Files the viewer can swipe through, in course order, starting from [fileUrl]:
@@ -17,7 +16,7 @@ fun findSiblings(sections: List<Section>, fileUrl: String): List<ViewerFile> {
     val target = MoodleFileUrlBuilder.stripAuthFromUrl(fileUrl)
     val (section, module, file) = sections.firstNotNullOfOrNull { section ->
         section.modules
-            .filter { it.modName !in LINK_MODULE_TYPES }
+            .filter { it.modName !in ModuleType.Link }
             .firstNotNullOfOrNull { module ->
                 module.files.firstOrNull { it.matches(target) }?.let { Triple(section, module, it) }
             }
@@ -30,7 +29,7 @@ fun findSiblings(sections: List<Section>, fileUrl: String): List<ViewerFile> {
     return siblings.map { it.toViewerFile() }
 }
 
-private fun Module.isSingleFile(): Boolean = modName != "folder" && modName !in LINK_MODULE_TYPES && files.size == 1
+private fun Module.isSingleFile(): Boolean = modName != ModuleType.FOLDER && modName !in ModuleType.Link && files.size == 1
 
 private fun FileResource.matches(strippedUrl: String): Boolean = MoodleFileUrlBuilder.stripAuthFromUrl(fileUrl) == strippedUrl
 

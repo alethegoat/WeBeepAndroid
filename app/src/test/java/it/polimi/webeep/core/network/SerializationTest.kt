@@ -32,7 +32,7 @@ class SerializationTest {
         assertEquals("ALGO-2026", course.shortname)
         assertEquals("Algoritmi e Principi dell'Informatica", course.fullname)
 
-        // Verifica che i valori di default per le chiavi assenti vengano applicati
+        // Verify that default values are applied for keys that are missing
         assertNull("Summary should be null when missing", course.summary)
         assertEquals(0L, course.startdate)
         assertEquals(0L, course.enddate)
@@ -54,7 +54,7 @@ class SerializationTest {
 
         assertEquals(105, course.id)
         assertEquals("ALGO-2026", course.shortname)
-        // Ignora coerentemente la chiave sconosciuta grazie a ignoreUnknownKeys = true
+        // Consistently ignores the unknown key thanks to ignoreUnknownKeys = true
     }
 
     @Test

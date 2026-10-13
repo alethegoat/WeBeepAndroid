@@ -21,9 +21,9 @@ import it.polimi.webeep.feature.course.presentation.CourseDetailViewModel
 import it.polimi.webeep.feature.course.presentation.CourseListItem
 import it.polimi.webeep.feature.course.presentation.DownloadState
 import it.polimi.webeep.feature.course.presentation.ModuleKind
-import it.polimi.webeep.feature.dashboard.MainDispatcherRule
 import it.polimi.webeep.feature.download.domain.DownloadFileUseCase
 import it.polimi.webeep.feature.download.domain.DownloadRepository
+import it.polimi.webeep.util.MainDispatcherRule
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -114,7 +114,7 @@ class CourseDetailViewModelTest {
 
     @Test
     fun `loadContents emits Loading then Success`() = runTest {
-        coEvery { getCourseContentsUseCase(5) } returns flowOf(Resource.Loading, Resource.Success(sampleSections))
+        coEvery { getCourseContentsUseCase(5) } returns flowOf(Resource.Success(sampleSections))
 
         initViewModel()
 
@@ -157,7 +157,7 @@ class CourseDetailViewModelTest {
                 state1 = awaitItem()
             }
             val successState = state1 as CourseDetailUiState.Success
-            assertTrue(successState.sections.first().isExpanded) // Espansa di default la prima
+            assertTrue(successState.sections.first().isExpanded) // First section is expanded by default
 
             viewModel.toggleSection(10)
 

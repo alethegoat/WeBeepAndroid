@@ -129,7 +129,7 @@ fun SettingsScreen(viewModel: SettingsViewModel, onBackClick: () -> Unit, onLogo
                     IconButton(onClick = onBackClick) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
-                            contentDescription = stringResource(R.string.go_back)
+                            contentDescription = stringResource(R.string.cd_back)
                         )
                     }
                 },

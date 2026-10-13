@@ -39,6 +39,7 @@ import it.polimi.webeep.R
 import it.polimi.webeep.core.network.MoodleFileUrlBuilder
 import it.polimi.webeep.core.ui.components.EmptyStateView
 import it.polimi.webeep.core.ui.theme.WeBeepTheme
+import java.util.concurrent.atomic.AtomicBoolean
 import okhttp3.Call
 
 @OptIn(UnstableApi::class)
@@ -49,7 +50,7 @@ fun MediaViewer(url: String, callFactory: Call.Factory, modifier: Modifier = Mod
 
     var hasError by remember { mutableStateOf(false) }
     var isBuffering by remember { mutableStateOf(true) }
-    val userPaused = remember { java.util.concurrent.atomic.AtomicBoolean(false) }
+    val userPaused = remember { AtomicBoolean(false) }
 
     val exoPlayer = remember {
         // Goes through the shared OkHttp client: the pluginfile token is added

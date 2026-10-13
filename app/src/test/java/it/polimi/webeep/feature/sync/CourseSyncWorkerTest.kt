@@ -42,7 +42,7 @@ import org.robolectric.annotation.Config
  * database are faked.
  */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [34], application = Application::class)
+@Config(application = Application::class)
 class CourseSyncWorkerTest {
 
     @get:Rule

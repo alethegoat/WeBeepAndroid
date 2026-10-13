@@ -5,6 +5,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
+import androidx.room.Update
 import it.polimi.webeep.core.database.entity.CourseEntity
 import kotlinx.coroutines.flow.Flow
 
@@ -17,7 +18,7 @@ interface CourseDao {
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertCourse(course: CourseEntity): Long
 
-    @androidx.room.Update
+    @Update
     suspend fun updateCourse(course: CourseEntity)
 
     @Query("DELETE FROM courses WHERE id IN (:courseIds)")

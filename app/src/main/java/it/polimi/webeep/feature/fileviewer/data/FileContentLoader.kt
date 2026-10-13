@@ -10,6 +10,7 @@ import it.polimi.webeep.core.datastore.TokenProvider
 import it.polimi.webeep.core.di.IoDispatcher
 import it.polimi.webeep.core.network.MoodleBinaryDownload
 import it.polimi.webeep.core.network.MoodleFileUrlBuilder
+import it.polimi.webeep.core.util.AppDirectories
 import it.polimi.webeep.core.util.FileUtils
 import it.polimi.webeep.feature.download.data.executeCancellable
 import it.polimi.webeep.feature.fileviewer.domain.ViewerFile
@@ -124,12 +125,12 @@ class FileContentLoader @Inject constructor(
 
     private suspend fun download(file: ViewerFile, extension: String, onProgress: ((FileContentState.Downloading) -> Unit)?): File {
         val localName = FileUtils.buildLocalFileName(file.title, file.url)
-        val alreadyDownloaded = File(File(application.filesDir, DOWNLOADS_DIR), localName)
+        val alreadyDownloaded = File(File(application.filesDir, AppDirectories.DOWNLOADS), localName)
         if (alreadyDownloaded.exists() && alreadyDownloaded.length() > 0) {
             return alreadyDownloaded
         }
 
-        val cacheDir = File(application.cacheDir, CACHE_DIR).apply { mkdirs() }
+        val cacheDir = File(application.cacheDir, AppDirectories.VIEWER_CACHE).apply { mkdirs() }
         val cacheKey = FileUtils.stableUrlHash(file.url)
         val target = File(cacheDir, "$cacheKey.$extension")
         if (target.exists() && target.length() > 0) {
@@ -207,7 +208,7 @@ class FileContentLoader @Inject constructor(
         }
     } catch (_: Exception) {
         // A corrupted cached copy would otherwise fail on every retry.
-        if (file.parentFile?.name == CACHE_DIR) {
+        if (file.parentFile?.name == AppDirectories.VIEWER_CACHE) {
             file.delete()
         }
         throw ViewerException(R.string.file_viewer_error_pdf)
@@ -242,8 +243,6 @@ class FileContentLoader @Inject constructor(
     }
 
     private companion object {
-        const val CACHE_DIR = "viewer"
-        const val DOWNLOADS_DIR = "downloads"
         const val MAX_CACHE_BYTES = 80L * 1024L * 1024L
         const val MAX_CODE_VIEW_BYTES = 1L * 1024L * 1024L
         const val BUFFER_SIZE = 8 * 1024

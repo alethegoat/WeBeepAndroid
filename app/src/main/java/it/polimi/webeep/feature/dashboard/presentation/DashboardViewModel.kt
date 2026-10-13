@@ -5,10 +5,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import it.polimi.webeep.core.ui.components.CourseUiModel
+import it.polimi.webeep.core.ui.util.STOP_TIMEOUT_MILLIS
 import it.polimi.webeep.core.util.ConnectivityObserver
 import it.polimi.webeep.core.util.Resource
 import it.polimi.webeep.core.util.toMessageRes
-import it.polimi.webeep.feature.auth.domain.AuthRepository
 import it.polimi.webeep.feature.dashboard.domain.DashboardRepository
 import it.polimi.webeep.feature.dashboard.domain.GetCoursesUseCase
 import it.polimi.webeep.feature.dashboard.domain.SyncCoursesUseCase
@@ -41,7 +41,6 @@ class DashboardViewModel @Inject constructor(
     private val getCoursesUseCase: GetCoursesUseCase,
     private val syncCoursesUseCase: SyncCoursesUseCase,
     private val dashboardRepository: DashboardRepository,
-    private val authRepository: AuthRepository,
     connectivityObserver: ConnectivityObserver
 ) : ViewModel() {
 
@@ -50,7 +49,7 @@ class DashboardViewModel @Inject constructor(
     val isOnline: StateFlow<Boolean> = connectivityObserver.isOnline
         .stateIn(
             scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
+            started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS),
             initialValue = true
         )
 
@@ -79,7 +78,7 @@ class DashboardViewModel @Inject constructor(
         .map { it.toUiState() }
         .stateIn(
             scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
+            started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS),
             initialValue = DashboardUiState.Loading
         )
 
@@ -106,11 +105,6 @@ class DashboardViewModel @Inject constructor(
         }
         getCoursesUseCase().collectLatest { resource ->
             when (resource) {
-                is Resource.Loading -> {
-                    if (vmState.value.courses == null) {
-                        vmState.update { it.copy(isLoading = true, error = null) }
-                    }
-                }
                 is Resource.Success -> {
                     vmState.update {
                         it.copy(
@@ -155,15 +149,7 @@ class DashboardViewModel @Inject constructor(
                         it.copy(isRefreshing = false, error = newError, isLoading = false)
                     }
                 }
-                Resource.Loading -> Unit
             }
-        }
-    }
-
-    fun logout(onComplete: () -> Unit = {}) {
-        viewModelScope.launch {
-            authRepository.logout()
-            onComplete()
         }
     }
 
