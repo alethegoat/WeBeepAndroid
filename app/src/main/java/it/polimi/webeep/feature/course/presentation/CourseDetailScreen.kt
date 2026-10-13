@@ -1,124 +1,58 @@
 package it.polimi.webeep.feature.course.presentation
 
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Book
 import androidx.compose.material.icons.rounded.Description
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.ui.tooling.preview.Preview
 import it.polimi.webeep.R
 import it.polimi.webeep.core.common.CourseTitle
-import it.polimi.webeep.core.common.CourseTitleParser
-import it.polimi.webeep.core.storage.mimeTypeForFileName
 import it.polimi.webeep.core.ui.components.EmptyStateView
-import it.polimi.webeep.core.ui.components.GroupPosition
-import it.polimi.webeep.core.ui.components.GroupedListGap
-import it.polimi.webeep.core.ui.components.GroupedListSectionGap
-import it.polimi.webeep.core.ui.components.ShimmerCourseSections
-import it.polimi.webeep.core.ui.components.WeBeepSearchField
 import it.polimi.webeep.core.ui.theme.WeBeepMotion
 import it.polimi.webeep.core.ui.theme.WeBeepSpacing
+import it.polimi.webeep.core.ui.theme.WeBeepTheme
 import it.polimi.webeep.core.ui.util.LocalReduceMotion
 import it.polimi.webeep.core.ui.util.courseSharedBounds
-import it.polimi.webeep.core.ui.util.openWithExternalApp
 import it.polimi.webeep.core.ui.util.rememberNavTransitionRunning
+import it.polimi.webeep.feature.course.presentation.components.CourseContentList
+import it.polimi.webeep.feature.course.presentation.components.CourseSectionsSkeleton
+import it.polimi.webeep.feature.course.presentation.components.CourseTopBar
+import it.polimi.webeep.feature.course.presentation.components.MaxContentWidth
 import kotlinx.coroutines.flow.filter
-
-private val MaxContentWidth = 840.dp
-private val EmptySearchHeight = 320.dp
-private val EmptyListContent = CourseListContent(items = emptyList(), noMatches = false)
 
 @Composable
 fun CourseDetailScreen(
-    viewModel: CourseDetailViewModel,
-    onPreviewFile: (FileUiModel) -> Unit,
+    state: CourseDetailUiState,
+    onAction: (CourseDetailAction) -> Unit,
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val listContent by viewModel.listContent.collectAsStateWithLifecycle()
-    val reduceMotion = LocalReduceMotion.current
     val lazyListState = rememberLazyListState()
-    val keyboard = LocalSoftwareKeyboardController.current
-    val context = LocalContext.current
-    // The ViewModel only locates the file; starting the chooser is the screen's job.
-    val onOpenFile: (FileUiModel) -> Unit = remember(viewModel, context) {
-        { file ->
-            viewModel.downloadedFile(file)?.let { local ->
-                openWithExternalApp(context, local, mimeTypeForFileName(local.name), chooserTitle = null)
-            }
-        }
-    }
-    // Local state keeps typing synchronous; the ViewModel filters off the main thread.
-    var searchQuery by rememberSaveable { mutableStateOf(viewModel.searchQuery.value) }
-    val onSearchQueryChange: (String) -> Unit = remember(viewModel) {
-        { query ->
-            searchQuery = query
-            viewModel.setSearchQuery(query)
-        }
-    }
-    val isNavTransitionRunning = rememberNavTransitionRunning()
-
-    // Collected, not read in composition: scrolling never recomposes the screen.
-    LaunchedEffect(lazyListState, keyboard) {
-        snapshotFlow { lazyListState.isScrollInProgress }
-            .filter { it }
-            .collect { keyboard?.hide() }
-    }
-
-    val fallbackTitle = stringResource(R.string.course_content_title)
-    val rawCourseName = (uiState as? CourseDetailUiState.Success)?.courseName.orEmpty()
-    val courseTitle = remember(rawCourseName, fallbackTitle) {
-        if (rawCourseName.isBlank()) {
-            CourseTitle(code = null, name = fallbackTitle, teacher = null, academicYear = null)
-        } else {
-            CourseTitleParser.parse(rawCourseName)
-        }
-    }
+    HideKeyboardOnScroll(lazyListState)
 
     // Driven by the list itself (not nested-scroll offsets) so the bar is also
     // opaque when the list is restored already scrolled.
@@ -130,275 +64,158 @@ fun CourseDetailScreen(
     val isHeaderHidden by remember(lazyListState) {
         derivedStateOf { lazyListState.firstVisibleItemIndex > 0 }
     }
-    // Still "loading" until the rows for these contents are built, so the list
-    // never shows up empty for a frame.
-    val displayState = when (val state = uiState) {
-        is CourseDetailUiState.Success -> if (listContent == null) CourseDetailUiState.Loading else state
-        else -> state
-    }
-    val isSuccess = displayState is CourseDetailUiState.Success
+    val showsList = state.content is CourseDetailContent.Content
+    val fallbackTitle = stringResource(R.string.course_content_title)
+    val courseTitle = state.courseTitle
+        ?: remember(fallbackTitle) { CourseTitle(code = null, name = fallbackTitle, teacher = null, academicYear = null) }
 
     Scaffold(
         // One stable, opaque container for the card -> screen transform, whatever the state.
-        modifier = modifier.courseSharedBounds(viewModel.courseId, isScreen = true),
+        modifier = modifier.courseSharedBounds(state.courseId, isScreen = true),
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             CourseTopBar(
                 title = courseTitle.name,
-                showTitle = isSuccess && isHeaderHidden,
-                isScrolled = isSuccess && isContentScrolled,
+                showTitle = showsList && isHeaderHidden,
+                isScrolled = showsList && isContentScrolled,
                 onBackClick = onBackClick
             )
         }
     ) { innerPadding ->
-        AnimatedContent(
-            targetState = displayState,
-            contentKey = { it::class },
-            transitionSpec = {
-                if (isNavTransitionRunning()) {
-                    // Contents landing mid navigation swap in at once: one animation at a time.
-                    EnterTransition.None togetherWith ExitTransition.None
-                } else {
-                    fadeIn(WeBeepMotion.enter(reduceMotion = reduceMotion)) togetherWith
-                        fadeOut(WeBeepMotion.exit(reduceMotion = reduceMotion))
-                }
-            },
-            label = "course_state",
-            modifier = Modifier.fillMaxSize()
-        ) { state ->
-            when (state) {
-                is CourseDetailUiState.Loading -> {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.TopCenter
-                    ) {
-                        ShimmerCourseSections(
-                            modifier = Modifier
-                                .padding(top = innerPadding.calculateTopPadding())
-                                .widthIn(max = MaxContentWidth)
-                        )
-                    }
-                }
-                is CourseDetailUiState.Success -> {
-                    if (state.sections.isEmpty()) {
-                        EmptyStateView(
-                            icon = Icons.Rounded.Book,
-                            title = stringResource(R.string.course_empty_title),
-                            subtitle = stringResource(R.string.course_empty_subtitle),
-                            actionLabel = stringResource(R.string.refresh),
-                            onAction = { viewModel.loadContents() }
-                        )
-                    } else {
-                        CourseContentList(
-                            content = listContent ?: EmptyListContent,
-                            courseTitle = courseTitle,
-                            searchQuery = searchQuery,
-                            onSearchQueryChange = onSearchQueryChange,
-                            lazyListState = lazyListState,
-                            contentPadding = PaddingValues(
-                                top = innerPadding.calculateTopPadding() + WeBeepSpacing.xs,
-                                bottom = innerPadding.calculateBottomPadding() + WeBeepSpacing.lg
-                            ),
-                            onToggleSection = viewModel::toggleSection,
-                            onToggleFolder = viewModel::toggleFolder,
-                            onPreviewFile = onPreviewFile,
-                            onDownloadFile = viewModel::downloadFile,
-                            onOpenFile = onOpenFile
-                        )
-                    }
-                }
-                is CourseDetailUiState.Error -> {
-                    EmptyStateView(
-                        icon = Icons.Rounded.Description,
-                        title = stringResource(R.string.sync_error_title),
-                        subtitle = stringResource(state.messageRes),
-                        actionLabel = stringResource(R.string.retry),
-                        onAction = { viewModel.loadContents() }
-                    )
-                }
-            }
-        }
+        CourseDetailContent(
+            state = state,
+            courseTitle = courseTitle,
+            lazyListState = lazyListState,
+            innerPadding = innerPadding,
+            onAction = onAction
+        )
     }
 }
 
-/**
- * Top bar that is transparent over the header and becomes an opaque
- * surfaceContainer as soon as content scrolls underneath it, so text never
- * shows through. The short course name fades in once the header is gone.
- */
-@OptIn(ExperimentalMaterial3Api::class)
+/** Collected, not read in composition: scrolling never recomposes the screen. */
 @Composable
-private fun CourseTopBar(title: String, showTitle: Boolean, isScrolled: Boolean, onBackClick: () -> Unit) {
-    val reduceMotion = LocalReduceMotion.current
-    val containerColor by animateColorAsState(
-        targetValue = if (isScrolled) MaterialTheme.colorScheme.surfaceContainer else Color.Transparent,
-        animationSpec = WeBeepMotion.smooth(reduceMotion = reduceMotion),
-        label = "top_bar_container"
-    )
-    TopAppBar(
-        title = {
-            AnimatedVisibility(
-                visible = showTitle,
-                enter = fadeIn(WeBeepMotion.enter(reduceMotion = reduceMotion)),
-                exit = fadeOut(WeBeepMotion.exit(reduceMotion = reduceMotion))
-            ) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleMedium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-        },
-        navigationIcon = {
-            IconButton(onClick = onBackClick) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
-                    contentDescription = stringResource(R.string.cd_back)
-                )
-            }
-        },
-        colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = containerColor,
-            scrolledContainerColor = containerColor,
-            titleContentColor = MaterialTheme.colorScheme.onSurface,
-            navigationIconContentColor = MaterialTheme.colorScheme.onSurface
-        )
-    )
+private fun HideKeyboardOnScroll(lazyListState: LazyListState) {
+    val keyboard = LocalSoftwareKeyboardController.current
+    LaunchedEffect(lazyListState, keyboard) {
+        snapshotFlow { lazyListState.isScrollInProgress }
+            .filter { it }
+            .collect { keyboard?.hide() }
+    }
+}
+
+/** Empty and Content share a key: going from one to the other is a data change, not a stage change. */
+private fun CourseDetailContent.stageKey(): Any = when (this) {
+    CourseDetailContent.Empty, is CourseDetailContent.Content -> CourseDetailContent.Content::class
+    else -> this::class
 }
 
 @Composable
-private fun CourseContentList(
-    content: CourseListContent,
+private fun CourseDetailContent(
+    state: CourseDetailUiState,
     courseTitle: CourseTitle,
-    searchQuery: String,
-    onSearchQueryChange: (String) -> Unit,
     lazyListState: LazyListState,
-    contentPadding: PaddingValues,
-    onToggleSection: (Int) -> Unit,
-    onToggleFolder: (String) -> Unit,
-    onPreviewFile: (FileUiModel) -> Unit,
-    onDownloadFile: (FileUiModel) -> Unit,
-    onOpenFile: (FileUiModel) -> Unit
+    innerPadding: PaddingValues,
+    onAction: (CourseDetailAction) -> Unit
 ) {
     val reduceMotion = LocalReduceMotion.current
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.TopCenter
-    ) {
-        LazyColumn(
-            state = lazyListState,
-            modifier = Modifier
-                .fillMaxHeight()
-                .widthIn(max = MaxContentWidth),
-            contentPadding = contentPadding,
-            verticalArrangement = Arrangement.spacedBy(GroupedListGap)
-        ) {
-            item(key = "course_header", contentType = "course_header") {
-                CourseHeader(
-                    title = courseTitle,
-                    modifier = Modifier
-                        .padding(horizontal = WeBeepSpacing.md)
-                        .padding(top = WeBeepSpacing.xs)
-                )
-            }
-            item(key = "course_search", contentType = "course_search") {
-                WeBeepSearchField(
-                    value = searchQuery,
-                    onValueChange = onSearchQueryChange,
-                    placeholder = stringResource(R.string.search_materials_placeholder),
-                    modifier = Modifier.padding(
-                        start = WeBeepSpacing.md,
-                        end = WeBeepSpacing.md,
-                        top = WeBeepSpacing.sm,
-                        bottom = WeBeepSpacing.xxs
-                    )
-                )
-            }
-            if (content.noMatches) {
-                item(key = "course_no_results", contentType = "course_no_results") {
-                    EmptyStateView(
-                        icon = Icons.Rounded.Description,
-                        title = stringResource(R.string.no_materials_found),
-                        subtitle = stringResource(R.string.try_changing_filters),
-                        actionLabel = stringResource(R.string.reset_filters),
-                        onAction = { onSearchQueryChange("") },
-                        modifier = Modifier.height(EmptySearchHeight)
-                    )
-                }
+    val isNavTransitionRunning = rememberNavTransitionRunning()
+    AnimatedContent(
+        targetState = state.content,
+        contentKey = { it.stageKey() },
+        transitionSpec = {
+            if (isNavTransitionRunning()) {
+                // Contents landing mid navigation swap in at once: one animation at a time.
+                EnterTransition.None togetherWith ExitTransition.None
             } else {
-                items(
-                    items = content.items,
-                    key = { it.key },
-                    contentType = { it.contentType }
-                ) { item ->
-                    val startsGroup = item.position == GroupPosition.Top || item.position == GroupPosition.Single
-                    val rowModifier = Modifier
-                        .then(
-                            if (reduceMotion) {
-                                Modifier
-                            } else {
-                                // Expanding/collapsing inserts or removes rows: they fade, the rest glide.
-                                Modifier.animateItem(
-                                    fadeInSpec = WeBeepMotion.enter(),
-                                    fadeOutSpec = WeBeepMotion.exit(),
-                                    placementSpec = WeBeepMotion.spatialSpring()
-                                )
-                            }
-                        )
-                        .padding(horizontal = WeBeepSpacing.md)
-                        .padding(top = if (startsGroup) GroupedListSectionGap else 0.dp)
-                    CourseListRow(
-                        item = item,
-                        onToggleSection = onToggleSection,
-                        onToggleFolder = onToggleFolder,
-                        onPreviewFile = onPreviewFile,
-                        onDownloadFile = onDownloadFile,
-                        onOpenFile = onOpenFile,
-                        modifier = rowModifier
-                    )
-                }
+                fadeIn(WeBeepMotion.enter(reduceMotion = reduceMotion)) togetherWith
+                    fadeOut(WeBeepMotion.exit(reduceMotion = reduceMotion))
             }
+        },
+        label = "course_state",
+        modifier = Modifier.fillMaxSize()
+    ) { content ->
+        when (content) {
+            CourseDetailContent.Loading -> Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.TopCenter
+            ) {
+                CourseSectionsSkeleton(
+                    modifier = Modifier
+                        .padding(top = innerPadding.calculateTopPadding())
+                        .widthIn(max = MaxContentWidth)
+                )
+            }
+            CourseDetailContent.Empty -> EmptyStateView(
+                icon = Icons.Rounded.Book,
+                title = stringResource(R.string.course_empty_title),
+                subtitle = stringResource(R.string.course_empty_subtitle),
+                actionLabel = stringResource(R.string.refresh),
+                onAction = { onAction(CourseDetailAction.Retry) }
+            )
+            is CourseDetailContent.Content -> CourseContentList(
+                content = content.list,
+                courseTitle = courseTitle,
+                searchQuery = state.searchQuery,
+                lazyListState = lazyListState,
+                contentPadding = PaddingValues(
+                    top = innerPadding.calculateTopPadding() + WeBeepSpacing.xs,
+                    bottom = innerPadding.calculateBottomPadding() + WeBeepSpacing.lg
+                ),
+                onAction = onAction
+            )
+            is CourseDetailContent.Error -> EmptyStateView(
+                icon = Icons.Rounded.Description,
+                title = stringResource(R.string.sync_error_title),
+                subtitle = stringResource(content.messageRes),
+                actionLabel = stringResource(R.string.retry),
+                onAction = { onAction(CourseDetailAction.Retry) }
+            )
         }
     }
 }
 
 @Composable
-private fun CourseListRow(
-    item: CourseListItem,
-    onToggleSection: (Int) -> Unit,
-    onToggleFolder: (String) -> Unit,
-    onPreviewFile: (FileUiModel) -> Unit,
-    onDownloadFile: (FileUiModel) -> Unit,
-    onOpenFile: (FileUiModel) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    when (item) {
-        is CourseListItem.SectionHeader -> SectionHeaderRow(
-            item = item,
-            onClick = { onToggleSection(item.sectionId) },
-            modifier = modifier
-        )
-        is CourseListItem.SectionEmpty -> SectionEmptyRow(item = item, modifier = modifier)
-        is CourseListItem.Module -> ModuleItemRow(
-            item = item,
-            onToggleFolder = onToggleFolder,
-            onPreviewClick = onPreviewFile,
-            onDownloadClick = onDownloadFile,
-            onOpenClick = onOpenFile,
-            modifier = modifier
-        )
-        is CourseListItem.Subfolder -> SubfolderItemRow(
-            item = item,
-            onToggleFolder = onToggleFolder,
-            modifier = modifier
-        )
-        is CourseListItem.File -> FileItemRow(
-            item = item,
-            onPreviewClick = onPreviewFile,
-            onDownloadClick = onDownloadFile,
-            onOpenClick = onOpenFile,
-            modifier = modifier
-        )
+private fun PreviewScreen(state: CourseDetailUiState) {
+    WeBeepTheme {
+        CourseDetailScreen(state = state, onAction = {}, onBackClick = {})
     }
+}
+
+@Preview(name = "Loading")
+@Composable
+private fun CourseDetailScreenPreviewLoading() {
+    PreviewScreen(previewCourseState(CourseDetailContent.Loading))
+}
+
+@Preview(name = "Content with expanded folders")
+@Composable
+private fun CourseDetailScreenPreviewContent() {
+    val folders = previewExpandedFolders
+    PreviewScreen(previewCourseState(CourseDetailContent.Content(previewList(folders = folders)), folders = folders))
+}
+
+@Preview(name = "Search without results")
+@Composable
+private fun CourseDetailScreenPreviewNoResults() {
+    val query = "thermodynamics"
+    PreviewScreen(previewCourseState(CourseDetailContent.Content(previewList(query = query)), query = query))
+}
+
+@Preview(name = "Empty course")
+@Composable
+private fun CourseDetailScreenPreviewEmpty() {
+    PreviewScreen(previewCourseState(CourseDetailContent.Empty))
+}
+
+@Preview(name = "Error")
+@Composable
+private fun CourseDetailScreenPreviewError() {
+    PreviewScreen(previewCourseState(CourseDetailContent.Error(R.string.error_data_unknown)))
+}
+
+@Preview(name = "Offline")
+@Composable
+private fun CourseDetailScreenPreviewOffline() {
+    // Offline with nothing cached: the network error is the only thing to show.
+    PreviewScreen(previewCourseState(CourseDetailContent.Error(R.string.error_data_network)))
 }

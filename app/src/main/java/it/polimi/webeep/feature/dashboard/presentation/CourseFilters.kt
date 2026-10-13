@@ -1,10 +1,13 @@
 package it.polimi.webeep.feature.dashboard.presentation
 
 enum class CourseFilter {
-    Active,
-    Past,
-    All
+    ACTIVE,
+    PAST,
+    ALL
 }
+
+/** The filter shown when nothing has been chosen yet. */
+internal val DEFAULT_COURSE_FILTER = CourseFilter.ACTIVE
 
 internal fun filterCourses(courses: List<CourseUiModel>, query: String, filter: CourseFilter, nowEpochSeconds: Long): List<CourseUiModel> {
     val needle = query.trim()
@@ -13,9 +16,9 @@ internal fun filterCourses(courses: List<CourseUiModel>, query: String, filter: 
             course.fullname.contains(needle, ignoreCase = true) ||
             course.shortname.contains(needle, ignoreCase = true)
         val matchesFilter = when (filter) {
-            CourseFilter.All -> true
-            CourseFilter.Active -> course.endDate == 0L || course.endDate >= nowEpochSeconds
-            CourseFilter.Past -> course.endDate != 0L && course.endDate < nowEpochSeconds
+            CourseFilter.ALL -> true
+            CourseFilter.ACTIVE -> course.endDate == 0L || course.endDate >= nowEpochSeconds
+            CourseFilter.PAST -> course.endDate != 0L && course.endDate < nowEpochSeconds
         }
         matchesSearch && matchesFilter
     }

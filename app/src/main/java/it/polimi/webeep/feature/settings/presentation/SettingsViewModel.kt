@@ -9,23 +9,17 @@ import it.polimi.webeep.feature.settings.domain.CheckForUpdatesNowUseCase
 import it.polimi.webeep.feature.settings.domain.SettingsRepository
 import it.polimi.webeep.feature.settings.domain.UpdateSyncFrequencyUseCase
 import it.polimi.webeep.feature.settings.domain.UpdateWifiOnlySyncUseCase
-import it.polimi.webeep.feature.settings.domain.model.SyncFrequency
-import it.polimi.webeep.feature.settings.domain.model.ThemePreference
 import it.polimi.webeep.feature.sync.domain.SyncStateRepository
 import javax.inject.Inject
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-
-data class SettingsUiState(
-    val themePreference: ThemePreference = ThemePreference.SYSTEM_DEFAULT,
-    val dynamicColorPreference: Boolean = false,
-    val wifiOnlySync: Boolean = false,
-    val syncFrequency: SyncFrequency = SyncFrequency.DEFAULT
-)
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
@@ -37,28 +31,12 @@ class SettingsViewModel @Inject constructor(
     syncStateRepository: SyncStateRepository
 ) : ViewModel() {
 
-    /** When the background sync last checked the courses for new files (epoch millis). */
-    val lastCheckAt: StateFlow<Long?> = syncStateRepository.lastCheckAt.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS),
-        initialValue = null
-    )
-
     /** Last-check time seen when "check now" was tapped; null when no manual check is running. */
     private data class CheckRequest(val previousCheckAt: Long?)
 
     private val checkRequest = MutableStateFlow<CheckRequest?>(null)
 
-    /** True from "check now" until the background sync records a newer check. */
-    val checkInProgress: StateFlow<Boolean> = combine(lastCheckAt, checkRequest) { last, request ->
-        request != null && last == request.previousCheckAt
-    }.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS),
-        initialValue = false
-    )
-
-    val uiState: StateFlow<SettingsUiState> = combine(
+    private val preferences = combine(
         settingsRepository.themePreference,
         settingsRepository.dynamicColorPreference,
         settingsRepository.wifiOnlySync,
@@ -70,47 +48,53 @@ class SettingsViewModel @Inject constructor(
             wifiOnlySync = wifiOnly,
             syncFrequency = syncFreq
         )
+    }
+
+    val uiState: StateFlow<SettingsUiState> = combine(
+        preferences,
+        syncStateRepository.lastCheckAt,
+        checkRequest
+    ) { prefs, lastCheckAt, request ->
+        prefs.copy(
+            lastCheckAt = lastCheckAt,
+            // True from "check now" until the background sync records a newer check.
+            checkInProgress = request != null && lastCheckAt == request.previousCheckAt
+        )
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS),
         initialValue = SettingsUiState()
     )
 
-    fun setThemePreference(theme: ThemePreference) {
-        viewModelScope.launch {
-            settingsRepository.setThemePreference(theme)
+    private val _effects = Channel<SettingsEffect>(Channel.BUFFERED)
+    val effects: Flow<SettingsEffect> = _effects.receiveAsFlow()
+
+    fun onAction(action: SettingsAction) {
+        when (action) {
+            is SettingsAction.ThemeChange -> viewModelScope.launch {
+                settingsRepository.setThemePreference(action.theme)
+            }
+            is SettingsAction.DynamicColorChange -> viewModelScope.launch {
+                settingsRepository.setDynamicColorPreference(action.enabled)
+            }
+            is SettingsAction.WifiOnlyChange -> viewModelScope.launch { updateWifiOnlySync(action.enabled) }
+            is SettingsAction.FrequencyChange -> viewModelScope.launch { updateSyncFrequency(action.frequency) }
+            SettingsAction.CheckNow -> checkNow()
+            SettingsAction.Logout -> logout()
         }
     }
 
-    fun setDynamicColorPreference(enabled: Boolean) {
-        viewModelScope.launch {
-            settingsRepository.setDynamicColorPreference(enabled)
-        }
-    }
-
-    fun setWifiOnlySync(enabled: Boolean) {
-        viewModelScope.launch {
-            updateWifiOnlySync(enabled)
-        }
-    }
-
-    fun setSyncFrequency(frequency: SyncFrequency) {
-        viewModelScope.launch {
-            updateSyncFrequency(frequency)
-        }
-    }
-
-    fun checkNow() {
-        checkRequest.value = CheckRequest(previousCheckAt = lastCheckAt.value)
+    private fun checkNow() {
+        checkRequest.value = CheckRequest(previousCheckAt = uiState.value.lastCheckAt)
         viewModelScope.launch {
             checkForUpdatesNow()
         }
     }
 
-    fun logout(onComplete: () -> Unit) {
+    private fun logout() {
         viewModelScope.launch {
             authRepository.logout()
-            onComplete()
+            _effects.send(SettingsEffect.LoggedOut)
         }
     }
 }

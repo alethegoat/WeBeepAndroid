@@ -64,7 +64,7 @@ class CourseListItemsTest {
             items.map { it.key }
         )
         val folderRow = items[1] as CourseListItem.Module
-        assertEquals(ModuleKind.Folder, folderRow.kind)
+        assertEquals(ModuleKind.FOLDER, folderRow.kind)
         assertFalse(folderRow.isFolderExpanded)
     }
 
@@ -74,12 +74,12 @@ class CourseListItemsTest {
 
         assertEquals(
             listOf(
-                GroupPosition.Top,
-                GroupPosition.Middle,
-                GroupPosition.Bottom,
-                GroupPosition.Single,
-                GroupPosition.Top,
-                GroupPosition.Bottom
+                GroupPosition.TOP,
+                GroupPosition.MIDDLE,
+                GroupPosition.BOTTOM,
+                GroupPosition.SINGLE,
+                GroupPosition.TOP,
+                GroupPosition.BOTTOM
             ),
             items.map { it.position }
         )

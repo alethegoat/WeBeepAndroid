@@ -8,16 +8,16 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 /** Material 3 window width classes. */
-enum class WindowWidthClass { Compact, Medium, Expanded }
+enum class WindowWidthClass { COMPACT, MEDIUM, EXPANDED }
 
 /** Size of the app window, read from the window itself (split screen and freeform included). */
 @Immutable
 data class WindowSize(val width: Dp, val height: Dp) {
     val widthClass: WindowWidthClass
         get() = when {
-            width < MediumWidth -> WindowWidthClass.Compact
-            width < ExpandedWidth -> WindowWidthClass.Medium
-            else -> WindowWidthClass.Expanded
+            width < MediumWidth -> WindowWidthClass.COMPACT
+            width < ExpandedWidth -> WindowWidthClass.MEDIUM
+            else -> WindowWidthClass.EXPANDED
         }
 
     /** Wider than tall and wide enough for two panes side by side (landscape phones, tablets). */

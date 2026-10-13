@@ -17,13 +17,20 @@ import it.polimi.webeep.feature.course.domain.GetCourseContentsUseCase
 import it.polimi.webeep.feature.course.domain.model.FileResource
 import it.polimi.webeep.feature.course.domain.model.Module
 import it.polimi.webeep.feature.course.domain.model.Section
+import it.polimi.webeep.feature.course.presentation.CourseDetailAction
+import it.polimi.webeep.feature.course.presentation.CourseDetailContent
+import it.polimi.webeep.feature.course.presentation.CourseDetailEffect
 import it.polimi.webeep.feature.course.presentation.CourseDetailUiState
 import it.polimi.webeep.feature.course.presentation.CourseDetailViewModel
+import it.polimi.webeep.feature.course.presentation.CourseListContent
 import it.polimi.webeep.feature.course.presentation.CourseListItem
+import it.polimi.webeep.feature.course.presentation.FileUiModel
 import it.polimi.webeep.feature.course.presentation.ModuleKind
 import it.polimi.webeep.feature.download.domain.DownloadFileUseCase
 import it.polimi.webeep.feature.download.domain.DownloadRepository
+import it.polimi.webeep.feature.download.domain.DownloadTracker
 import it.polimi.webeep.feature.download.domain.model.DownloadState
+import it.polimi.webeep.navigation.FileViewer
 import it.polimi.webeep.util.MainDispatcherRule
 import java.io.File
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -31,6 +38,7 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -39,8 +47,12 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
 
 @OptIn(ExperimentalCoroutinesApi::class)
+// SavedStateHandle.toRoute builds a Bundle, which needs Robolectric.
+@RunWith(RobolectricTestRunner::class)
 class CourseDetailViewModelTest {
 
     @get:Rule
@@ -104,7 +116,7 @@ class CourseDetailViewModelTest {
     private fun initViewModel() {
         viewModel = CourseDetailViewModel(
             getCourseContentsUseCase,
-            downloadFileUseCase,
+            DownloadTracker(downloadFileUseCase, downloadRepository),
             downloadRepository,
             courseRepository,
             savedStateHandle,
@@ -114,37 +126,51 @@ class CourseDetailViewModelTest {
     }
 
     @Test
-    fun `loadContents emits Loading then Success`() = runTest {
-        coEvery { getCourseContentsUseCase(5) } returns flowOf(Resource.Success(sampleSections))
-
+    fun `loadContents emits Loading then Content with the course title`() = runTest {
         initViewModel()
 
         viewModel.uiState.test {
-            var state = awaitItem()
-            while (state !is CourseDetailUiState.Success) {
-                state = awaitItem()
-            }
-            assertTrue(state is CourseDetailUiState.Success)
-            val success = state as CourseDetailUiState.Success
-            assertEquals("Informatica 1", success.courseName)
-            assertEquals(1, success.sections.size)
-            assertEquals("General", success.sections.first().name)
+            val state = awaitState { it.content is CourseDetailContent.Content }
+            assertEquals(5, state.courseId)
+            assertEquals("Informatica 1", state.courseTitle?.name)
+            val list = (state.content as CourseDetailContent.Content).list
+            assertEquals("General", (list.items.first() as CourseListItem.SectionHeader).name)
         }
     }
 
     @Test
-    fun `loadContents emits Error on failure`() = runTest {
+    fun `initial state is Loading`() = runTest {
+        coEvery { getCourseContentsUseCase(5) } returns MutableSharedFlow()
+
+        initViewModel()
+
+        assertEquals(CourseDetailContent.Loading, viewModel.uiState.value.content)
+    }
+
+    @Test
+    fun `a course without sections is Empty`() = runTest {
+        coEvery { getCourseContentsUseCase(5) } returns flowOf(Resource.Success(emptyList()))
+
+        initViewModel()
+
+        viewModel.uiState.test {
+            assertEquals(CourseDetailContent.Empty, awaitState { it.content == CourseDetailContent.Empty }.content)
+        }
+    }
+
+    @Test
+    fun `loadContents emits Error on failure and Retry loads again`() = runTest {
         coEvery { getCourseContentsUseCase(5) } returns flowOf(Resource.Error(DataError.Network))
 
         initViewModel()
 
         viewModel.uiState.test {
-            var state = awaitItem()
-            while (state !is CourseDetailUiState.Error) {
-                state = awaitItem()
-            }
-            assertTrue(state is CourseDetailUiState.Error)
-            assertEquals(R.string.error_data_network, (state as CourseDetailUiState.Error).messageRes)
+            val state = awaitState { it.content is CourseDetailContent.Error }
+            assertEquals(R.string.error_data_network, (state.content as CourseDetailContent.Error).messageRes)
+
+            coEvery { getCourseContentsUseCase(5) } returns flowOf(Resource.Success(sampleSections))
+            viewModel.onAction(CourseDetailAction.Retry)
+            awaitState { it.content is CourseDetailContent.Content }
         }
     }
 
@@ -153,47 +179,42 @@ class CourseDetailViewModelTest {
         initViewModel()
 
         viewModel.uiState.test {
-            var state1 = awaitItem()
-            while (state1 !is CourseDetailUiState.Success) {
-                state1 = awaitItem()
-            }
-            val successState = state1 as CourseDetailUiState.Success
-            assertTrue(successState.sections.first().isExpanded) // First section is expanded by default
+            val first = awaitState { it.content is CourseDetailContent.Content }
+            assertTrue((first.header().isExpanded)) // First section is expanded by default
 
-            viewModel.toggleSection(10)
+            viewModel.onAction(CourseDetailAction.ToggleSection(10))
 
-            val state2 = awaitItem() as CourseDetailUiState.Success
-            assertFalse(state2.sections.first().isExpanded)
+            val second = awaitState { (it.content as? CourseDetailContent.Content)?.header()?.isExpanded == false }
+            assertFalse(second.header().isExpanded)
         }
     }
 
     @Test
     fun `toggleFolder opens and closes a folder and survives in saved state`() = runTest {
         initViewModel()
+        backgroundScope.launch { viewModel.uiState.collect {} }
+        advanceUntilIdle()
 
-        viewModel.toggleFolder("101:")
-        assertEquals(setOf("101:"), viewModel.expandedFolders.value)
+        viewModel.onAction(CourseDetailAction.ToggleFolder("101:"))
+        assertEquals(setOf("101:"), viewModel.uiState.value.expandedFolders)
         assertEquals(arrayListOf("101:"), savedStateHandle.get<ArrayList<String>>("expandedFolders"))
 
-        viewModel.toggleFolder("101:")
-        assertTrue(viewModel.expandedFolders.value.isEmpty())
+        viewModel.onAction(CourseDetailAction.ToggleFolder("101:"))
+        assertTrue(viewModel.uiState.value.expandedFolders.isEmpty())
     }
 
     @Test
-    fun `listContent flattens the expanded first section into rows`() = runTest {
+    fun `the list flattens the expanded first section into rows`() = runTest {
         initViewModel()
 
-        viewModel.listContent.test {
-            var content = awaitItem()
-            while (content == null) {
-                content = awaitItem()
-            }
-            val header = content.items.first() as CourseListItem.SectionHeader
+        viewModel.uiState.test {
+            val list = (awaitState { it.content is CourseDetailContent.Content }.content as CourseDetailContent.Content).list
+            val header = list.items.first() as CourseListItem.SectionHeader
             assertEquals("General", header.name)
             assertEquals("Summary", header.summary)
-            val module = content.items[1] as CourseListItem.Module
-            assertEquals(ModuleKind.SingleFile, module.kind)
-            assertEquals(GroupPosition.Bottom, module.position)
+            val module = list.items[1] as CourseListItem.Module
+            assertEquals(ModuleKind.SINGLE_FILE, module.kind)
+            assertEquals(GroupPosition.BOTTOM, module.position)
         }
     }
 
@@ -201,19 +222,15 @@ class CourseDetailViewModelTest {
     fun `search query filters the rows and survives in saved state`() = runTest {
         initViewModel()
 
-        viewModel.listContent.test {
-            var content = awaitItem()
-            while (content == null) {
-                content = awaitItem()
-            }
+        viewModel.uiState.test {
+            awaitState { it.content is CourseDetailContent.Content }
 
-            viewModel.setSearchQuery("nothing matches this")
+            viewModel.onAction(CourseDetailAction.SearchQueryChange("nothing matches this"))
+            assertEquals("nothing matches this", viewModel.searchQuery)
             assertEquals("nothing matches this", savedStateHandle.get<String>("searchQuery"))
-            var filtered = awaitItem()
-            while (filtered?.noMatches != true) {
-                filtered = awaitItem()
-            }
-            assertTrue(filtered.items.isEmpty())
+            val filtered = awaitState { (it.content as? CourseDetailContent.Content)?.list?.noMatches == true }
+            assertEquals("nothing matches this", filtered.searchQuery)
+            assertTrue((filtered.content as CourseDetailContent.Content).list.items.isEmpty())
         }
     }
 
@@ -233,13 +250,10 @@ class CourseDetailViewModelTest {
         initViewModel()
 
         viewModel.uiState.test {
-            var state = awaitItem()
-            while (state !is CourseDetailUiState.Success) {
-                state = awaitItem()
-            }
-            val section = (state as CourseDetailUiState.Success).sections.first()
-            assertEquals(null, section.summary)
-            assertEquals("Read & sign", section.modules.first().description)
+            val state = awaitState { it.content is CourseDetailContent.Content }
+            assertEquals(null, state.header().summary)
+            val module = (state.content as CourseDetailContent.Content).list.items[1] as CourseListItem.Module
+            assertEquals("Read & sign", module.module.description)
         }
     }
 
@@ -248,13 +262,8 @@ class CourseDetailViewModelTest {
         initViewModel()
 
         viewModel.uiState.test {
-            var state = awaitItem()
-            while (state !is CourseDetailUiState.Success) {
-                state = awaitItem()
-            }
-            val successState = state as CourseDetailUiState.Success
-            val file = successState.sections.first().modules.first().files.first()
-            assertEquals("200.0 KB", file.formattedSize)
+            awaitState { it.content is CourseDetailContent.Content }
+            assertEquals("200.0 KB", firstFile().formattedSize)
         }
     }
 
@@ -269,23 +278,12 @@ class CourseDetailViewModelTest {
         initViewModel()
 
         viewModel.uiState.test {
-            var successState = awaitItem()
-            while (successState !is CourseDetailUiState.Success) {
-                successState = awaitItem()
-            }
-            val file = (successState as CourseDetailUiState.Success).sections.first().modules.first().files.first()
+            awaitState { it.content is CourseDetailContent.Content }
 
-            viewModel.downloadFile(file)
+            viewModel.onAction(CourseDetailAction.DownloadFile(firstFile()))
 
             // Skip intermediate DOWNLOADING state and wait for COMPLETED
-            var finalState = awaitItem()
-            while (finalState !is CourseDetailUiState.Success ||
-                finalState.sections.first().modules.first().files.first().downloadState != DownloadState.COMPLETED
-            ) {
-                finalState = awaitItem()
-            }
-            val finalFile = (finalState as CourseDetailUiState.Success).sections.first().modules.first().files.first()
-            assertEquals(DownloadState.COMPLETED, finalFile.downloadState)
+            awaitState { it.firstFileOrNull()?.downloadState == DownloadState.COMPLETED }
         }
 
         coVerify(exactly = 1) {
@@ -308,43 +306,75 @@ class CourseDetailViewModelTest {
         initViewModel()
 
         viewModel.uiState.test {
-            var successState = awaitItem()
-            while (successState !is CourseDetailUiState.Success) {
-                successState = awaitItem()
-            }
-            val file = (successState as CourseDetailUiState.Success).sections.first().modules.first().files.first()
+            awaitState { it.content is CourseDetailContent.Content }
 
-            viewModel.downloadFile(file)
+            viewModel.onAction(CourseDetailAction.DownloadFile(firstFile()))
 
-            var finalState = awaitItem()
-            while (finalState !is CourseDetailUiState.Success ||
-                finalState.sections.first().modules.first().files.first().downloadState != DownloadState.FAILED
-            ) {
-                finalState = awaitItem()
-            }
-            val finalFile = (finalState as CourseDetailUiState.Success).sections.first().modules.first().files.first()
-            assertEquals(DownloadState.FAILED, finalFile.downloadState)
+            awaitState { it.firstFileOrNull()?.downloadState == DownloadState.FAILED }
         }
     }
 
     @Test
-    fun `downloadedFile delegates to downloadRepository`() = runTest {
+    fun `OpenFile emits the downloaded copy with its mime type`() = runTest {
+        val local = File("syllabus.pdf")
+        every { downloadRepository.downloadedFile(any()) } returns local
         initViewModel()
+        backgroundScope.launch { viewModel.uiState.collect {} }
+        advanceUntilIdle()
 
-        viewModel.uiState.test {
-            var successState = awaitItem()
-            while (successState !is CourseDetailUiState.Success) {
-                successState = awaitItem()
-            }
-            val file = (successState as CourseDetailUiState.Success).sections.first().modules.first().files.first()
+        viewModel.effects.test {
+            viewModel.onAction(CourseDetailAction.OpenFile(firstFile()))
 
-            val local = File("syllabus.pdf")
-            every { downloadRepository.downloadedFile(any()) } returns local
+            assertEquals(CourseDetailEffect.OpenFile(local, "application/pdf"), awaitItem())
+        }
+        verify(exactly = 1) {
+            downloadRepository.downloadedFile(match { it.startsWith("syllabus-") && it.endsWith(".pdf") })
+        }
+    }
 
-            assertEquals(local, viewModel.downloadedFile(file))
-            verify(exactly = 1) {
-                downloadRepository.downloadedFile(match { it.startsWith("syllabus-") && it.endsWith(".pdf") })
-            }
+    @Test
+    fun `OpenFile emits nothing when the local copy is gone`() = runTest {
+        every { downloadRepository.downloadedFile(any()) } returns null
+        initViewModel()
+        backgroundScope.launch { viewModel.uiState.collect {} }
+        advanceUntilIdle()
+
+        viewModel.effects.test {
+            viewModel.onAction(CourseDetailAction.OpenFile(firstFile()))
+
+            expectNoEvents()
+        }
+    }
+
+    @Test
+    fun `PreviewFile on a pluginfile emits OpenViewer with a token-free route`() = runTest {
+        initViewModel()
+        backgroundScope.launch { viewModel.uiState.collect {} }
+        advanceUntilIdle()
+        val file = firstFile().copy(fileUrl = firstFile().fileUrl + "?token=secret")
+
+        viewModel.effects.test {
+            viewModel.onAction(CourseDetailAction.PreviewFile(file))
+
+            val effect = awaitItem() as CourseDetailEffect.OpenViewer
+            assertEquals(
+                FileViewer(url = firstFile().fileUrl, title = "syllabus.pdf", mimeType = "application/pdf", courseId = 5),
+                effect.route
+            )
+        }
+    }
+
+    @Test
+    fun `PreviewFile on an external web link emits OpenLink`() = runTest {
+        initViewModel()
+        backgroundScope.launch { viewModel.uiState.collect {} }
+        advanceUntilIdle()
+        val link = firstFile().copy(fileUrl = "https://example.com/slides?token=secret", mimeType = "text/html")
+
+        viewModel.effects.test {
+            viewModel.onAction(CourseDetailAction.PreviewFile(link))
+
+            assertEquals(CourseDetailEffect.OpenLink("https://example.com/slides"), awaitItem())
         }
     }
 
@@ -357,8 +387,9 @@ class CourseDetailViewModelTest {
         every { downloadRepository.getDownloadProgress(7L) } returns MutableSharedFlow<Int>()
 
         initViewModel()
+        backgroundScope.launch { viewModel.uiState.collect {} }
         advanceUntilIdle()
-        viewModel.downloadFile(firstFile())
+        viewModel.onAction(CourseDetailAction.DownloadFile(firstFile()))
         advanceUntilIdle()
         assertEquals(DownloadState.DOWNLOADING, firstFile().downloadState)
 
@@ -366,8 +397,7 @@ class CourseDetailViewModelTest {
         cache.value = sampleSections.map { it.copy(name = "General (synced)") }
         advanceUntilIdle()
 
-        val state = viewModel.uiState.value as CourseDetailUiState.Success
-        assertEquals("General (synced)", state.sections.first().name)
+        assertEquals("General (synced)", viewModel.uiState.value.header().name)
         assertEquals(DownloadState.DOWNLOADING, firstFile().downloadState)
     }
 
@@ -379,8 +409,9 @@ class CourseDetailViewModelTest {
         coEvery { downloadFileUseCase(fileUrl, any(), any(), any()) } returns Resource.Error(DataError.Unauthorized)
 
         initViewModel()
+        backgroundScope.launch { viewModel.uiState.collect {} }
         advanceUntilIdle()
-        viewModel.downloadFile(firstFile())
+        viewModel.onAction(CourseDetailAction.DownloadFile(firstFile()))
         advanceUntilIdle()
         assertEquals(DownloadState.FAILED, firstFile().downloadState)
 
@@ -402,12 +433,30 @@ class CourseDetailViewModelTest {
         downloadFileUseCase = DownloadFileUseCase(downloadRepository, tokenProvider)
 
         initViewModel()
+        backgroundScope.launch { viewModel.uiState.collect {} }
         advanceUntilIdle()
-        viewModel.downloadFile(firstFile())
+        viewModel.onAction(CourseDetailAction.DownloadFile(firstFile()))
         advanceUntilIdle()
 
         assertEquals(DownloadState.FAILED, firstFile().downloadState)
     }
 
-    private fun firstFile() = (viewModel.uiState.value as CourseDetailUiState.Success).sections.first().modules.first().files.first()
+    private suspend fun app.cash.turbine.ReceiveTurbine<CourseDetailUiState>.awaitState(
+        predicate: (CourseDetailUiState) -> Boolean
+    ): CourseDetailUiState {
+        var state = awaitItem()
+        while (!predicate(state)) state = awaitItem()
+        return state
+    }
+
+    private fun CourseDetailUiState.list(): CourseListContent = (content as CourseDetailContent.Content).list
+
+    private fun CourseDetailUiState.header() = list().items.first() as CourseListItem.SectionHeader
+
+    private fun CourseDetailContent.header() = (this as CourseDetailContent.Content).list.items.first() as CourseListItem.SectionHeader
+
+    private fun CourseDetailUiState.firstFileOrNull(): FileUiModel? = (content as? CourseDetailContent.Content)
+        ?.list?.items?.filterIsInstance<CourseListItem.Module>()?.firstOrNull()?.module?.files?.firstOrNull()
+
+    private fun firstFile(): FileUiModel = viewModel.uiState.value.firstFileOrNull()!!
 }

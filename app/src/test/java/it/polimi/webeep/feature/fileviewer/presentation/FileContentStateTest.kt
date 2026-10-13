@@ -31,11 +31,11 @@ class FileContentStateTest {
 
     @Test
     fun `data errors map to the viewer messages`() {
-        assertEquals(ViewerError.SessionExpired, DataError.Unauthorized.toViewerError())
-        assertEquals(ViewerError.Network, DataError.Network.toViewerError())
-        assertEquals(ViewerError.Network, DataError.Server("x").toViewerError())
-        assertEquals(ViewerError.CannotOpen, DataError.Storage.toViewerError())
-        assertEquals(ViewerError.CannotOpen, DataError.Unknown.toViewerError())
+        assertEquals(ViewerError.SESSION_EXPIRED, DataError.Unauthorized.toViewerError())
+        assertEquals(ViewerError.NETWORK, DataError.Network.toViewerError())
+        assertEquals(ViewerError.NETWORK, DataError.Server("x").toViewerError())
+        assertEquals(ViewerError.CANNOT_OPEN, DataError.Storage.toViewerError())
+        assertEquals(ViewerError.CANNOT_OPEN, DataError.Unknown.toViewerError())
     }
 
     @Test
@@ -44,7 +44,7 @@ class FileContentStateTest {
         val corrupt = LoadedContent.CorruptPdf.toContentState() as FileContentState.Error
 
         assertEquals(R.string.error_session_expired, expired.messageRes)
-        assertEquals(ViewerError.CorruptPdf, corrupt.reason)
+        assertEquals(ViewerError.CORRUPT_PDF, corrupt.reason)
         assertEquals(R.string.file_viewer_error_pdf, corrupt.messageRes)
     }
 

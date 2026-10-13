@@ -27,10 +27,10 @@ sealed interface FileContentState {
  * generic [it.polimi.webeep.core.common.DataError] messages, so its texts live here in one place.
  */
 enum class ViewerError(@StringRes val messageRes: Int) {
-    SessionExpired(R.string.error_session_expired),
-    Network(R.string.file_viewer_error_network),
-    CorruptPdf(R.string.file_viewer_error_pdf),
-    CannotOpen(R.string.error_cannot_open_file)
+    SESSION_EXPIRED(R.string.error_session_expired),
+    NETWORK(R.string.file_viewer_error_network),
+    CORRUPT_PDF(R.string.file_viewer_error_pdf),
+    CANNOT_OPEN(R.string.error_cannot_open_file)
 }
 
 /** Local copy behind a ready state, if the state was built from one. */
@@ -43,9 +43,9 @@ val FileContentState.localFile: File?
     }
 
 internal fun DataError.toViewerError(): ViewerError = when (this) {
-    DataError.Unauthorized -> ViewerError.SessionExpired
-    DataError.Network, is DataError.Server -> ViewerError.Network
-    DataError.Storage, DataError.Unknown -> ViewerError.CannotOpen
+    DataError.Unauthorized -> ViewerError.SESSION_EXPIRED
+    DataError.Network, is DataError.Server -> ViewerError.NETWORK
+    DataError.Storage, DataError.Unknown -> ViewerError.CANNOT_OPEN
 }
 
 internal fun LoadedContent.toContentState(): FileContentState = when (this) {
@@ -55,6 +55,6 @@ internal fun LoadedContent.toContentState(): FileContentState = when (this) {
     is LoadedContent.Media -> FileContentState.Media(url)
     is LoadedContent.Code -> FileContentState.Code(file, content)
     is LoadedContent.External -> FileContentState.External(file, mimeType)
-    LoadedContent.CorruptPdf -> FileContentState.Error(ViewerError.CorruptPdf)
+    LoadedContent.CorruptPdf -> FileContentState.Error(ViewerError.CORRUPT_PDF)
     is LoadedContent.Failed -> FileContentState.Error(error.toViewerError())
 }

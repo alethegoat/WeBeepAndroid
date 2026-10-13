@@ -18,6 +18,10 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.sp
 import it.polimi.webeep.core.ui.theme.WeBeepSpacing
 
+// No type-scale token is monospace at this size, so the code text sizes live here.
+private val CodeFontSize = 13.sp
+private val CodeLineHeight = 20.sp
+
 @Composable
 fun CodeViewer(content: String, modifier: Modifier = Modifier, contentPadding: PaddingValues = PaddingValues(), onTap: () -> Unit = {}) {
     val lazyListState = rememberLazyListState()
@@ -48,9 +52,9 @@ fun CodeViewer(content: String, modifier: Modifier = Modifier, contentPadding: P
                 Text(
                     text = lines[index],
                     fontFamily = FontFamily.Monospace,
-                    fontSize = 13.sp,
+                    fontSize = CodeFontSize,
                     color = MaterialTheme.colorScheme.onSurface,
-                    lineHeight = 20.sp
+                    lineHeight = CodeLineHeight
                 )
             }
         }

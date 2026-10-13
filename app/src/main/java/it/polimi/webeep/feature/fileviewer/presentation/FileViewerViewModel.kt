@@ -3,35 +3,31 @@ package it.polimi.webeep.feature.fileviewer.presentation
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.navigation.toRoute
 import dagger.hilt.android.lifecycle.HiltViewModel
 import it.polimi.webeep.core.common.FileUtils
-import it.polimi.webeep.core.common.Resource
 import it.polimi.webeep.core.common.runCatchingCancellable
 import it.polimi.webeep.core.network.MoodleFileUrlBuilder
 import it.polimi.webeep.feature.course.domain.CourseRepository
-import it.polimi.webeep.feature.download.domain.DownloadFileUseCase
 import it.polimi.webeep.feature.download.domain.DownloadRepository
-import it.polimi.webeep.feature.download.domain.DownloadRepository.Companion.PROGRESS_COMPLETE
-import it.polimi.webeep.feature.download.domain.DownloadRepository.Companion.PROGRESS_FAILED
+import it.polimi.webeep.feature.download.domain.DownloadTracker
 import it.polimi.webeep.feature.download.domain.model.DownloadState
 import it.polimi.webeep.feature.fileviewer.domain.FileContentRepository
 import it.polimi.webeep.feature.fileviewer.domain.ViewerFile
 import it.polimi.webeep.feature.fileviewer.domain.findSiblings
-import it.polimi.webeep.navigation.Screen
+import it.polimi.webeep.navigation.FileViewer
 import java.io.File
 import javax.inject.Inject
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import okhttp3.Call
-import okhttp3.OkHttpClient
-
-/** The files the pager can show and where it starts. */
-data class ViewerFiles(val files: List<ViewerFile>, val initialIndex: Int)
 
 /**
  * ViewModel for file preview. Auth tokens are added only by OkHttp interceptors
@@ -45,63 +41,84 @@ data class ViewerFiles(val files: List<ViewerFile>, val initialIndex: Int)
 class FileViewerViewModel @Inject constructor(
     private val loader: FileContentRepository,
     private val courseRepository: CourseRepository,
-    private val downloadFileUseCase: DownloadFileUseCase,
+    private val downloadTracker: DownloadTracker,
     private val downloadRepository: DownloadRepository,
-    private val okHttpClient: OkHttpClient,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
-    val initialFile = ViewerFile(
-        url = MoodleFileUrlBuilder.stripAuthFromUrl(savedStateHandle[Screen.FileViewer.URL_ARG] ?: ""),
-        title = savedStateHandle[Screen.FileViewer.TITLE_ARG] ?: "Preview",
-        mimeType = savedStateHandle[Screen.FileViewer.MIME_TYPE_ARG] ?: ""
+    private val route = savedStateHandle.toRoute<FileViewer>()
+
+    private val initialFile = ViewerFile(
+        url = MoodleFileUrlBuilder.stripAuthFromUrl(route.url),
+        title = route.title,
+        mimeType = route.mimeType.orEmpty()
     )
-    private val courseId: Int = savedStateHandle[Screen.FileViewer.COURSE_ID_ARG] ?: Screen.FileViewer.NO_COURSE
+    private val courseId: Int? = route.courseId
 
-    private val _files = MutableStateFlow<ViewerFiles?>(null)
-    val files: StateFlow<ViewerFiles?> = _files.asStateFlow()
+    private val _uiState = MutableStateFlow(FileViewerUiState(initialFile = initialFile))
+    val uiState: StateFlow<FileViewerUiState> = _uiState.asStateFlow()
 
-    private val contents = mutableMapOf<String, MutableStateFlow<FileContentState>>()
+    private val _effects = Channel<FileViewerEffect>(Channel.BUFFERED)
+    val effects: Flow<FileViewerEffect> = _effects.receiveAsFlow()
+
     private val loadJobs = mutableMapOf<String, Job>()
-
-    private val _downloadStates = MutableStateFlow<Map<String, DownloadState>>(emptyMap())
-    val downloadStates: StateFlow<Map<String, DownloadState>> = _downloadStates.asStateFlow()
-
-    private val _preparingShare = MutableStateFlow(false)
-    val preparingShare: StateFlow<Boolean> = _preparingShare.asStateFlow()
-
     private var autoLaunchConsumed = false
-
-    /** Shared authenticated client for streaming media (ExoPlayer). */
-    val mediaCallFactory: Call.Factory
-        get() = okHttpClient
 
     init {
         // Start the requested file right away; siblings resolve in parallel.
-        startLoading(initialFile)
-        viewModelScope.launch { _files.value = resolveFiles() }
+        onPageVisible(initialFile)
+        viewModelScope.launch { resolveFiles() }
     }
 
-    private suspend fun resolveFiles(): ViewerFiles {
-        if (courseId == Screen.FileViewer.NO_COURSE) return ViewerFiles(listOf(initialFile), 0)
-        val siblings = runCatchingCancellable {
-            findSiblings(courseRepository.getCachedCourseContents(courseId).first(), initialFile.url)
-        }.getOrDefault(emptyList())
-        val index = siblings.indexOfFirst { it.url == initialFile.url }
-        return if (index < 0) {
-            ViewerFiles(listOf(initialFile), 0)
-        } else {
-            // Keep the title/mime the caller passed for the opened file.
-            ViewerFiles(siblings.toMutableList().also { it[index] = initialFile.copy(size = it[index].size) }, index)
+    fun onAction(action: FileViewerAction) {
+        when (action) {
+            is FileViewerAction.PageVisible -> onPageVisible(action.file)
+            is FileViewerAction.PageSettled -> onPageSettled(action.index)
+            is FileViewerAction.Retry -> retry(action.file)
+            is FileViewerAction.Download -> download(action.file)
+            is FileViewerAction.Share -> withLocalFile(action.file) { local ->
+                FileViewerEffect.Share(local, loader.resolveMimeType(action.file), action.file.title)
+            }
+            is FileViewerAction.OpenWith -> withLocalFile(action.file) { local ->
+                FileViewerEffect.OpenExternally(local, loader.resolveMimeType(action.file))
+            }
+            is FileViewerAction.OpenExternally ->
+                _effects.trySend(FileViewerEffect.OpenExternally(action.file, action.mimeType))
         }
     }
 
-    /** Content of [file], loading it on first request. */
-    fun contentFor(file: ViewerFile): StateFlow<FileContentState> = startLoading(file)
+    private suspend fun resolveFiles() {
+        val resolved = if (courseId == null) {
+            listOf(initialFile) to 0
+        } else {
+            val siblings = runCatchingCancellable {
+                findSiblings(courseRepository.getCachedCourseContents(courseId).first(), initialFile.url)
+            }.getOrDefault(emptyList())
+            val index = siblings.indexOfFirst { it.url == initialFile.url }
+            if (index < 0) {
+                listOf(initialFile) to 0
+            } else {
+                // Keep the title/mime the caller passed for the opened file.
+                siblings.toMutableList().also { it[index] = initialFile.copy(size = it[index].size) } to index
+            }
+        }
+        _uiState.update { it.copy(files = resolved.first, initialIndex = resolved.second) }
+    }
 
-    fun retry(file: ViewerFile) {
-        loadJobs.remove(file.url)?.cancel()
-        contents.remove(file.url)
+    private fun onPageVisible(file: ViewerFile) {
+        startLoading(file)
+        if (file.url !in _uiState.value.downloadStates) {
+            val initial = if (downloadRepository.isFileDownloaded(localName(file))) {
+                DownloadState.COMPLETED
+            } else {
+                DownloadState.NOT_STARTED
+            }
+            setDownloadState(file, initial)
+        }
+    }
+
+    private fun retry(file: ViewerFile) {
+        evict(file.url)
         startLoading(file)
     }
 
@@ -109,80 +126,73 @@ class FileViewerViewModel @Inject constructor(
      * Keeps [index] and its neighbours, drops the rest, and preloads small
      * neighbours so swiping lands on a ready page.
      */
-    fun onPageSettled(index: Int) {
-        val list = _files.value?.files ?: return
+    private fun onPageSettled(index: Int) {
+        val list = _uiState.value.files ?: return
         val keep = ((index - 1)..(index + 1)).mapNotNull { list.getOrNull(it)?.url }.toSet()
-        (contents.keys - keep).forEach { url ->
-            loadJobs.remove(url)?.cancel()
-            contents.remove(url)
-        }
+        (loadJobs.keys - keep).forEach(::evict)
         listOfNotNull(list.getOrNull(index + 1), list.getOrNull(index - 1))
             .filter { it.size in 1..PRELOAD_MAX_BYTES }
             .forEach { startLoading(it) }
     }
 
-    /** True once, for the file the viewer was opened on: external files auto-open only then. */
-    fun consumeAutoLaunch(file: ViewerFile): Boolean {
-        if (autoLaunchConsumed || file.url != initialFile.url) return false
-        autoLaunchConsumed = true
-        return true
-    }
-
-    fun downloadStateFor(file: ViewerFile): DownloadState =
-        _downloadStates.value[file.url] ?: if (downloadRepository.isFileDownloaded(localName(file))) {
-            DownloadState.COMPLETED
-        } else {
-            DownloadState.NOT_STARTED
-        }
-
-    fun download(file: ViewerFile) {
-        if (_downloadStates.value[file.url] == DownloadState.DOWNLOADING) return
+    private fun download(file: ViewerFile) {
+        if (_uiState.value.downloadStates[file.url] == DownloadState.DOWNLOADING) return
         viewModelScope.launch {
-            setDownloadState(file, DownloadState.DOWNLOADING)
-            val started = downloadFileUseCase(
+            downloadTracker.track(
                 url = file.url,
                 localFileName = localName(file),
                 displayName = file.title,
                 mimeType = file.mimeType.ifBlank { null }
-            )
-            when (started) {
-                is Resource.Error -> setDownloadState(file, DownloadState.FAILED)
-                is Resource.Success -> downloadRepository.getDownloadProgress(started.data).collect { progress ->
-                    when (progress) {
-                        PROGRESS_COMPLETE -> setDownloadState(file, DownloadState.COMPLETED)
-                        PROGRESS_FAILED -> setDownloadState(file, DownloadState.FAILED)
-                        else -> Unit
-                    }
-                }
-            }
+            ).collect { setDownloadState(file, it) }
+        }
+    }
+
+    /** Prepares a local copy of [file] for share / open-with and emits the resulting [effect]. */
+    private fun withLocalFile(file: ViewerFile, effect: (File) -> FileViewerEffect) {
+        viewModelScope.launch {
+            localFileFor(file)?.let { _effects.send(effect(it)) }
         }
     }
 
     /** Local copy for share / open-with, reusing what the page already downloaded. */
-    suspend fun localFileFor(file: ViewerFile): File? {
-        contents[file.url]?.value?.localFile?.let { return it }
-        _preparingShare.value = true
+    private suspend fun localFileFor(file: ViewerFile): File? {
+        _uiState.value.contents[file.url]?.localFile?.let { return it }
+        _uiState.update { it.copy(preparingShare = true) }
         return try {
             runCatchingCancellable { loader.localCopy(file) }.getOrNull()
         } finally {
-            _preparingShare.value = false
+            _uiState.update { it.copy(preparingShare = false) }
         }
     }
 
-    fun shareMimeType(file: ViewerFile): String = loader.resolveMimeType(file)
-
-    private fun startLoading(file: ViewerFile): StateFlow<FileContentState> {
-        contents[file.url]?.let { return it }
-        val state = MutableStateFlow<FileContentState>(FileContentState.Downloading(0L, null))
-        contents[file.url] = state
+    private fun startLoading(file: ViewerFile) {
+        if (file.url in loadJobs) return
+        setContent(file, FileContentState.Downloading(0L, null))
         loadJobs[file.url] = viewModelScope.launch {
-            loader.load(file).collect { state.value = it.toContentState() }
+            loader.load(file).collect { onContent(file, it.toContentState()) }
         }
-        return state
+    }
+
+    private fun onContent(file: ViewerFile, content: FileContentState) {
+        setContent(file, content)
+        // Only the file the viewer was opened on opens by itself, and only once.
+        if (content is FileContentState.External && file.url == initialFile.url && !autoLaunchConsumed) {
+            autoLaunchConsumed = true
+            _effects.trySend(FileViewerEffect.OpenExternally(content.file, content.mimeType))
+        }
+    }
+
+    private fun evict(url: String) {
+        loadJobs.remove(url)?.cancel()
+        _uiState.update { it.copy(contents = it.contents - url) }
+    }
+
+    private fun setContent(file: ViewerFile, content: FileContentState) {
+        _uiState.update { it.copy(contents = it.contents + (file.url to content)) }
     }
 
     private fun setDownloadState(file: ViewerFile, state: DownloadState) {
-        _downloadStates.update { it + (file.url to state) }
+        _uiState.update { it.copy(downloadStates = it.downloadStates + (file.url to state)) }
     }
 
     private fun localName(file: ViewerFile) = FileUtils.buildLocalFileName(file.title, file.url)

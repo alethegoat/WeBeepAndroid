@@ -1,5 +1,6 @@
 package it.polimi.webeep.feature.dashboard
 
+import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
 import it.polimi.webeep.R
 import it.polimi.webeep.core.common.ConnectivityObserver
@@ -10,7 +11,9 @@ import it.polimi.webeep.feature.dashboard.domain.GetCoursesUseCase
 import it.polimi.webeep.feature.dashboard.domain.SyncCoursesUseCase
 import it.polimi.webeep.feature.dashboard.domain.model.Course
 import it.polimi.webeep.feature.dashboard.domain.model.UserProfile
-import it.polimi.webeep.feature.dashboard.presentation.DashboardUiState
+import it.polimi.webeep.feature.dashboard.presentation.CourseFilter
+import it.polimi.webeep.feature.dashboard.presentation.DashboardAction
+import it.polimi.webeep.feature.dashboard.presentation.DashboardContent
 import it.polimi.webeep.feature.dashboard.presentation.DashboardViewModel
 import it.polimi.webeep.util.MainDispatcherRule
 import it.polimi.webeep.util.fakes.FakeDashboardRepository
@@ -63,12 +66,13 @@ class DashboardViewModelTest {
         fakeDashboardRepository.syncResult = Resource.Success(sampleCourses)
     }
 
-    private fun initViewModel() {
+    private fun initViewModel(savedStateHandle: SavedStateHandle = SavedStateHandle()) {
         viewModel = DashboardViewModel(
             getCoursesUseCase,
             syncCoursesUseCase,
             fakeDashboardRepository,
-            fakeConnectivity
+            fakeConnectivity,
+            savedStateHandle
         )
     }
 
@@ -78,11 +82,11 @@ class DashboardViewModelTest {
 
         viewModel.uiState.test {
             val successState = expectMostRecentItem()
-            assertTrue(successState is DashboardUiState.Success)
-            val success = successState as DashboardUiState.Success
+            assertTrue(successState.content is DashboardContent.Success)
+            val success = successState.content as DashboardContent.Success
             assertEquals(1, success.courses.size)
             assertEquals("Intro to CS", success.courses.first().fullname)
-            assertEquals("Alessio", success.userName)
+            assertEquals("Alessio", successState.userName)
         }
     }
 
@@ -97,11 +101,11 @@ class DashboardViewModelTest {
         viewModel.uiState.test {
             // skip initial Loading
             var state = awaitItem()
-            if (state is DashboardUiState.Loading) state = awaitItem()
+            if (state.content is DashboardContent.Loading) state = awaitItem()
 
             // Should be Error now
-            assertTrue(state is DashboardUiState.Error)
-            assertEquals(R.string.error_data_network, (state as DashboardUiState.Error).messageRes)
+            assertTrue(state.content is DashboardContent.Error)
+            assertEquals(R.string.error_data_network, (state.content as DashboardContent.Error).messageRes)
         }
     }
 
@@ -114,8 +118,8 @@ class DashboardViewModelTest {
 
         viewModel.uiState.test {
             val state = expectMostRecentItem()
-            assertTrue(state is DashboardUiState.Success)
-            assertEquals(0, (state as DashboardUiState.Success).courses.size)
+            assertTrue(state.content is DashboardContent.Success)
+            assertEquals(0, (state.content as DashboardContent.Success).courses.size)
         }
     }
 
@@ -123,13 +127,13 @@ class DashboardViewModelTest {
     fun `refresh sets isRefreshing then loads data`() = runTest {
         initViewModel()
 
-        viewModel.refresh()
+        viewModel.onAction(DashboardAction.Refresh)
 
         viewModel.uiState.test {
             val state = expectMostRecentItem()
-            assertTrue(state is DashboardUiState.Success)
-            val success = state as DashboardUiState.Success
-            assertEquals(false, success.isRefreshing)
+            assertTrue(state.content is DashboardContent.Success)
+            val success = state.content as DashboardContent.Success
+            assertEquals(false, state.isRefreshing)
             assertEquals(1, success.courses.size)
         }
     }
@@ -146,12 +150,12 @@ class DashboardViewModelTest {
         fakeDashboardRepository.cachedCoursesFlow.value = sampleCourses
         fakeDashboardRepository.syncResult = Resource.Success(sampleCourses)
 
-        viewModel.refresh()
+        viewModel.onAction(DashboardAction.Refresh)
 
         viewModel.uiState.test {
             val state = expectMostRecentItem()
-            assertTrue(state is DashboardUiState.Success)
-            assertEquals(1, (state as DashboardUiState.Success).courses.size)
+            assertTrue(state.content is DashboardContent.Success)
+            assertEquals(1, (state.content as DashboardContent.Success).courses.size)
         }
     }
 
@@ -161,8 +165,8 @@ class DashboardViewModelTest {
 
         viewModel.uiState.test {
             val state = expectMostRecentItem()
-            assertTrue(state is DashboardUiState.Success)
-            val uiModel = (state as DashboardUiState.Success).courses.first()
+            assertTrue(state.content is DashboardContent.Success)
+            val uiModel = (state.content as DashboardContent.Success).courses.first()
             assertEquals(1, uiModel.id)
             assertEquals("CS101", uiModel.shortname)
             assertEquals("Intro to CS", uiModel.fullname)
@@ -178,13 +182,13 @@ class DashboardViewModelTest {
         initViewModel()
 
         fakeDashboardRepository.syncResult = Resource.Error(DataError.Unknown, Exception("Sync fallito"))
-        viewModel.refresh()
+        viewModel.onAction(DashboardAction.Refresh)
 
         viewModel.uiState.test {
             val state = expectMostRecentItem()
-            assertTrue(state is DashboardUiState.Success)
-            val success = state as DashboardUiState.Success
-            assertEquals(false, success.isRefreshing)
+            assertTrue(state.content is DashboardContent.Success)
+            val success = state.content as DashboardContent.Success
+            assertEquals(false, state.isRefreshing)
             assertEquals(1, success.courses.size)
         }
     }
@@ -199,8 +203,8 @@ class DashboardViewModelTest {
 
         viewModel.uiState.test {
             val state = expectMostRecentItem()
-            assertTrue(state is DashboardUiState.Error)
-            assertEquals(R.string.error_session_expired, (state as DashboardUiState.Error).messageRes)
+            assertTrue(state.content is DashboardContent.Error)
+            assertEquals(R.string.error_session_expired, (state.content as DashboardContent.Error).messageRes)
         }
     }
 
@@ -212,8 +216,8 @@ class DashboardViewModelTest {
 
         viewModel.uiState.test {
             val state = expectMostRecentItem()
-            assertTrue(state is DashboardUiState.Success)
-            assertEquals("", (state as DashboardUiState.Success).userName)
+            assertTrue(state.content is DashboardContent.Success)
+            assertEquals("", state.userName)
         }
     }
 
@@ -225,14 +229,102 @@ class DashboardViewModelTest {
 
         fakeConnectivity.online.value = false
         fakeDashboardRepository.syncCount = 0
-        viewModel.refresh()
+        viewModel.onAction(DashboardAction.Refresh)
 
         viewModel.uiState.test {
             val state = expectMostRecentItem()
-            assertTrue(state is DashboardUiState.Error)
-            assertEquals(R.string.error_data_network, (state as DashboardUiState.Error).messageRes)
+            assertTrue(state.content is DashboardContent.Error)
+            assertEquals(R.string.error_data_network, (state.content as DashboardContent.Error).messageRes)
         }
         assertEquals(0, fakeDashboardRepository.syncCount)
+    }
+
+    @Test
+    fun `search query updates uiState and filters visible courses`() = runTest {
+        fakeDashboardRepository.cachedCoursesFlow.value = sampleCourses + sampleCourses.first().copy(
+            id = 2,
+            shortname = "MA202",
+            fullname = "Linear Algebra"
+        )
+        initViewModel()
+        // The default ACTIVE filter keeps both (the end dates are in the past, so widen it)
+        viewModel.onAction(DashboardAction.FilterChange(CourseFilter.ALL))
+
+        viewModel.onAction(DashboardAction.SearchQueryChange("algebra"))
+
+        assertEquals("algebra", viewModel.searchQuery)
+        viewModel.uiState.test {
+            val state = expectMostRecentItem()
+            assertEquals("algebra", state.searchQuery)
+            val content = state.content as DashboardContent.Success
+            assertEquals(2, content.courses.size)
+            assertEquals(listOf(2), content.visibleCourses.map { it.id })
+        }
+    }
+
+    @Test
+    fun `filter change updates uiState and filters visible courses`() = runTest {
+        initViewModel()
+
+        viewModel.uiState.test {
+            val initial = expectMostRecentItem()
+            assertEquals(CourseFilter.ACTIVE, initial.filter)
+            // endDate 2000 is long past, so ACTIVE hides the course
+            assertEquals(0, (initial.content as DashboardContent.Success).visibleCourses.size)
+
+            viewModel.onAction(DashboardAction.FilterChange(CourseFilter.PAST))
+
+            val past = expectMostRecentItem()
+            assertEquals(CourseFilter.PAST, past.filter)
+            assertEquals(1, (past.content as DashboardContent.Success).visibleCourses.size)
+        }
+    }
+
+    @Test
+    fun `reset filters restores the defaults`() = runTest {
+        initViewModel()
+        viewModel.onAction(DashboardAction.SearchQueryChange("zzz"))
+        viewModel.onAction(DashboardAction.FilterChange(CourseFilter.PAST))
+
+        viewModel.onAction(DashboardAction.ResetFilters)
+
+        viewModel.uiState.test {
+            val state = expectMostRecentItem()
+            assertEquals("", state.searchQuery)
+            assertEquals(CourseFilter.ACTIVE, state.filter)
+            assertEquals(false, state.filtersActive)
+        }
+    }
+
+    @Test
+    fun `search and filter are written to and restored from SavedStateHandle`() = runTest {
+        val handle = SavedStateHandle()
+        initViewModel(handle)
+        viewModel.onAction(DashboardAction.SearchQueryChange("intro"))
+        viewModel.onAction(DashboardAction.FilterChange(CourseFilter.PAST))
+
+        // A new ViewModel with the same handle simulates process-death restoration.
+        initViewModel(handle)
+
+        viewModel.uiState.test {
+            val state = expectMostRecentItem()
+            assertEquals("intro", state.searchQuery)
+            assertEquals(CourseFilter.PAST, state.filter)
+            assertEquals(1, (state.content as DashboardContent.Success).visibleCourses.size)
+        }
+    }
+
+    @Test
+    fun `isOnline follows connectivity in uiState`() = runTest {
+        initViewModel()
+
+        viewModel.uiState.test {
+            assertTrue(expectMostRecentItem().isOnline)
+
+            fakeConnectivity.online.value = false
+
+            assertEquals(false, expectMostRecentItem().isOnline)
+        }
     }
 
     private class FakeConnectivityObserver : ConnectivityObserver {

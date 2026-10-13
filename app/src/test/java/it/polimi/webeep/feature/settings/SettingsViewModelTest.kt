@@ -6,6 +6,8 @@ import it.polimi.webeep.feature.settings.domain.UpdateSyncFrequencyUseCase
 import it.polimi.webeep.feature.settings.domain.UpdateWifiOnlySyncUseCase
 import it.polimi.webeep.feature.settings.domain.model.SyncFrequency
 import it.polimi.webeep.feature.settings.domain.model.ThemePreference
+import it.polimi.webeep.feature.settings.presentation.SettingsAction
+import it.polimi.webeep.feature.settings.presentation.SettingsEffect
 import it.polimi.webeep.feature.settings.presentation.SettingsUiState
 import it.polimi.webeep.feature.settings.presentation.SettingsViewModel
 import it.polimi.webeep.util.MainDispatcherRule
@@ -71,8 +73,8 @@ class SettingsViewModelTest {
     fun `changing theme and dynamic color persists them without rescheduling`() = runTest {
         val vm = viewModel()
 
-        vm.setThemePreference(ThemePreference.LIGHT)
-        vm.setDynamicColorPreference(true)
+        vm.onAction(SettingsAction.ThemeChange(ThemePreference.LIGHT))
+        vm.onAction(SettingsAction.DynamicColorChange(true))
 
         assertEquals(ThemePreference.LIGHT, settings.themePreference.value)
         assertTrue(settings.dynamicColorPreference.value)
@@ -81,7 +83,7 @@ class SettingsViewModelTest {
 
     @Test
     fun `changing the frequency persists it then reschedules`() = runTest {
-        viewModel().setSyncFrequency(SyncFrequency.NEVER)
+        viewModel().onAction(SettingsAction.FrequencyChange(SyncFrequency.NEVER))
 
         assertEquals(SyncFrequency.NEVER, settings.syncFrequency.value)
         assertEquals(listOf("frequency=NEVER", "apply"), settings.events)
@@ -89,9 +91,18 @@ class SettingsViewModelTest {
 
     @Test
     fun `changing wifi only persists it then reschedules`() = runTest {
-        viewModel().setWifiOnlySync(true)
+        viewModel().onAction(SettingsAction.WifiOnlyChange(true))
 
         assertEquals(listOf("wifiOnly=true", "apply"), settings.events)
+    }
+
+    @Test
+    fun `ui state exposes the last check time`() = runTest {
+        syncState.lastCheckAt.value = 10L
+
+        viewModel().uiState.test {
+            assertEquals(10L, expectMostRecentItem().lastCheckAt)
+        }
     }
 
     @Test
@@ -99,24 +110,28 @@ class SettingsViewModelTest {
         syncState.lastCheckAt.value = 10L
         val vm = viewModel()
 
-        vm.checkInProgress.test {
-            assertFalse(awaitItem())
-            vm.checkNow()
-            assertTrue(awaitItem())
+        vm.uiState.test {
+            assertFalse(expectMostRecentItem().checkInProgress)
+            vm.onAction(SettingsAction.CheckNow)
+            assertTrue(awaitItem().checkInProgress)
             syncState.lastCheckAt.value = 20L
-            assertFalse(awaitItem())
+            val done = awaitItem()
+            assertFalse(done.checkInProgress)
+            assertEquals(20L, done.lastCheckAt)
         }
         assertEquals(listOf(true), scheduling.immediateRequests)
     }
 
     @Test
-    fun `logout clears the session then calls back`() = runTest {
+    fun `logout clears the session then emits LoggedOut`() = runTest {
         auth.isLoggedInValue = true
-        var completed = false
+        val vm = viewModel()
 
-        viewModel().logout { completed = true }
+        vm.effects.test {
+            vm.onAction(SettingsAction.Logout)
 
-        assertFalse(auth.isLoggedInValue)
-        assertTrue(completed)
+            assertEquals(SettingsEffect.LoggedOut, awaitItem())
+            assertFalse(auth.isLoggedInValue)
+        }
     }
 }
