@@ -4,6 +4,10 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 
 ## [Unreleased]
 
+### Documentation
+
+- Confirmed on a real device (2026-10-13) that the PoliMi SSO requires the `moodlemobile://` callback scheme: the server forces it, and a build with only `webeepandroid://` could not complete login. The scheme is kept and documented as an accepted risk (collision with the official Moodle app, audit SEC-05).
+
 ## [1.1.0] - 2026-10-13
 
 Everything on `master` since the `v1.0.1` tag, ending with the code-quality stack (PRs #37 to #44).
