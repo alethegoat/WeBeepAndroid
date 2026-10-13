@@ -2,6 +2,9 @@ package it.polimi.webeep.feature.auth.domain
 
 import it.polimi.webeep.core.datastore.TokenProvider
 import it.polimi.webeep.core.network.MoodleFileUrlBuilder
+import it.polimi.webeep.core.util.Resource
+import it.polimi.webeep.core.util.resourceOf
+import it.polimi.webeep.core.util.runCatchingCancellable
 import java.net.URLDecoder
 import java.security.MessageDigest
 import java.security.SecureRandom
@@ -54,30 +57,24 @@ class LoginUseCase @Inject constructor(private val authRepository: AuthRepositor
             return LoginResult.Failure(LoginError.TokenProcessingFailed)
         }
 
-        return try {
-            val result = authRepository.validateToken(wstoken)
-            if (result.isSuccess) {
-                val siteInfo = result.getOrThrow()
-                authRepository.saveAuthData(wstoken, siteInfo)
-                tokenProvider.clearPendingPassportSync()
-                LoginResult.Success(siteInfo)
-            } else {
-                LoginResult.Failure(LoginError.ValidationFailed(result.exceptionOrNull()))
-            }
-        } catch (e: Exception) {
-            if (e is CancellationException) throw e
-            LoginResult.Failure(LoginError.ValidationFailed(e))
+        val session = when (val validated = authRepository.validateToken(wstoken)) {
+            is Resource.Error -> return LoginResult.Failure(LoginError.ValidationFailed(validated.error))
+            is Resource.Success -> validated.data
         }
+        return when (val saved = resourceOf { persistSession(wstoken, session) }) {
+            is Resource.Success -> LoginResult.Success(session)
+            is Resource.Error -> LoginResult.Failure(LoginError.ValidationFailed(saved.error))
+        }
+    }
+
+    private suspend fun persistSession(wstoken: String, session: UserSession) {
+        authRepository.saveAuthData(wstoken, session)
+        tokenProvider.clearPendingPassportSync()
     }
 
     private fun decodeTokenParameter(encodedToken: String): String {
         val token = encodedToken.trim()
-        return try {
-            URLDecoder.decode(token.replace("+", "%2B"), Charsets.UTF_8.name())
-        } catch (e: Exception) {
-            if (e is CancellationException) throw e
-            token
-        }
+        return runCatchingCancellable { URLDecoder.decode(token.replace("+", "%2B"), Charsets.UTF_8.name()) }.getOrDefault(token)
     }
 
     companion object {

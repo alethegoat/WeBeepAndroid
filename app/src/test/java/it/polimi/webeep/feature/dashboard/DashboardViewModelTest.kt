@@ -4,9 +4,12 @@ import app.cash.turbine.test
 import it.polimi.webeep.R
 import it.polimi.webeep.core.datastore.MissingTokenException
 import it.polimi.webeep.core.util.ConnectivityObserver
+import it.polimi.webeep.core.util.DataError
+import it.polimi.webeep.core.util.Resource
 import it.polimi.webeep.feature.dashboard.domain.GetCoursesUseCase
 import it.polimi.webeep.feature.dashboard.domain.SyncCoursesUseCase
 import it.polimi.webeep.feature.dashboard.domain.model.Course
+import it.polimi.webeep.feature.dashboard.domain.model.UserProfile
 import it.polimi.webeep.feature.dashboard.presentation.DashboardUiState
 import it.polimi.webeep.feature.dashboard.presentation.DashboardViewModel
 import it.polimi.webeep.util.MainDispatcherRule
@@ -55,9 +58,9 @@ class DashboardViewModelTest {
         getCoursesUseCase = GetCoursesUseCase(fakeDashboardRepository, fakeConnectivity)
         syncCoursesUseCase = SyncCoursesUseCase(fakeDashboardRepository, fakeConnectivity)
 
-        fakeDashboardRepository.userInfoResult = Result.success("Alessio" to "avatar.png")
+        fakeDashboardRepository.userInfoResult = Resource.Success(UserProfile("Alessio", "avatar.png"))
         fakeDashboardRepository.cachedCoursesFlow.value = sampleCourses
-        fakeDashboardRepository.syncResult = Result.success(sampleCourses)
+        fakeDashboardRepository.syncResult = Resource.Success(sampleCourses)
     }
 
     private fun initViewModel() {
@@ -87,7 +90,7 @@ class DashboardViewModelTest {
     fun `init emits Loading then Error on network failure`() = runTest {
         // If the cache is empty and the sync fails, emit Error
         fakeDashboardRepository.cachedCoursesFlow.value = emptyList()
-        fakeDashboardRepository.syncResult = Result.failure(IOException("timeout"))
+        fakeDashboardRepository.syncResult = Resource.Error(DataError.Network, IOException("timeout"))
 
         initViewModel()
 
@@ -105,7 +108,7 @@ class DashboardViewModelTest {
     @Test
     fun `loadCourses with empty list emits Success with empty courses`() = runTest {
         fakeDashboardRepository.cachedCoursesFlow.value = emptyList()
-        fakeDashboardRepository.syncResult = Result.success(emptyList())
+        fakeDashboardRepository.syncResult = Resource.Success(emptyList())
 
         initViewModel()
 
@@ -135,13 +138,13 @@ class DashboardViewModelTest {
     fun `refresh after error transitions correctly`() = runTest {
         // Initial error
         fakeDashboardRepository.cachedCoursesFlow.value = emptyList()
-        fakeDashboardRepository.syncResult = Result.failure(Exception("Sync fallito"))
+        fakeDashboardRepository.syncResult = Resource.Error(DataError.Unknown, Exception("Sync fallito"))
 
         initViewModel()
 
         // Resolve the error for the refresh
         fakeDashboardRepository.cachedCoursesFlow.value = sampleCourses
-        fakeDashboardRepository.syncResult = Result.success(sampleCourses)
+        fakeDashboardRepository.syncResult = Resource.Success(sampleCourses)
 
         viewModel.refresh()
 
@@ -174,7 +177,7 @@ class DashboardViewModelTest {
     fun `refresh failure with existing data keeps data and resets refresh flag`() = runTest {
         initViewModel()
 
-        fakeDashboardRepository.syncResult = Result.failure(Exception("Sync fallito"))
+        fakeDashboardRepository.syncResult = Resource.Error(DataError.Unknown, Exception("Sync fallito"))
         viewModel.refresh()
 
         viewModel.uiState.test {
@@ -190,7 +193,7 @@ class DashboardViewModelTest {
     fun `missing token error maps to session expired message`() = runTest {
         fakeDashboardRepository.cachedCoursesFlow.value = emptyList()
         fakeDashboardRepository.syncResult =
-            Result.failure(MissingTokenException())
+            Resource.Error(DataError.Unauthorized, MissingTokenException())
 
         initViewModel()
 
@@ -203,7 +206,7 @@ class DashboardViewModelTest {
 
     @Test
     fun `userName stays blank when profile cannot be loaded`() = runTest {
-        fakeDashboardRepository.userInfoResult = Result.failure(IOException("offline"))
+        fakeDashboardRepository.userInfoResult = Resource.Error(DataError.Network, IOException("offline"))
 
         initViewModel()
 
@@ -217,7 +220,7 @@ class DashboardViewModelTest {
     @Test
     fun `refresh while offline with empty cache shows network error without syncing`() = runTest {
         fakeDashboardRepository.cachedCoursesFlow.value = emptyList()
-        fakeDashboardRepository.syncResult = Result.failure(IOException("offline"))
+        fakeDashboardRepository.syncResult = Resource.Error(DataError.Network, IOException("offline"))
         initViewModel()
 
         fakeConnectivity.online.value = false

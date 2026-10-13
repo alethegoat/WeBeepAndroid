@@ -6,8 +6,10 @@ import io.mockk.every
 import io.mockk.mockk
 import it.polimi.webeep.R
 import it.polimi.webeep.core.datastore.TokenProvider
+import it.polimi.webeep.core.network.MoodleException
 import it.polimi.webeep.feature.fileviewer.data.FileContentLoader
 import it.polimi.webeep.feature.fileviewer.data.FileContentState
+import it.polimi.webeep.feature.fileviewer.data.ViewerError
 import it.polimi.webeep.feature.fileviewer.domain.ViewerFile
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -89,6 +91,45 @@ class FileContentLoaderTest {
 
         assertTrue(last is FileContentState.Error)
         assertEquals(R.string.error_cannot_open_file, (last as FileContentState.Error).messageRes)
+    }
+
+    @Test
+    fun `missing session becomes the session expired message`() = runTest {
+        val tokenProvider = mockk<TokenProvider>()
+        coEvery { tokenProvider.getToken() } returns null
+        val application = mockk<Application>()
+        every { application.filesDir } returns tmp.newFolder("files2")
+        every { application.cacheDir } returns tmp.newFolder("cache2")
+        val noSession = FileContentLoader(tokenProvider, OkHttpClient(), application, UnconfinedTestDispatcher())
+
+        val last = noSession.load(file("notes.txt", "text/plain")).toList().last()
+
+        assertEquals(FileContentState.Error(ViewerError.SessionExpired), last)
+        assertEquals(R.string.error_session_expired, (last as FileContentState.Error).messageRes)
+        assertEquals(0, server.requestCount)
+    }
+
+    @Test
+    fun `expired token reported by moodle becomes the session expired message`() = runTest {
+        val tokenProvider = mockk<TokenProvider>()
+        coEvery { tokenProvider.getToken() } throws MoodleException("invalidtoken", "Invalid token")
+        val application = mockk<Application>()
+        every { application.filesDir } returns tmp.newFolder("files3")
+        every { application.cacheDir } returns tmp.newFolder("cache3")
+        val expired = FileContentLoader(tokenProvider, OkHttpClient(), application, UnconfinedTestDispatcher())
+
+        val last = expired.load(file("notes.txt", "text/plain")).toList().last()
+
+        assertEquals(FileContentState.Error(ViewerError.SessionExpired), last)
+    }
+
+    @Test
+    fun `network failures use the viewer download message`() = runTest {
+        server.shutdown()
+
+        val last = loader.load(file("notes.txt", "text/plain")).toList().last()
+
+        assertEquals(R.string.file_viewer_error_network, (last as FileContentState.Error).messageRes)
     }
 
     private fun file(name: String, mime: String) = ViewerFile(

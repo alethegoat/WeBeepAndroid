@@ -8,6 +8,7 @@ import it.polimi.webeep.core.ui.components.CourseUiModel
 import it.polimi.webeep.core.ui.util.STOP_TIMEOUT_MILLIS
 import it.polimi.webeep.core.util.ConnectivityObserver
 import it.polimi.webeep.core.util.Resource
+import it.polimi.webeep.core.util.onSuccess
 import it.polimi.webeep.core.util.toMessageRes
 import it.polimi.webeep.feature.dashboard.domain.DashboardRepository
 import it.polimi.webeep.feature.dashboard.domain.GetCoursesUseCase
@@ -90,13 +91,11 @@ class DashboardViewModel @Inject constructor(
     }
 
     private suspend fun loadUserInfo() {
-        dashboardRepository.getUserInfo().fold(
-            onSuccess = { (name, avatar) ->
-                vmState.update { it.copy(userName = name, userAvatar = avatar) }
-            },
-            onFailure = {
-            }
-        )
+        // A failure is deliberately silent: the header keeps its placeholder name and avatar,
+        // and the courses load (and report their own errors) independently.
+        dashboardRepository.getUserInfo().onSuccess { profile ->
+            vmState.update { it.copy(userName = profile.fullName, userAvatar = profile.avatarUrl.orEmpty()) }
+        }
     }
 
     private suspend fun loadCoursesInternal() {

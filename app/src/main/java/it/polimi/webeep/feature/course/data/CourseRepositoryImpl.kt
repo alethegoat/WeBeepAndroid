@@ -7,6 +7,8 @@ import it.polimi.webeep.core.datastore.TokenProvider
 import it.polimi.webeep.core.di.DefaultDispatcher
 import it.polimi.webeep.core.network.MoodleApiService
 import it.polimi.webeep.core.network.MoodleFileUrlBuilder
+import it.polimi.webeep.core.util.Resource
+import it.polimi.webeep.core.util.resourceOf
 import it.polimi.webeep.feature.course.domain.CourseRepository
 import it.polimi.webeep.feature.course.domain.model.FileResource
 import it.polimi.webeep.feature.course.domain.model.Module
@@ -30,7 +32,7 @@ class CourseRepositoryImpl @Inject constructor(
     @DefaultDispatcher private val defaultDispatcher: CoroutineDispatcher
 ) : CourseRepository {
 
-    override suspend fun getCourseContents(courseId: Int): Result<List<Section>> = runCatching {
+    override suspend fun getCourseContents(courseId: Int): Resource<List<Section>> = resourceOf {
         tokenProvider.getToken() ?: throw MissingTokenException()
 
         val sectionDtos = apiService.getCourseContents(courseId = courseId)

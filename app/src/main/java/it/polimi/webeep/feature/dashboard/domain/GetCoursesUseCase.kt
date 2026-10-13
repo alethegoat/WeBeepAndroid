@@ -2,7 +2,7 @@ package it.polimi.webeep.feature.dashboard.domain
 
 import it.polimi.webeep.core.util.ConnectivityObserver
 import it.polimi.webeep.core.util.Resource
-import it.polimi.webeep.core.util.toDataError
+import it.polimi.webeep.core.util.runCatchingCancellable
 import it.polimi.webeep.feature.dashboard.domain.model.Course
 import javax.inject.Inject
 import kotlinx.coroutines.CompletableDeferred
@@ -35,19 +35,13 @@ class GetCoursesUseCase @Inject constructor(
 
         cacheStarted.await()
 
-        val online = runCatching { connectivityObserver.isOnline.first() }.getOrDefault(true)
+        val online = runCatchingCancellable { connectivityObserver.isOnline.first() }.getOrDefault(true)
         if (online) {
             val syncResult = repository.syncCourses()
-            syncResult.onSuccess {
-                val isCacheEmpty = lastCachedCourses?.isEmpty() ?: true
-                if (isCacheEmpty) {
-                    send(Resource.Success(emptyList()))
-                }
-            }.onFailure { throwable ->
-                val isCacheEmpty = lastCachedCourses?.isEmpty() ?: true
-                if (isCacheEmpty) {
-                    send(Resource.Error(throwable.toDataError(), throwable))
-                }
+            val isCacheEmpty = lastCachedCourses?.isEmpty() ?: true
+            if (isCacheEmpty) {
+                // An empty cache has nothing to show: report the failure, or an empty list on success.
+                send(if (syncResult is Resource.Error) syncResult else Resource.Success(emptyList()))
             }
         } else {
             val isCacheEmpty = lastCachedCourses?.isEmpty() ?: true

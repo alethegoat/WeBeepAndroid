@@ -20,9 +20,10 @@ import it.polimi.webeep.feature.course.domain.model.Module
 import it.polimi.webeep.feature.course.domain.model.Section
 import it.polimi.webeep.feature.download.domain.DownloadFileUseCase
 import it.polimi.webeep.feature.download.domain.DownloadRepository
+import it.polimi.webeep.feature.download.domain.DownloadRepository.Companion.PROGRESS_COMPLETE
+import it.polimi.webeep.feature.download.domain.DownloadRepository.Companion.PROGRESS_FAILED
 import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -213,38 +214,33 @@ class CourseDetailViewModel @Inject constructor(
 
         val job = viewModelScope.launch {
             updateFileDownloadState(file.fileUrl, DownloadState.DOWNLOADING)
-            try {
-                val downloadId = downloadFileUseCase.execute(
-                    url = file.fileUrl,
-                    localFileName = file.localFileName,
-                    displayName = file.filename,
-                    mimeType = file.mimeType
-                )
-                downloadIds[file.fileUrl] = downloadId
-
-                downloadRepository.getDownloadProgress(downloadId).collect { progress ->
-                    when (progress) {
-                        100 -> {
-                            updateFileDownloadState(file.fileUrl, DownloadState.COMPLETED)
-                            downloadJobs.remove(file.fileUrl)
-                            downloadIds.remove(file.fileUrl)
+            val started = downloadFileUseCase.execute(
+                url = file.fileUrl,
+                localFileName = file.localFileName,
+                displayName = file.filename,
+                mimeType = file.mimeType
+            )
+            when (started) {
+                is Resource.Error -> finishDownload(file.fileUrl, DownloadState.FAILED)
+                is Resource.Success -> {
+                    downloadIds[file.fileUrl] = started.data
+                    downloadRepository.getDownloadProgress(started.data).collect { progress ->
+                        when (progress) {
+                            PROGRESS_COMPLETE -> finishDownload(file.fileUrl, DownloadState.COMPLETED)
+                            PROGRESS_FAILED -> finishDownload(file.fileUrl, DownloadState.FAILED)
+                            else -> updateFileDownloadState(file.fileUrl, DownloadState.DOWNLOADING)
                         }
-                        -1 -> {
-                            updateFileDownloadState(file.fileUrl, DownloadState.FAILED)
-                            downloadJobs.remove(file.fileUrl)
-                            downloadIds.remove(file.fileUrl)
-                        }
-                        else -> updateFileDownloadState(file.fileUrl, DownloadState.DOWNLOADING)
                     }
                 }
-            } catch (e: Exception) {
-                if (e is CancellationException) throw e
-                updateFileDownloadState(file.fileUrl, DownloadState.FAILED)
-                downloadJobs.remove(file.fileUrl)
-                downloadIds.remove(file.fileUrl)
             }
         }
         downloadJobs[file.fileUrl] = job
+    }
+
+    private fun finishDownload(fileUrl: String, state: DownloadState) {
+        updateFileDownloadState(fileUrl, state)
+        downloadJobs.remove(fileUrl)
+        downloadIds.remove(fileUrl)
     }
 
     fun openFile(file: FileUiModel) {

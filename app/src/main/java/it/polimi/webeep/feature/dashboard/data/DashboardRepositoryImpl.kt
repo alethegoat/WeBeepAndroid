@@ -9,8 +9,11 @@ import it.polimi.webeep.core.network.MoodleApiService
 import it.polimi.webeep.core.network.MoodleFileUrlBuilder
 import it.polimi.webeep.core.network.dto.CourseDto
 import it.polimi.webeep.core.util.MoodleText
+import it.polimi.webeep.core.util.Resource
+import it.polimi.webeep.core.util.resourceOf
 import it.polimi.webeep.feature.dashboard.domain.DashboardRepository
 import it.polimi.webeep.feature.dashboard.domain.model.Course
+import it.polimi.webeep.feature.dashboard.domain.model.UserProfile
 import javax.inject.Inject
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
@@ -35,7 +38,7 @@ class DashboardRepositoryImpl @Inject constructor(
         }
     }.flowOn(defaultDispatcher)
 
-    override suspend fun syncCourses(): Result<List<Course>> = runCatching {
+    override suspend fun syncCourses(): Resource<List<Course>> = resourceOf {
         tokenProvider.getToken() ?: throw MissingTokenException()
 
         var userId = tokenProvider.getUserId()?.takeIf { it > 0 }
@@ -57,14 +60,14 @@ class DashboardRepositoryImpl @Inject constructor(
         entities.map { it.toDomain() }
     }
 
-    override suspend fun getUserInfo(): Result<Pair<String, String>> = runCatching {
+    override suspend fun getUserInfo(): Resource<UserProfile> = resourceOf {
         tokenProvider.getToken() ?: throw MissingTokenException()
         val siteInfo = apiService.getSiteInfo()
 
         tokenProvider.updateUserProfile(siteInfo.userid, siteInfo.fullname)
 
         val avatarUrl = MoodleFileUrlBuilder.stripAuthFromUrl(siteInfo.userpictureurl)
-        siteInfo.fullname to avatarUrl
+        UserProfile(fullName = siteInfo.fullname, avatarUrl = avatarUrl)
     }
 
     private fun CourseDto.toEntity(syncTimestamp: Long): CourseEntity {

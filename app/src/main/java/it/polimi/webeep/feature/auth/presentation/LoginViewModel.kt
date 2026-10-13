@@ -1,12 +1,10 @@
 package it.polimi.webeep.feature.auth.presentation
 
-import android.app.Application
+import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import it.polimi.webeep.R
 import it.polimi.webeep.feature.auth.domain.AuthRepository
-import it.polimi.webeep.feature.auth.domain.LoginError
 import it.polimi.webeep.feature.auth.domain.LoginResult
 import it.polimi.webeep.feature.auth.domain.LoginUseCase
 import it.polimi.webeep.feature.auth.domain.SsoCallbackRelay
@@ -22,7 +20,7 @@ sealed interface LoginUiState {
     data object Idle : LoginUiState
     data object Loading : LoginUiState
     data object Success : LoginUiState
-    data class Error(val message: String) : LoginUiState
+    data class Error(@StringRes val messageRes: Int) : LoginUiState
 }
 
 /**
@@ -34,8 +32,7 @@ class LoginViewModel @Inject constructor(
     private val loginUseCase: LoginUseCase,
     private val authRepository: AuthRepository,
     private val syncScheduler: SyncScheduler,
-    private val ssoCallbackRelay: SsoCallbackRelay,
-    private val application: Application
+    private val ssoCallbackRelay: SsoCallbackRelay
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<LoginUiState>(LoginUiState.Idle)
@@ -77,18 +74,9 @@ class LoginViewModel @Inject constructor(
                     _uiState.update { LoginUiState.Success }
                 }
                 is LoginResult.Failure -> {
-                    _uiState.update { LoginUiState.Error(result.error.toMessage()) }
+                    _uiState.update { LoginUiState.Error(result.error.toMessageRes()) }
                 }
             }
         }
-    }
-
-    private fun LoginError.toMessage(): String = when (this) {
-        LoginError.InvalidTokenFormat -> application.getString(R.string.error_login_invalid_format)
-        LoginError.SessionExpired -> application.getString(R.string.error_login_session_expired)
-        LoginError.InvalidPassport -> application.getString(R.string.error_login_invalid_passport)
-        LoginError.InvalidAccessToken -> application.getString(R.string.error_login_invalid_token)
-        LoginError.TokenProcessingFailed -> application.getString(R.string.error_login_process_failed)
-        is LoginError.ValidationFailed -> application.getString(R.string.error_login_validation_failed)
     }
 }

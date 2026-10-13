@@ -1,5 +1,7 @@
 package it.polimi.webeep.feature.auth.domain
 
+import it.polimi.webeep.core.util.DataError
+
 /**
  * Stable login failure reasons. The UI maps these to localized strings,
  * so domain messages never leak untranslated text to the user.
@@ -10,7 +12,7 @@ sealed interface LoginError {
     data object InvalidPassport : LoginError
     data object InvalidAccessToken : LoginError
     data object TokenProcessingFailed : LoginError
-    data class ValidationFailed(val cause: Throwable? = null) : LoginError
+    data class ValidationFailed(val error: DataError) : LoginError
 }
 
 sealed interface LoginResult {
