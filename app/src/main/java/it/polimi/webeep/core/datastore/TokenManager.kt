@@ -2,8 +2,8 @@ package it.polimi.webeep.core.datastore
 
 import android.app.Application
 import android.util.Log
+import it.polimi.webeep.core.common.runCatchingCancellable
 import it.polimi.webeep.core.di.IoDispatcher
-import it.polimi.webeep.core.util.runCatchingCancellable
 import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -78,10 +78,10 @@ class TokenManager @Inject constructor(private val application: Application, @Io
 
     override fun getTokenSync(): String? = cachedWsToken
 
-    override suspend fun saveAuthData(token: String, userId: Int, fullName: String) {
+    override suspend fun saveAuthData(token: String, userId: Int) {
         withContext(ioDispatcher) {
             synchronized(clearLock) {
-                val updated = AuthRecord(token = token, userId = userId, fullName = fullName)
+                val updated = AuthRecord(token = token, userId = userId)
                 if (!persist(updated)) {
                     throw SecurityException("Impossibile persistere i dati di autenticazione in modo sicuro")
                 }
@@ -92,13 +92,13 @@ class TokenManager @Inject constructor(private val application: Application, @Io
         }
     }
 
-    override suspend fun updateUserProfile(userId: Int, fullName: String) {
+    override suspend fun updateUserId(userId: Int) {
         withContext(ioDispatcher) {
             synchronized(clearLock) {
                 loadIfNeeded()
-                val updated = record.copy(userId = userId, fullName = fullName)
+                val updated = record.copy(userId = userId)
                 if (!persist(updated)) {
-                    throw SecurityException("Impossibile aggiornare il profilo utente")
+                    throw SecurityException("Impossibile aggiornare l'utente")
                 }
                 record = updated
             }
@@ -180,29 +180,22 @@ class TokenManager @Inject constructor(private val application: Application, @Io
 }
 
 /** Persisted session fields; stored as individual encrypted string values. */
-internal data class AuthRecord(
-    val token: String? = null,
-    val userId: Int? = null,
-    val fullName: String? = null,
-    val passports: String? = null
-) {
+internal data class AuthRecord(val token: String? = null, val userId: Int? = null, val passports: String? = null) {
     fun isEmpty(): Boolean = toMap().isEmpty()
 
     fun toMap(): Map<String, String> = buildMap {
         token?.let { put(KEY_WS_TOKEN, it) }
         userId?.let { put(KEY_USER_ID, it.toString()) }
-        fullName?.let { put(KEY_FULL_NAME, it) }
         passports?.takeIf { it.isNotEmpty() }?.let { put(KEY_PENDING_PASSPORTS, it) }
     }
 
     // Never leak credentials through logs or crash reports.
     override fun toString(): String = "AuthRecord(token=${if (token != null) "***" else null}, userId=$userId, " +
-        "fullName=${if (fullName != null) "***" else null}, passports=${if (passports != null) "***" else null})"
+        "passports=${if (passports != null) "***" else null})"
 
     companion object {
         const val KEY_WS_TOKEN = "ws_token"
         const val KEY_USER_ID = "user_id"
-        const val KEY_FULL_NAME = "full_name"
         const val KEY_PENDING_PASSPORTS = "pending_sso_passports"
         private const val USER_ID_DEFAULT = -1
 
@@ -211,7 +204,6 @@ internal data class AuthRecord(
         fun fromMap(values: Map<String, String>): AuthRecord = AuthRecord(
             token = values[KEY_WS_TOKEN],
             userId = values[KEY_USER_ID]?.toIntOrNull()?.takeIf { it != USER_ID_DEFAULT },
-            fullName = values[KEY_FULL_NAME],
             passports = values[KEY_PENDING_PASSPORTS]
         )
     }

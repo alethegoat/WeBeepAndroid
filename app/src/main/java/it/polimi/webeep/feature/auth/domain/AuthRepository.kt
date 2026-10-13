@@ -1,6 +1,6 @@
 package it.polimi.webeep.feature.auth.domain
 
-import it.polimi.webeep.core.util.Resource
+import it.polimi.webeep.core.common.Resource
 
 interface AuthRepository {
     suspend fun validateToken(token: String): Resource<UserSession>

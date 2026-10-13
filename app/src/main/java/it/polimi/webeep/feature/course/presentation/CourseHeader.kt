@@ -28,8 +28,8 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import it.polimi.webeep.R
+import it.polimi.webeep.core.common.CourseTitle
 import it.polimi.webeep.core.ui.theme.WeBeepSpacing
-import it.polimi.webeep.core.util.CourseTitle
 
 /**
  * Compact course header: the human-readable course name (max 2 lines) and a

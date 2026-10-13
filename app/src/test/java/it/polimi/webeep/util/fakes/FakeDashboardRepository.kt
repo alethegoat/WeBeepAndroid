@@ -1,6 +1,6 @@
 package it.polimi.webeep.util.fakes
 
-import it.polimi.webeep.core.util.Resource
+import it.polimi.webeep.core.common.Resource
 import it.polimi.webeep.feature.dashboard.domain.DashboardRepository
 import it.polimi.webeep.feature.dashboard.domain.model.Course
 import it.polimi.webeep.feature.dashboard.domain.model.UserProfile

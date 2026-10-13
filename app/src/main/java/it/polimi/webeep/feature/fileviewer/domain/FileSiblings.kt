@@ -1,6 +1,6 @@
 package it.polimi.webeep.feature.fileviewer.domain
 
-import it.polimi.webeep.core.network.MoodleFileUrlBuilder
+import it.polimi.webeep.core.common.stripAuthFromUrl
 import it.polimi.webeep.feature.course.domain.model.FileResource
 import it.polimi.webeep.feature.course.domain.model.Module
 import it.polimi.webeep.feature.course.domain.model.ModuleType
@@ -13,7 +13,7 @@ import it.polimi.webeep.feature.course.domain.model.Section
  * Returns an empty list when [fileUrl] is not found.
  */
 fun findSiblings(sections: List<Section>, fileUrl: String): List<ViewerFile> {
-    val target = MoodleFileUrlBuilder.stripAuthFromUrl(fileUrl)
+    val target = stripAuthFromUrl(fileUrl)
     val (section, module, file) = sections.firstNotNullOfOrNull { section ->
         section.modules
             .filter { it.modName !in ModuleType.Link }
@@ -31,10 +31,10 @@ fun findSiblings(sections: List<Section>, fileUrl: String): List<ViewerFile> {
 
 private fun Module.isSingleFile(): Boolean = modName != ModuleType.FOLDER && modName !in ModuleType.Link && files.size == 1
 
-private fun FileResource.matches(strippedUrl: String): Boolean = MoodleFileUrlBuilder.stripAuthFromUrl(fileUrl) == strippedUrl
+private fun FileResource.matches(strippedUrl: String): Boolean = stripAuthFromUrl(fileUrl) == strippedUrl
 
 private fun FileResource.toViewerFile() = ViewerFile(
-    url = MoodleFileUrlBuilder.stripAuthFromUrl(fileUrl),
+    url = stripAuthFromUrl(fileUrl),
     title = filename,
     mimeType = mimeType.orEmpty(),
     size = fileSize

@@ -8,7 +8,7 @@ import it.polimi.webeep.feature.auth.domain.AuthRepository
 import it.polimi.webeep.feature.auth.domain.LoginResult
 import it.polimi.webeep.feature.auth.domain.LoginUseCase
 import it.polimi.webeep.feature.auth.domain.SsoCallbackRelay
-import it.polimi.webeep.feature.sync.SyncScheduler
+import it.polimi.webeep.feature.sync.domain.SyncScheduling
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -31,7 +31,7 @@ sealed interface LoginUiState {
 class LoginViewModel @Inject constructor(
     private val loginUseCase: LoginUseCase,
     private val authRepository: AuthRepository,
-    private val syncScheduler: SyncScheduler,
+    private val syncScheduler: SyncScheduling,
     private val ssoCallbackRelay: SsoCallbackRelay
 ) : ViewModel() {
 

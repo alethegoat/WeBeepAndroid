@@ -1,7 +1,7 @@
 package it.polimi.webeep.feature.dashboard
 
-import it.polimi.webeep.core.ui.components.CourseUiModel
 import it.polimi.webeep.feature.dashboard.presentation.CourseFilter
+import it.polimi.webeep.feature.dashboard.presentation.CourseUiModel
 import it.polimi.webeep.feature.dashboard.presentation.filterCourses
 import org.junit.Assert.assertEquals
 import org.junit.Test

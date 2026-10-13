@@ -1,19 +1,19 @@
 package it.polimi.webeep.feature.download.domain
 
+import it.polimi.webeep.core.common.DataError
+import it.polimi.webeep.core.common.Resource
+import it.polimi.webeep.core.common.resourceOf
+import it.polimi.webeep.core.common.stripAuthFromUrl
 import it.polimi.webeep.core.datastore.TokenProvider
-import it.polimi.webeep.core.network.MoodleFileUrlBuilder
-import it.polimi.webeep.core.util.DataError
-import it.polimi.webeep.core.util.Resource
-import it.polimi.webeep.core.util.resourceOf
 import javax.inject.Inject
 
 class DownloadFileUseCase @Inject constructor(
     private val downloadRepository: DownloadRepository,
     private val tokenProvider: TokenProvider
 ) {
-    suspend fun execute(url: String, localFileName: String, displayName: String, mimeType: String?): Resource<Long> {
+    suspend operator fun invoke(url: String, localFileName: String, displayName: String, mimeType: String?): Resource<Long> {
         val token = tokenProvider.getToken() ?: return Resource.Error(DataError.Unauthorized)
-        val cleanUrl = MoodleFileUrlBuilder.stripAuthFromUrl(url)
+        val cleanUrl = stripAuthFromUrl(url)
         // Guarded so callers can rely on the Resource contract and never need their own try/catch.
         val started = resourceOf {
             downloadRepository.downloadFile(

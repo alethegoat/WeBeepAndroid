@@ -11,7 +11,6 @@ object MoodleFileUrlBuilder {
 
     const val TRUSTED_HOST = "webeep.polimi.it"
 
-    private val AUTH_QUERY_PARAMS = setOf("token", "wstoken")
     private val AUTH_TOKEN_QUERY_REGEX = Regex("""[?&](token|wstoken)=""")
 
     fun isTrustedHost(host: String?): Boolean = host.equals(TRUSTED_HOST, ignoreCase = true)
@@ -47,27 +46,8 @@ object MoodleFileUrlBuilder {
         return "$normalizedUrl${separator}token=$encodedToken"
     }
 
-    /**
-     * Removes tokens from query strings before persisting URLs to disk (Room, nav args).
-     */
-    fun stripAuthFromUrl(url: String): String {
-        if (url.isBlank()) return url
-
-        val normalizedUrl = normalizePluginFileUrl(url)
-        val queryStart = normalizedUrl.indexOf('?')
-        if (queryStart == -1) return normalizedUrl
-
-        val base = normalizedUrl.substring(0, queryStart)
-        val keptParams = normalizedUrl
-            .substring(queryStart + 1)
-            .split('&')
-            .filter { param ->
-                val key = param.substringBefore('=')
-                key.isNotEmpty() && key !in AUTH_QUERY_PARAMS
-            }
-
-        return if (keptParams.isEmpty()) base else "$base?${keptParams.joinToString("&")}"
-    }
+    /** Delegates to the pure [it.polimi.webeep.core.common.stripAuthFromUrl] shared with the domain layer. */
+    fun stripAuthFromUrl(url: String): String = it.polimi.webeep.core.common.stripAuthFromUrl(url)
 
     fun extractExtension(filename: String): String? {
         val lastDot = filename.lastIndexOf('.')
@@ -77,11 +57,7 @@ object MoodleFileUrlBuilder {
         return null
     }
 
-    fun normalizePluginFileUrl(url: String): String = if (url.contains("/webservice/pluginfile.php/")) {
-        url
-    } else {
-        url.replace("/pluginfile.php/", "/webservice/pluginfile.php/")
-    }
+    fun normalizePluginFileUrl(url: String): String = it.polimi.webeep.core.common.normalizePluginFileUrl(url)
 
     private fun parseUri(url: String): URI? = try {
         URI(url)

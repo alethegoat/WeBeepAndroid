@@ -49,6 +49,7 @@ import it.polimi.webeep.core.ui.theme.WeBeepMotion
 import it.polimi.webeep.core.ui.theme.WeBeepSpacing
 import it.polimi.webeep.core.ui.theme.WeBeepTheme
 import it.polimi.webeep.core.ui.util.LocalReduceMotion
+import it.polimi.webeep.feature.download.domain.model.DownloadState
 
 /** Size of the tinted square that hosts a file-type icon. */
 internal val FileIconContainerSize = 40.dp

@@ -44,12 +44,16 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import it.polimi.webeep.R
+import it.polimi.webeep.core.common.CourseTitle
+import it.polimi.webeep.core.common.CourseTitleParser
+import it.polimi.webeep.core.storage.mimeTypeForFileName
 import it.polimi.webeep.core.ui.components.EmptyStateView
 import it.polimi.webeep.core.ui.components.GroupPosition
 import it.polimi.webeep.core.ui.components.GroupedListGap
@@ -60,9 +64,8 @@ import it.polimi.webeep.core.ui.theme.WeBeepMotion
 import it.polimi.webeep.core.ui.theme.WeBeepSpacing
 import it.polimi.webeep.core.ui.util.LocalReduceMotion
 import it.polimi.webeep.core.ui.util.courseSharedBounds
+import it.polimi.webeep.core.ui.util.openWithExternalApp
 import it.polimi.webeep.core.ui.util.rememberNavTransitionRunning
-import it.polimi.webeep.core.util.CourseTitle
-import it.polimi.webeep.core.util.CourseTitleParser
 import kotlinx.coroutines.flow.filter
 
 private val MaxContentWidth = 840.dp
@@ -81,6 +84,15 @@ fun CourseDetailScreen(
     val reduceMotion = LocalReduceMotion.current
     val lazyListState = rememberLazyListState()
     val keyboard = LocalSoftwareKeyboardController.current
+    val context = LocalContext.current
+    // The ViewModel only locates the file; starting the chooser is the screen's job.
+    val onOpenFile: (FileUiModel) -> Unit = remember(viewModel, context) {
+        { file ->
+            viewModel.downloadedFile(file)?.let { local ->
+                openWithExternalApp(context, local, mimeTypeForFileName(local.name), chooserTitle = null)
+            }
+        }
+    }
     // Local state keeps typing synchronous; the ViewModel filters off the main thread.
     var searchQuery by rememberSaveable { mutableStateOf(viewModel.searchQuery.value) }
     val onSearchQueryChange: (String) -> Unit = remember(viewModel) {
@@ -191,7 +203,7 @@ fun CourseDetailScreen(
                             onToggleFolder = viewModel::toggleFolder,
                             onPreviewFile = onPreviewFile,
                             onDownloadFile = viewModel::downloadFile,
-                            onOpenFile = viewModel::openFile
+                            onOpenFile = onOpenFile
                         )
                     }
                 }

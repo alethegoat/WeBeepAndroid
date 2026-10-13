@@ -16,7 +16,6 @@ internal object LegacyEncryptedPrefsMigration {
     private const val PREFS_NAME = "webeep_secure_prefs"
     private const val KEY_WS_TOKEN = "ws_token"
     private const val KEY_USER_ID = "user_id"
-    private const val KEY_FULL_NAME = "full_name"
     private const val KEY_PENDING_PASSPORTS = "pending_sso_passports"
     private const val USER_ID_DEFAULT = -1
 
@@ -38,7 +37,6 @@ internal object LegacyEncryptedPrefsMigration {
         AuthRecord(
             token = prefs.getString(KEY_WS_TOKEN, null),
             userId = prefs.getInt(KEY_USER_ID, USER_ID_DEFAULT).takeIf { it != USER_ID_DEFAULT },
-            fullName = prefs.getString(KEY_FULL_NAME, null),
             passports = prefs.getString(KEY_PENDING_PASSPORTS, null)
         )
     } catch (_: Exception) {

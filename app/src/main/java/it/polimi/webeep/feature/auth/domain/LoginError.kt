@@ -1,6 +1,6 @@
 package it.polimi.webeep.feature.auth.domain
 
-import it.polimi.webeep.core.util.DataError
+import it.polimi.webeep.core.common.DataError
 
 /**
  * Stable login failure reasons. The UI maps these to localized strings,

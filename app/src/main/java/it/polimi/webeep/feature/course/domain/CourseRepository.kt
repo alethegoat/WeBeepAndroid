@@ -1,6 +1,6 @@
 package it.polimi.webeep.feature.course.domain
 
-import it.polimi.webeep.core.util.Resource
+import it.polimi.webeep.core.common.Resource
 import it.polimi.webeep.feature.course.domain.model.Section
 import kotlinx.coroutines.flow.Flow
 

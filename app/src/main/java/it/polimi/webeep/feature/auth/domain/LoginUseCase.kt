@@ -1,10 +1,9 @@
 package it.polimi.webeep.feature.auth.domain
 
+import it.polimi.webeep.core.common.Resource
+import it.polimi.webeep.core.common.resourceOf
+import it.polimi.webeep.core.common.runCatchingCancellable
 import it.polimi.webeep.core.datastore.TokenProvider
-import it.polimi.webeep.core.network.MoodleFileUrlBuilder
-import it.polimi.webeep.core.util.Resource
-import it.polimi.webeep.core.util.resourceOf
-import it.polimi.webeep.core.util.runCatchingCancellable
 import java.net.URLDecoder
 import java.security.MessageDigest
 import java.security.SecureRandom
@@ -78,8 +77,8 @@ class LoginUseCase @Inject constructor(private val authRepository: AuthRepositor
     }
 
     companion object {
-        // Single source for host: keep in sync with NetworkModule.BASE_URL.
-        const val SITE_WWWROOT = "https://" + MoodleFileUrlBuilder.TRUSTED_HOST
+        // Must equal MoodleFileUrlBuilder.TRUSTED_HOST (a unit test pins it); the domain layer stays free of network code.
+        const val SITE_WWWROOT = "https://webeep.polimi.it"
         const val SSO_SERVICE = "moodle_mobile_app"
         const val SSO_URL_SCHEME = "webeepandroid"
 

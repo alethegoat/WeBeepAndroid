@@ -67,12 +67,12 @@ import androidx.compose.ui.unit.dp
 import androidx.core.os.LocaleListCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import it.polimi.webeep.R
-import it.polimi.webeep.core.datastore.SyncFrequency
-import it.polimi.webeep.core.datastore.ThemePreference
 import it.polimi.webeep.core.ui.components.GroupPosition
 import it.polimi.webeep.core.ui.components.GroupedListGap
 import it.polimi.webeep.core.ui.components.GroupedListItem
 import it.polimi.webeep.core.ui.theme.WeBeepSpacing
+import it.polimi.webeep.feature.settings.domain.model.SyncFrequency
+import it.polimi.webeep.feature.settings.domain.model.ThemePreference
 
 /**
  * Settings as grouped lists (same language as the course content) under a large
