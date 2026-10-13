@@ -11,6 +11,9 @@ updates:
         update-types: ["version-update:semver-major"]
       - dependency-name: "io.coil-kt:*"
         update-types: ["version-update:semver-major"]
+      # 0.5+ targets detekt 2; stay on 0.4.x until detekt itself is migrated.
+      - dependency-name: "io.nlopez.compose.rules:detekt"
+        versions: [">= 0.5.0"]
     groups:
       androidx:
         patterns:
