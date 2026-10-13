@@ -12,10 +12,10 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import it.polimi.webeep.core.datastore.SettingsManager
 import it.polimi.webeep.core.datastore.SyncFrequency
 import it.polimi.webeep.core.datastore.TokenProvider
-import kotlinx.coroutines.flow.first
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.flow.first
 
 @Singleton
 class SyncScheduler internal constructor(

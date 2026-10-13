@@ -21,7 +21,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
 import it.polimi.webeep.core.ui.theme.WeBeepSpacing
 import it.polimi.webeep.core.ui.theme.WeBeepTheme
 
@@ -29,34 +28,28 @@ data class WeBeepSnackbarVisuals(
     override val message: String,
     override val actionLabel: String? = null,
     override val withDismissAction: Boolean = true,
-    override val duration: SnackbarDuration = SnackbarDuration.Short,
+    override val duration: SnackbarDuration = SnackbarDuration.Short
 ) : SnackbarVisuals
 
 @Composable
-fun WeBeepSnackbarHost(
-    hostState: SnackbarHostState,
-    modifier: Modifier = Modifier,
-) {
+fun WeBeepSnackbarHost(hostState: SnackbarHostState, modifier: Modifier = Modifier) {
     SnackbarHost(
         hostState = hostState,
         modifier = modifier,
         snackbar = { snackbarData ->
             WeBeepSnackbar(snackbarData = snackbarData)
-        },
+        }
     )
 }
 
 @Composable
-private fun WeBeepSnackbar(
-    snackbarData: SnackbarData,
-    modifier: Modifier = Modifier,
-) {
+private fun WeBeepSnackbar(snackbarData: SnackbarData, modifier: Modifier = Modifier) {
     val isError = snackbarData.visuals is WeBeepSnackbarVisuals
 
     AnimatedVisibility(
         visible = true,
         enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
-        exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
+        exit = slideOutVertically(targetOffsetY = { it }) + fadeOut()
     ) {
         Snackbar(
             modifier = modifier.padding(WeBeepSpacing.sm),
@@ -86,7 +79,7 @@ private fun WeBeepSnackbar(
                     TextButton(onClick = { snackbarData.performAction() }) {
                         Text(
                             text = label,
-                            style = MaterialTheme.typography.labelLarge,
+                            style = MaterialTheme.typography.labelLarge
                         )
                     }
                 }
@@ -96,15 +89,17 @@ private fun WeBeepSnackbar(
                     TextButton(onClick = { snackbarData.dismiss() }) {
                         Text(
                             text = "✕",
-                            style = MaterialTheme.typography.labelLarge,
+                            style = MaterialTheme.typography.labelLarge
                         )
                     }
                 }
-            } else null,
+            } else {
+                null
+            }
         ) {
             Text(
                 text = snackbarData.visuals.message,
-                style = MaterialTheme.typography.bodyMedium,
+                style = MaterialTheme.typography.bodyMedium
             )
         }
     }
@@ -115,14 +110,14 @@ suspend fun showErrorSnackbar(
     message: String,
     actionLabel: String = "Riprova",
     onAction: () -> Unit = {},
-    onDismiss: () -> Unit = {},
+    onDismiss: () -> Unit = {}
 ) {
     val result = snackbarHostState.showSnackbar(
         WeBeepSnackbarVisuals(
             message = message,
             actionLabel = actionLabel,
-            duration = SnackbarDuration.Long,
-        ),
+            duration = SnackbarDuration.Long
+        )
     )
     when (result) {
         SnackbarResult.ActionPerformed -> onAction()
@@ -141,8 +136,8 @@ private fun ErrorSnackbarLightPreview() {
             hostState.showSnackbar(
                 WeBeepSnackbarVisuals(
                     message = "Errore di connessione al server",
-                    actionLabel = "Riprova",
-                ),
+                    actionLabel = "Riprova"
+                )
             )
         }
         WeBeepSnackbarHost(hostState = hostState)
@@ -158,8 +153,8 @@ private fun ErrorSnackbarDarkPreview() {
             hostState.showSnackbar(
                 WeBeepSnackbarVisuals(
                     message = "Impossibile caricare i corsi",
-                    actionLabel = "Riprova",
-                ),
+                    actionLabel = "Riprova"
+                )
             )
         }
         WeBeepSnackbarHost(hostState = hostState)

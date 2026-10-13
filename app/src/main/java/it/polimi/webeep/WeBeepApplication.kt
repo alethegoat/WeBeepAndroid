@@ -1,17 +1,16 @@
 package it.polimi.webeep
 
 import android.app.Application
-import dagger.hilt.android.HiltAndroidApp
-
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
-import javax.inject.Inject
 import coil.ImageLoader
 import coil.ImageLoaderFactory
 import coil.disk.DiskCache
 import coil.memory.MemoryCache
+import dagger.hilt.android.HiltAndroidApp
 import it.polimi.webeep.core.datastore.TokenProvider
 import it.polimi.webeep.feature.sync.SyncNotifier
+import javax.inject.Inject
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -19,7 +18,10 @@ import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
 
 @HiltAndroidApp
-class WeBeepApplication : Application(), Configuration.Provider, ImageLoaderFactory {
+class WeBeepApplication :
+    Application(),
+    Configuration.Provider,
+    ImageLoaderFactory {
 
     @Inject
     lateinit var workerFactory: HiltWorkerFactory
@@ -44,25 +46,23 @@ class WeBeepApplication : Application(), Configuration.Provider, ImageLoaderFact
             .setWorkerFactory(workerFactory)
             .build()
 
-    override fun newImageLoader(): ImageLoader {
-        return ImageLoader.Builder(this)
-            .callFactory { okHttpClientLazy.get() }
-            .crossfade(true)
-            .memoryCache {
-                MemoryCache.Builder(this)
-                    // Leave headroom for PdfRenderer and WebView sharing the app heap.
-                    .maxSizePercent(MEMORY_CACHE_PERCENT)
-                    .build()
-            }
-            .diskCache {
-                DiskCache.Builder()
-                    .directory(cacheDir.resolve("image_cache"))
-                    .maxSizePercent(DISK_CACHE_PERCENT)
-                    .build()
-            }
-            .respectCacheHeaders(false)
-            .build()
-    }
+    override fun newImageLoader(): ImageLoader = ImageLoader.Builder(this)
+        .callFactory { okHttpClientLazy.get() }
+        .crossfade(true)
+        .memoryCache {
+            MemoryCache.Builder(this)
+                // Leave headroom for PdfRenderer and WebView sharing the app heap.
+                .maxSizePercent(MEMORY_CACHE_PERCENT)
+                .build()
+        }
+        .diskCache {
+            DiskCache.Builder()
+                .directory(cacheDir.resolve("image_cache"))
+                .maxSizePercent(DISK_CACHE_PERCENT)
+                .build()
+        }
+        .respectCacheHeaders(false)
+        .build()
 
     private companion object {
         const val MEMORY_CACHE_PERCENT = 0.15

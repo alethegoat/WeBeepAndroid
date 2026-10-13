@@ -15,30 +15,30 @@ object WeBeepMotion {
     val Standard = CubicBezierEasing(0.2f, 0f, 0f, 1f)
     val SoftInOut = CubicBezierEasing(0.45f, 0.05f, 0.55f, 0.95f)
 
-    const val ShortMs = 180
-    const val MediumMs = 280
-    const val LongMs = 420
+    const val SHORT_MS = 180
+    const val MEDIUM_MS = 280
+    const val LONG_MS = 420
 
     /** Material 3 fade-through: outgoing fades first, incoming follows. */
-    const val TransitionMs = 300
-    const val TransitionOutMs = 90
-    const val TransitionInMs = TransitionMs - TransitionOutMs
+    const val TRANSITION_MS = 300
+    const val TRANSITION_OUT_MS = 90
+    const val TRANSITION_IN_MS = TRANSITION_MS - TRANSITION_OUT_MS
 
     /** Detail screens sliding in and out (file viewer, settings). */
-    const val SlideMs = 350
+    const val SLIDE_MS = 350
 
     /** Card -> course container transform; navigation fades last exactly as long. */
-    const val ContainerTransformMs = 350
+    const val CONTAINER_TRANSFORM_MS = 350
 
     fun duration(ms: Int, reduceMotion: Boolean): Int = if (reduceMotion) 0 else ms
 
-    fun <T> enter(durationMs: Int = MediumMs, reduceMotion: Boolean = false) =
+    fun <T> enter(durationMs: Int = MEDIUM_MS, reduceMotion: Boolean = false) =
         tween<T>(durationMillis = duration(durationMs, reduceMotion), easing = EmphasizedDecelerate)
 
-    fun <T> exit(durationMs: Int = ShortMs, reduceMotion: Boolean = false) =
+    fun <T> exit(durationMs: Int = SHORT_MS, reduceMotion: Boolean = false) =
         tween<T>(durationMillis = duration(durationMs, reduceMotion), easing = EmphasizedAccelerate)
 
-    fun <T> smooth(durationMs: Int = MediumMs, reduceMotion: Boolean = false) =
+    fun <T> smooth(durationMs: Int = MEDIUM_MS, reduceMotion: Boolean = false) =
         tween<T>(durationMillis = duration(durationMs, reduceMotion), easing = Standard)
 
     /**

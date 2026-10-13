@@ -2,6 +2,7 @@ package it.polimi.webeep.feature.download
 
 import android.app.Application
 import it.polimi.webeep.feature.download.data.DownloadRepositoryImpl
+import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.last
 import kotlinx.coroutines.flow.toList
@@ -21,7 +22,6 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
-import java.io.File
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])

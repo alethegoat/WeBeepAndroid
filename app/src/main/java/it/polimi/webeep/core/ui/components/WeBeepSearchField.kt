@@ -36,7 +36,7 @@ fun WeBeepSearchField(
     onValueChange: (String) -> Unit,
     placeholder: String,
     modifier: Modifier = Modifier,
-    contentDescription: String = placeholder,
+    contentDescription: String = placeholder
 ) {
     val keyboard = LocalSoftwareKeyboardController.current
     val searchCd = stringResource(R.string.cd_search)

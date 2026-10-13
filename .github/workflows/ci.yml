@@ -32,8 +32,7 @@ jobs:
       - name: Static analysis (detekt)
         run: ./gradlew :app:detekt --no-daemon
 
-      - name: Code style (ktlint; report-only)
-        continue-on-error: true
+      - name: Code style (ktlint)
         run: ./gradlew :app:ktlintCheck --no-daemon
 
       - name: Build debug APK

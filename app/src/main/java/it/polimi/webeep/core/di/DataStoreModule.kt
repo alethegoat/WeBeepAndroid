@@ -15,19 +15,13 @@ object DataStoreModule {
 
     @Provides
     @Singleton
-    fun provideTokenManager(
-        application: Application,
-        @IoDispatcher ioDispatcher: kotlinx.coroutines.CoroutineDispatcher
-    ): TokenManager {
-        return TokenManager(application, ioDispatcher)
-    }
+    fun provideTokenManager(application: Application, @IoDispatcher ioDispatcher: kotlinx.coroutines.CoroutineDispatcher): TokenManager =
+        TokenManager(application, ioDispatcher)
 
     /**
      * Exposed as interface so tests can inject a fake.
      */
     @Provides
     @Singleton
-    fun provideTokenProvider(tokenManager: TokenManager): TokenProvider {
-        return tokenManager
-    }
+    fun provideTokenProvider(tokenManager: TokenManager): TokenProvider = tokenManager
 }

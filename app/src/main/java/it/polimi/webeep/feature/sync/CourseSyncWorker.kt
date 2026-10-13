@@ -13,6 +13,8 @@ import it.polimi.webeep.core.datastore.TokenProvider
 import it.polimi.webeep.feature.course.domain.CourseRepository
 import it.polimi.webeep.feature.course.domain.model.Section
 import it.polimi.webeep.feature.dashboard.domain.DashboardRepository
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicInteger
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -21,8 +23,6 @@ import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.supervisorScope
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
-import java.util.concurrent.atomic.AtomicBoolean
-import java.util.concurrent.atomic.AtomicInteger
 
 @HiltWorker
 class CourseSyncWorker @AssistedInject constructor(

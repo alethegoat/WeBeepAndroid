@@ -36,16 +36,13 @@ sealed interface CourseListItem {
         val sectionId: Int,
         val name: String,
         val summary: String?,
-        val isExpanded: Boolean,
+        val isExpanded: Boolean
     ) : CourseListItem {
         override val contentType get() = "section_header"
     }
 
     /** Placeholder row of an expanded section without materials. */
-    data class SectionEmpty(
-        override val key: String,
-        override val position: GroupPosition,
-    ) : CourseListItem {
+    data class SectionEmpty(override val key: String, override val position: GroupPosition) : CourseListItem {
         override val contentType get() = "section_empty"
     }
 
@@ -54,7 +51,7 @@ sealed interface CourseListItem {
         override val position: GroupPosition,
         val module: ModuleUiModel,
         val kind: ModuleKind,
-        val isFolderExpanded: Boolean,
+        val isFolderExpanded: Boolean
     ) : CourseListItem {
         override val contentType get() = "module"
     }
@@ -65,27 +62,20 @@ sealed interface CourseListItem {
         val name: String,
         val folderKey: String,
         val depth: Int,
-        val isExpanded: Boolean,
+        val isExpanded: Boolean
     ) : CourseListItem {
         override val contentType get() = "subfolder"
     }
 
-    data class File(
-        override val key: String,
-        override val position: GroupPosition,
-        val file: FileUiModel,
-        val depth: Int,
-    ) : CourseListItem {
+    data class File(override val key: String, override val position: GroupPosition, val file: FileUiModel, val depth: Int) :
+        CourseListItem {
         override val contentType get() = "file"
     }
 }
 
 /** Rows to show plus whether a search hid every section. */
 @Immutable
-data class CourseListContent(
-    val items: List<CourseListItem>,
-    val noMatches: Boolean,
-)
+data class CourseListContent(val items: List<CourseListItem>, val noMatches: Boolean)
 
 /**
  * Flattens [sections] into list rows. While [query] is set only matching
@@ -93,18 +83,14 @@ data class CourseListContent(
  * their own. Multi-file modules always show their files; folders show theirs
  * when their key is in [expandedFolders].
  */
-internal fun buildCourseListItems(
-    sections: List<SectionUiModel>,
-    expandedFolders: Set<String>,
-    query: String,
-): CourseListContent {
+internal fun buildCourseListItems(sections: List<SectionUiModel>, expandedFolders: Set<String>, query: String): CourseListContent {
     val visibleSections = filterSections(sections, query)
     val openFolders = expandedFolders + foldersWithMatches(visibleSections, query)
     val builder = CourseListBuilder(openFolders)
     visibleSections.forEach(builder::addSection)
     return CourseListContent(
         items = builder.items,
-        noMatches = visibleSections.isEmpty() && sections.isNotEmpty(),
+        noMatches = visibleSections.isEmpty() && sections.isNotEmpty()
     )
 }
 
@@ -125,7 +111,7 @@ private class CourseListBuilder(private val openFolders: Set<String>) {
                 sectionId = section.id,
                 name = section.name,
                 summary = section.summary,
-                isExpanded = section.isExpanded,
+                isExpanded = section.isExpanded
             )
         }
         if (section.isExpanded) {

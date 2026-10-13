@@ -9,6 +9,11 @@ import it.polimi.webeep.core.di.IoDispatcher
 import it.polimi.webeep.core.network.MoodleBinaryDownload
 import it.polimi.webeep.core.network.MoodleFileUrlBuilder
 import it.polimi.webeep.feature.download.domain.DownloadRepository
+import java.io.File
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicLong
+import javax.inject.Inject
+import javax.inject.Singleton
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -24,11 +29,6 @@ import kotlinx.coroutines.launch
 import okhttp3.Call
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import java.io.File
-import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.atomic.AtomicLong
-import javax.inject.Inject
-import javax.inject.Singleton
 
 /**
  * Downloads files with OkHttp into internal app storage (filesDir/downloads).
@@ -49,13 +49,7 @@ class DownloadRepositoryImpl @Inject constructor(
     private val downloadsDir: File by lazy { File(context.filesDir, DOWNLOADS_DIR) }
     private val migrationJob: Job = scope.launch { migrateLegacyDownloads() }
 
-    override fun downloadFile(
-        url: String,
-        token: String?,
-        localFileName: String,
-        displayName: String,
-        mimeType: String?
-    ): Long {
+    override fun downloadFile(url: String, token: String?, localFileName: String, displayName: String, mimeType: String?): Long {
         val directory = getDownloadsDirectory()
         val safeLocalFileName = sanitizeFileName(localFileName)
         val destination = containedFile(directory, safeLocalFileName) ?: return -1L
@@ -263,21 +257,19 @@ class DownloadRepositoryImpl @Inject constructor(
      * Defense in depth against path traversal: sanitize() already strips
      * separators, but verify the resolved file stays inside [directory].
      */
-    private fun containedFile(directory: File, safeName: String): File? {
-        return try {
-            val dirCanonical = directory.canonicalPath
-            val file = File(directory, safeName)
-            val fileCanonical = file.canonicalPath
-            if (fileCanonical == dirCanonical ||
-                fileCanonical.startsWith("$dirCanonical${File.separator}")
-            ) {
-                file
-            } else {
-                null
-            }
-        } catch (_: Exception) {
+    private fun containedFile(directory: File, safeName: String): File? = try {
+        val dirCanonical = directory.canonicalPath
+        val file = File(directory, safeName)
+        val fileCanonical = file.canonicalPath
+        if (fileCanonical == dirCanonical ||
+            fileCanonical.startsWith("$dirCanonical${File.separator}")
+        ) {
+            file
+        } else {
             null
         }
+    } catch (_: Exception) {
+        null
     }
 
     private companion object {

@@ -15,13 +15,7 @@ object FileChangeDetector {
     enum class ChangeType { ADDED, UPDATED }
 
     @Serializable
-    data class FileEntry(
-        val moduleId: Int,
-        val filepath: String,
-        val filename: String,
-        val timeModified: Long,
-        val fileSize: Long
-    )
+    data class FileEntry(val moduleId: Int, val filepath: String, val filename: String, val timeModified: Long, val fileSize: Long)
 
     @Serializable
     data class FileChange(val moduleId: Int, val filepath: String, val filename: String, val type: ChangeType)

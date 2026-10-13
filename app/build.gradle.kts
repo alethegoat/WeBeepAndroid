@@ -139,7 +139,7 @@ configurations.matching { it.name == "detekt" }.configureEach {
 
 ktlint {
     android.set(true)
-    ignoreFailures.set(true)
+    ignoreFailures.set(false)
     filter {
         exclude { it.file.path.contains("/build/") }
     }
@@ -155,7 +155,6 @@ composeCompiler {
     reportsDestination = layout.buildDirectory.dir("compose_compiler")
     metricsDestination = layout.buildDirectory.dir("compose_compiler")
 }
-
 
 dependencies {
     // AndroidX Core

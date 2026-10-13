@@ -11,10 +11,10 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.ui.unit.IntOffset
 import it.polimi.webeep.core.ui.theme.WeBeepMotion
 
-private const val FadeThroughInitialScale = 0.94f
+private const val FADE_THROUGH_INITIAL_SCALE = 0.94f
 
 /** How far the screen underneath moves while a detail screen slides over it. */
-private const val ParallaxDivisor = 4
+private const val PARALLAX_DIVISOR = 4
 
 /**
  * Picks the transition pattern for a route pair:
@@ -27,21 +27,19 @@ private const val ParallaxDivisor = 4
  * move in proportion to the finger: a full-width slide does, a quick fade does not.
  * Back by gesture and back by the in-app arrow therefore look the same.
  */
-internal class NavTransitions(
-    private val reduceMotion: Boolean
-) {
+internal class NavTransitions(private val reduceMotion: Boolean) {
     private enum class Pattern { FadeThrough, ContainerTransform, Slide }
 
     fun enter(from: String?, to: String?, pop: Boolean): EnterTransition {
         if (reduceMotion) return EnterTransition.None
         return when (patternFor(from, to)) {
-            Pattern.FadeThrough -> fadeIn(WeBeepMotion.enter(WeBeepMotion.TransitionInMs)) +
-                scaleIn(WeBeepMotion.spatialSpring(), initialScale = FadeThroughInitialScale)
+            Pattern.FadeThrough -> fadeIn(WeBeepMotion.enter(WeBeepMotion.TRANSITION_IN_MS)) +
+                scaleIn(WeBeepMotion.spatialSpring(), initialScale = FADE_THROUGH_INITIAL_SCALE)
             // As long as the shared-bounds animation, or that would be cut short.
-            Pattern.ContainerTransform -> fadeIn(WeBeepMotion.enter(WeBeepMotion.ContainerTransformMs))
+            Pattern.ContainerTransform -> fadeIn(WeBeepMotion.enter(WeBeepMotion.CONTAINER_TRANSFORM_MS))
             // Push: the detail arrives from the right edge. Pop: the screen below comes back from its parallax.
             Pattern.Slide -> slideInHorizontally(slideSpec()) { width ->
-                if (pop) -width / ParallaxDivisor else width
+                if (pop) -width / PARALLAX_DIVISOR else width
             }
         }
     }
@@ -49,11 +47,11 @@ internal class NavTransitions(
     fun exit(from: String?, to: String?, pop: Boolean): ExitTransition {
         if (reduceMotion) return ExitTransition.None
         return when (patternFor(from, to)) {
-            Pattern.FadeThrough -> fadeOut(WeBeepMotion.exit(WeBeepMotion.TransitionOutMs))
-            Pattern.ContainerTransform -> fadeOut(WeBeepMotion.exit(WeBeepMotion.ContainerTransformMs))
+            Pattern.FadeThrough -> fadeOut(WeBeepMotion.exit(WeBeepMotion.TRANSITION_OUT_MS))
+            Pattern.ContainerTransform -> fadeOut(WeBeepMotion.exit(WeBeepMotion.CONTAINER_TRANSFORM_MS))
             // Push: the screen below drifts left. Pop: the detail leaves to the right, with the finger.
             Pattern.Slide -> slideOutHorizontally(slideSpec()) { width ->
-                if (pop) width else -width / ParallaxDivisor
+                if (pop) width else -width / PARALLAX_DIVISOR
             }
         }
     }
@@ -72,7 +70,7 @@ internal class NavTransitions(
      * and a tween maps progress to position predictably, so the screen tracks the finger.
      */
     private fun slideSpec() = tween<IntOffset>(
-        durationMillis = WeBeepMotion.SlideMs,
+        durationMillis = WeBeepMotion.SLIDE_MS,
         easing = WeBeepMotion.Standard
     )
 }

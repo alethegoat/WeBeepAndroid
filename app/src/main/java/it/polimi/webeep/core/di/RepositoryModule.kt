@@ -22,31 +22,21 @@ abstract class RepositoryModule {
 
     @Binds
     @Singleton
-    abstract fun bindAuthRepository(
-        impl: AuthRepositoryImpl
-    ): AuthRepository
+    abstract fun bindAuthRepository(impl: AuthRepositoryImpl): AuthRepository
 
     @Binds
     @Singleton
-    abstract fun bindDashboardRepository(
-        impl: DashboardRepositoryImpl
-    ): DashboardRepository
+    abstract fun bindDashboardRepository(impl: DashboardRepositoryImpl): DashboardRepository
 
     @Binds
     @Singleton
-    abstract fun bindCourseRepository(
-        impl: CourseRepositoryImpl
-    ): CourseRepository
+    abstract fun bindCourseRepository(impl: CourseRepositoryImpl): CourseRepository
 
     @Binds
     @Singleton
-    abstract fun bindDownloadRepository(
-        impl: DownloadRepositoryImpl
-    ): DownloadRepository
+    abstract fun bindDownloadRepository(impl: DownloadRepositoryImpl): DownloadRepository
 
     @Binds
     @Singleton
-    abstract fun bindConnectivityObserver(
-        impl: NetworkMonitor
-    ): ConnectivityObserver
+    abstract fun bindConnectivityObserver(impl: NetworkMonitor): ConnectivityObserver
 }

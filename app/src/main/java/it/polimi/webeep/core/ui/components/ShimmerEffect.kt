@@ -48,10 +48,10 @@ import it.polimi.webeep.core.ui.util.LocalReduceMotion
 private const val SHIMMER_GRADIENT_SPAN = 500f
 
 /** Number of section placeholders shown while a course loads. */
-private const val SectionPlaceholderCount = 5
+private const val SECTION_PLACEHOLDER_COUNT = 5
 
 /** Rows inside the first (expanded) placeholder section. */
-private const val RowPlaceholderCount = 3
+private const val ROW_PLACEHOLDER_COUNT = 3
 
 /**
  * Everything a placeholder needs to draw. One instance is shared by a whole list, so
@@ -59,12 +59,7 @@ private const val RowPlaceholderCount = 3
  * the shimmer redraws but never recomposes.
  */
 @Stable
-class ShimmerStyle internal constructor(
-    val progress: State<Float>,
-    val baseColor: Color,
-    val highlightColor: Color,
-    val animated: Boolean,
-)
+class ShimmerStyle internal constructor(val progress: State<Float>, val baseColor: Color, val highlightColor: Color, val animated: Boolean)
 
 @Composable
 fun rememberShimmerStyle(): ShimmerStyle {
@@ -75,9 +70,9 @@ fun rememberShimmerStyle(): ShimmerStyle {
             targetValue = 1000f,
             animationSpec = infiniteRepeatable(
                 animation = tween(durationMillis = 1200, easing = FastOutSlowInEasing),
-                repeatMode = RepeatMode.Restart,
+                repeatMode = RepeatMode.Restart
             ),
-            label = "shimmer_translate",
+            label = "shimmer_translate"
         )
     } else {
         remember { mutableFloatStateOf(0f) }
@@ -99,7 +94,7 @@ fun Modifier.shimmerPlaceholder(style: ShimmerStyle, shape: Shape): Modifier {
             brush = Brush.linearGradient(
                 colors = listOf(style.baseColor, style.highlightColor, style.baseColor),
                 start = Offset(translate - SHIMMER_GRADIENT_SPAN, translate - SHIMMER_GRADIENT_SPAN),
-                end = Offset(translate, translate),
+                end = Offset(translate, translate)
             )
         )
     }
@@ -111,7 +106,7 @@ fun ShimmerEffect(
     width: Dp? = null,
     height: Dp = 16.dp,
     shape: Shape = MaterialTheme.shapes.extraSmall,
-    style: ShimmerStyle = rememberShimmerStyle(),
+    style: ShimmerStyle = rememberShimmerStyle()
 ) {
     Box(
         modifier = modifier
@@ -119,34 +114,31 @@ fun ShimmerEffect(
                 if (width != null) Modifier.width(width) else Modifier.fillMaxWidth()
             )
             .height(height)
-            .shimmerPlaceholder(style, shape),
+            .shimmerPlaceholder(style, shape)
     )
 }
 
 @Composable
-fun ShimmerCourseCard(
-    modifier: Modifier = Modifier,
-    style: ShimmerStyle = rememberShimmerStyle(),
-) {
+fun ShimmerCourseCard(modifier: Modifier = Modifier, style: ShimmerStyle = rememberShimmerStyle()) {
     val small = MaterialTheme.shapes.extraSmall
     Card(
         modifier = modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(
-            containerColor = groupedListContainerColor(),
+            containerColor = groupedListContainerColor()
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(WeBeepSpacing.md),
-            verticalAlignment = Alignment.Top,
+            verticalAlignment = Alignment.Top
         ) {
             Box(
                 modifier = Modifier
                     .size(56.dp)
-                    .shimmerPlaceholder(style, MaterialTheme.shapes.medium),
+                    .shimmerPlaceholder(style, MaterialTheme.shapes.medium)
             )
             Spacer(modifier = Modifier.width(WeBeepSpacing.md))
             Column(modifier = Modifier.weight(1f)) {
@@ -154,28 +146,28 @@ fun ShimmerCourseCard(
                     modifier = Modifier
                         .width(56.dp)
                         .height(12.dp)
-                        .shimmerPlaceholder(style, small),
+                        .shimmerPlaceholder(style, small)
                 )
                 Spacer(modifier = Modifier.height(WeBeepSpacing.xs))
                 Box(
                     modifier = Modifier
                         .fillMaxWidth(0.9f)
                         .height(18.dp)
-                        .shimmerPlaceholder(style, small),
+                        .shimmerPlaceholder(style, small)
                 )
                 Spacer(modifier = Modifier.height(WeBeepSpacing.xxs))
                 Box(
                     modifier = Modifier
                         .fillMaxWidth(0.6f)
                         .height(18.dp)
-                        .shimmerPlaceholder(style, small),
+                        .shimmerPlaceholder(style, small)
                 )
                 Spacer(modifier = Modifier.height(WeBeepSpacing.xs))
                 Box(
                     modifier = Modifier
                         .fillMaxWidth(0.45f)
                         .height(12.dp)
-                        .shimmerPlaceholder(style, small),
+                        .shimmerPlaceholder(style, small)
                 )
             }
         }
@@ -183,11 +175,7 @@ fun ShimmerCourseCard(
 }
 
 @Composable
-fun ShimmerCourseList(
-    modifier: Modifier = Modifier,
-    itemCount: Int = 6,
-    columns: Int = 1,
-) {
+fun ShimmerCourseList(modifier: Modifier = Modifier, itemCount: Int = 6, columns: Int = 1) {
     val style = rememberShimmerStyle()
     LazyVerticalGrid(
         columns = GridCells.Fixed(columns),
@@ -195,7 +183,7 @@ fun ShimmerCourseList(
         contentPadding = PaddingValues(WeBeepSpacing.md),
         verticalArrangement = Arrangement.spacedBy(WeBeepSpacing.sm),
         horizontalArrangement = Arrangement.spacedBy(WeBeepSpacing.sm),
-        userScrollEnabled = false,
+        userScrollEnabled = false
     ) {
         items(itemCount) {
             ShimmerCourseCard(style = style)
@@ -208,48 +196,46 @@ fun ShimmerCourseList(
  * grouped sections, the first one expanded with a few file rows.
  */
 @Composable
-fun ShimmerCourseSections(
-    modifier: Modifier = Modifier,
-) {
+fun ShimmerCourseSections(modifier: Modifier = Modifier) {
     val style = rememberShimmerStyle()
     val small = MaterialTheme.shapes.extraSmall
     Column(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = WeBeepSpacing.md),
-        verticalArrangement = Arrangement.spacedBy(GroupedListGap),
+        verticalArrangement = Arrangement.spacedBy(GroupedListGap)
     ) {
         Box(
             modifier = Modifier
                 .padding(top = WeBeepSpacing.xs)
                 .fillMaxWidth()
                 .height(WeBeepSpacing.searchHeight)
-                .shimmerPlaceholder(style, CircleShape),
+                .shimmerPlaceholder(style, CircleShape)
         )
-        repeat(SectionPlaceholderCount) { section ->
-            val count = 1 + if (section == 0) RowPlaceholderCount else 0
+        repeat(SECTION_PLACEHOLDER_COUNT) { section ->
+            val count = 1 + if (section == 0) ROW_PLACEHOLDER_COUNT else 0
             GroupedListItem(
                 position = groupPosition(index = 0, count = count),
-                modifier = Modifier.padding(top = GroupedListSectionGap),
+                modifier = Modifier.padding(top = GroupedListSectionGap)
             ) {
                 Box(
                     modifier = Modifier
                         .padding(WeBeepSpacing.md)
                         .fillMaxWidth(if (section % 2 == 0) 0.55f else 0.7f)
                         .height(18.dp)
-                        .shimmerPlaceholder(style, small),
+                        .shimmerPlaceholder(style, small)
                 )
             }
             repeat(count - 1) { row ->
                 GroupedListItem(position = groupPosition(index = row + 1, count = count)) {
                     Row(
                         modifier = Modifier.padding(horizontal = WeBeepSpacing.md, vertical = WeBeepSpacing.sm),
-                        verticalAlignment = Alignment.CenterVertically,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
                         Box(
                             modifier = Modifier
                                 .size(40.dp)
-                                .shimmerPlaceholder(style, MaterialTheme.shapes.small),
+                                .shimmerPlaceholder(style, MaterialTheme.shapes.small)
                         )
                         Spacer(modifier = Modifier.width(WeBeepSpacing.sm))
                         Column(modifier = Modifier.weight(1f)) {
@@ -257,14 +243,14 @@ fun ShimmerCourseSections(
                                 modifier = Modifier
                                     .fillMaxWidth(0.75f)
                                     .height(14.dp)
-                                    .shimmerPlaceholder(style, small),
+                                    .shimmerPlaceholder(style, small)
                             )
                             Spacer(modifier = Modifier.height(WeBeepSpacing.xs))
                             Box(
                                 modifier = Modifier
                                     .width(48.dp)
                                     .height(10.dp)
-                                    .shimmerPlaceholder(style, small),
+                                    .shimmerPlaceholder(style, small)
                             )
                         }
                     }

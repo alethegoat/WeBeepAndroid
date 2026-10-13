@@ -2,7 +2,9 @@ package it.polimi.webeep.core.ui.theme
 
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Shapes
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
@@ -11,8 +13,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Shapes
 import androidx.compose.ui.unit.dp
 import it.polimi.webeep.core.ui.util.LocalReduceMotion
 import it.polimi.webeep.core.ui.util.rememberReduceMotion
@@ -109,11 +109,7 @@ private val WeBeepShapes = Shapes(
  * [WeBeepColors] follow light/dark regardless of dynamic color.
  */
 @Composable
-fun WeBeepTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColor: Boolean = false,
-    content: @Composable () -> Unit,
-) {
+fun WeBeepTheme(darkTheme: Boolean = isSystemInDarkTheme(), dynamicColor: Boolean = false, content: @Composable () -> Unit) {
     val colorScheme = when {
         dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
             val context = LocalContext.current
@@ -128,13 +124,13 @@ fun WeBeepTheme(
     val reduceMotion = rememberReduceMotion()
     CompositionLocalProvider(
         LocalReduceMotion provides reduceMotion,
-        LocalWeBeepColors provides weBeepColors,
+        LocalWeBeepColors provides weBeepColors
     ) {
         MaterialTheme(
             colorScheme = colorScheme,
             typography = WeBeepTypography,
             shapes = WeBeepShapes,
-            content = content,
+            content = content
         )
     }
 }

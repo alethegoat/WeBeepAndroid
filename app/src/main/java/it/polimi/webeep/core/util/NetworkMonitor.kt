@@ -5,12 +5,12 @@ import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
 import android.net.NetworkRequest
+import javax.inject.Inject
+import javax.inject.Singleton
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
-import javax.inject.Inject
-import javax.inject.Singleton
 
 @Singleton
 class NetworkMonitor @Inject constructor(application: Application) : ConnectivityObserver {
@@ -31,15 +31,13 @@ class NetworkMonitor @Inject constructor(application: Application) : Connectivit
                 trySend(isCurrentlyOnline())
             }
 
-            override fun onCapabilitiesChanged(
-                network: Network,
-                networkCapabilities: NetworkCapabilities
-            ) {
+            override fun onCapabilitiesChanged(network: Network, networkCapabilities: NetworkCapabilities) {
                 val hasInternet = networkCapabilities.hasCapability(
                     NetworkCapabilities.NET_CAPABILITY_INTERNET
-                ) && networkCapabilities.hasCapability(
-                    NetworkCapabilities.NET_CAPABILITY_VALIDATED
-                )
+                ) &&
+                    networkCapabilities.hasCapability(
+                        NetworkCapabilities.NET_CAPABILITY_VALIDATED
+                    )
                 trySend(hasInternet)
             }
         }
@@ -61,8 +59,9 @@ class NetworkMonitor @Inject constructor(application: Application) : Connectivit
         val currentCapabilities = connectivityManager.getNetworkCapabilities(currentNetwork)
         return currentCapabilities?.hasCapability(
             NetworkCapabilities.NET_CAPABILITY_INTERNET
-        ) == true && currentCapabilities.hasCapability(
-            NetworkCapabilities.NET_CAPABILITY_VALIDATED
-        )
+        ) == true &&
+            currentCapabilities.hasCapability(
+                NetworkCapabilities.NET_CAPABILITY_VALIDATED
+            )
     }
 }

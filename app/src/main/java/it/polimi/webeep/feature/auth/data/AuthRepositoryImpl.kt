@@ -14,13 +14,13 @@ import it.polimi.webeep.feature.auth.domain.UserSession
 import it.polimi.webeep.feature.sync.SyncNotifier
 import it.polimi.webeep.feature.sync.SyncScheduler
 import it.polimi.webeep.feature.sync.SyncStateStore
+import java.io.File
+import javax.inject.Inject
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
-import java.io.File
-import javax.inject.Inject
 
 class AuthRepositoryImpl @Inject constructor(
     private val apiService: MoodleApiService,
@@ -37,10 +37,8 @@ class AuthRepositoryImpl @Inject constructor(
     // Manual logout and SessionExpiryHandler may overlap: run wipes one at a time.
     private val logoutMutex = Mutex()
 
-    override suspend fun validateToken(token: String): Result<UserSession> {
-        return runCatching {
-            apiService.getSiteInfo(wsToken = token).toUserSession()
-        }
+    override suspend fun validateToken(token: String): Result<UserSession> = runCatching {
+        apiService.getSiteInfo(wsToken = token).toUserSession()
     }
 
     override suspend fun saveAuthData(token: String, privateToken: String?, session: UserSession) {
@@ -88,15 +86,13 @@ class AuthRepositoryImpl @Inject constructor(
         }
     }
 
-    private fun SiteInfoDto.toUserSession(): UserSession {
-        return UserSession(
-            userId = userid,
-            fullName = fullname,
-            userName = username,
-            siteUrl = siteurl,
-            avatarUrl = MoodleFileUrlBuilder.stripAuthFromUrl(userpictureurl)
-        )
-    }
+    private fun SiteInfoDto.toUserSession(): UserSession = UserSession(
+        userId = userid,
+        fullName = fullname,
+        userName = username,
+        siteUrl = siteurl,
+        avatarUrl = MoodleFileUrlBuilder.stripAuthFromUrl(userpictureurl)
+    )
 
     private fun deleteQuietly(file: File) {
         runCatching { file.deleteRecursively() }

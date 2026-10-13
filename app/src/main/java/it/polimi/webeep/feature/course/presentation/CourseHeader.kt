@@ -37,10 +37,7 @@ import it.polimi.webeep.core.util.CourseTitle
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-internal fun CourseHeader(
-    title: CourseTitle,
-    modifier: Modifier = Modifier
-) {
+internal fun CourseHeader(title: CourseTitle, modifier: Modifier = Modifier) {
     Column(modifier = modifier.fillMaxWidth()) {
         Text(
             text = title.name,
@@ -87,12 +84,7 @@ internal fun CourseHeader(
 
 /** Non-interactive assist-style label (not a chip: it has no click action). */
 @Composable
-private fun MetaLabel(
-    icon: ImageVector,
-    text: String,
-    description: String,
-    modifier: Modifier = Modifier
-) {
+private fun MetaLabel(icon: ImageVector, text: String, description: String, modifier: Modifier = Modifier) {
     Surface(
         shape = MaterialTheme.shapes.small,
         color = MaterialTheme.colorScheme.surfaceContainerHigh,

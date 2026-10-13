@@ -11,12 +11,12 @@ import io.ktor.http.parameters
 import it.polimi.webeep.core.network.dto.CourseDto
 import it.polimi.webeep.core.network.dto.CourseSectionDto
 import it.polimi.webeep.core.network.dto.SiteInfoDto
+import java.io.IOException
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.decodeFromJsonElement
-import java.io.IOException
 
 interface MoodleApiService {
 
@@ -24,10 +24,7 @@ interface MoodleApiService {
 
     suspend fun getEnrolledCourses(wsToken: String? = null, userId: Int): List<CourseDto>
 
-    suspend fun getCourseContents(
-        wsToken: String? = null,
-        courseId: Int
-    ): List<CourseSectionDto>
+    suspend fun getCourseContents(wsToken: String? = null, courseId: Int): List<CourseSectionDto>
 }
 
 /**
@@ -64,11 +61,10 @@ class MoodleApiServiceImpl(private val client: HttpClient) : MoodleApiService {
         }
     }
 
-    override suspend fun getCourseContents(wsToken: String?, courseId: Int): List<CourseSectionDto> {
-        return ws("core_course_get_contents", wsToken) {
+    override suspend fun getCourseContents(wsToken: String?, courseId: Int): List<CourseSectionDto> =
+        ws("core_course_get_contents", wsToken) {
             append("courseid", courseId.toString())
         }
-    }
 
     private suspend inline fun <reified T> ws(
         function: String,

@@ -1,8 +1,8 @@
 package it.polimi.webeep.core.network
 
+import javax.inject.Inject
 import okhttp3.Interceptor
 import okhttp3.Response
-import javax.inject.Inject
 
 /**
  * Prevents OkHttp from writing responses that carry auth tokens to the disk cache.

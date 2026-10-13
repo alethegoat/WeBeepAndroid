@@ -18,11 +18,11 @@ import it.polimi.webeep.core.network.NoStoreAuthCacheInterceptor
 import it.polimi.webeep.core.network.PluginFileAuthInterceptor
 import it.polimi.webeep.core.network.RetryInterceptor
 import it.polimi.webeep.core.network.TokenInterceptor
+import java.util.concurrent.TimeUnit
+import javax.inject.Singleton
 import kotlinx.serialization.json.Json
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
-import java.util.concurrent.TimeUnit
-import javax.inject.Singleton
 
 /**
  * Hilt module for network dependencies (Ktor over OkHttp).
@@ -55,27 +55,19 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    fun provideTokenInterceptor(tokenProvider: TokenProvider): TokenInterceptor {
-        return TokenInterceptor(tokenProvider)
-    }
+    fun provideTokenInterceptor(tokenProvider: TokenProvider): TokenInterceptor = TokenInterceptor(tokenProvider)
 
     @Provides
     @Singleton
-    fun providePluginFileAuthInterceptor(tokenProvider: TokenProvider): PluginFileAuthInterceptor {
-        return PluginFileAuthInterceptor(tokenProvider)
-    }
+    fun providePluginFileAuthInterceptor(tokenProvider: TokenProvider): PluginFileAuthInterceptor = PluginFileAuthInterceptor(tokenProvider)
 
     @Provides
     @Singleton
-    fun provideNoStoreAuthCacheInterceptor(): NoStoreAuthCacheInterceptor {
-        return NoStoreAuthCacheInterceptor()
-    }
+    fun provideNoStoreAuthCacheInterceptor(): NoStoreAuthCacheInterceptor = NoStoreAuthCacheInterceptor()
 
     @Provides
     @Singleton
-    fun provideRetryInterceptor(): RetryInterceptor {
-        return RetryInterceptor()
-    }
+    fun provideRetryInterceptor(): RetryInterceptor = RetryInterceptor()
 
     @Provides
     @Singleton
@@ -104,27 +96,25 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    fun provideKtorHttpClient(okHttpClient: OkHttpClient): HttpClient {
-        return HttpClient(OkHttp) {
-            engine {
-                preconfigured = okHttpClient
-            }
-            defaultRequest {
-                url(BASE_URL)
-            }
-            install(ContentNegotiation) {
-                json(Json {
+    fun provideKtorHttpClient(okHttpClient: OkHttpClient): HttpClient = HttpClient(OkHttp) {
+        engine {
+            preconfigured = okHttpClient
+        }
+        defaultRequest {
+            url(BASE_URL)
+        }
+        install(ContentNegotiation) {
+            json(
+                Json {
                     ignoreUnknownKeys = true
                     isLenient = true
                     coerceInputValues = true
-                })
-            }
+                }
+            )
         }
     }
 
     @Provides
     @Singleton
-    fun provideMoodleApiService(httpClient: HttpClient): MoodleApiService {
-        return MoodleApiServiceImpl(httpClient)
-    }
+    fun provideMoodleApiService(httpClient: HttpClient): MoodleApiService = MoodleApiServiceImpl(httpClient)
 }

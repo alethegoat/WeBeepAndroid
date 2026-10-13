@@ -5,8 +5,8 @@ import it.polimi.webeep.core.util.DataError
 import it.polimi.webeep.core.util.Resource
 import it.polimi.webeep.core.util.toDataError
 import it.polimi.webeep.feature.dashboard.domain.model.Course
-import kotlinx.coroutines.flow.first
 import javax.inject.Inject
+import kotlinx.coroutines.flow.first
 
 /**
  * Explicit (pull-to-refresh) course sync. Fails fast when offline and

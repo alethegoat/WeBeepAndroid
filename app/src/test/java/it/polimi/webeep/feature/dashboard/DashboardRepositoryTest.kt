@@ -1,6 +1,5 @@
 package it.polimi.webeep.feature.dashboard
 
-import it.polimi.webeep.core.datastore.MissingTokenException
 import io.mockk.MockKAnnotations
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -8,6 +7,7 @@ import io.mockk.every
 import io.mockk.impl.annotations.MockK
 import it.polimi.webeep.core.database.dao.CourseDao
 import it.polimi.webeep.core.database.entity.CourseEntity
+import it.polimi.webeep.core.datastore.MissingTokenException
 import it.polimi.webeep.core.datastore.TokenProvider
 import it.polimi.webeep.core.network.MoodleApiService
 import it.polimi.webeep.core.network.dto.CourseDto

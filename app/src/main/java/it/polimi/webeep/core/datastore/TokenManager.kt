@@ -3,15 +3,15 @@ package it.polimi.webeep.core.datastore
 import android.app.Application
 import android.util.Log
 import it.polimi.webeep.core.di.IoDispatcher
+import java.util.concurrent.atomic.AtomicBoolean
+import javax.inject.Inject
+import javax.inject.Singleton
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.withContext
-import java.util.concurrent.atomic.AtomicBoolean
-import javax.inject.Inject
-import javax.inject.Singleton
 
 /**
  * Authentication token manager for Moodle APIs.
@@ -20,10 +20,8 @@ import javax.inject.Singleton
  * off the main thread before reading [isLoggedIn] or [getTokenSync].
  */
 @Singleton
-class TokenManager @Inject constructor(
-    private val application: Application,
-    @IoDispatcher private val ioDispatcher: CoroutineDispatcher
-) : TokenProvider {
+class TokenManager @Inject constructor(private val application: Application, @IoDispatcher private val ioDispatcher: CoroutineDispatcher) :
+    TokenProvider {
 
     companion object {
         private const val TAG = "TokenManager"
@@ -81,12 +79,7 @@ class TokenManager @Inject constructor(
     override fun getTokenSync(): String? = cachedWsToken
 
     /** [privateToken] is intentionally ignored: it grants a full web session and is never used. */
-    override suspend fun saveAuthData(
-        token: String,
-        privateToken: String?,
-        userId: Int,
-        fullName: String
-    ) {
+    override suspend fun saveAuthData(token: String, privateToken: String?, userId: Int, fullName: String) {
         withContext(ioDispatcher) {
             synchronized(clearLock) {
                 val updated = AuthRecord(token = token, userId = userId, fullName = fullName)
@@ -113,27 +106,21 @@ class TokenManager @Inject constructor(
         }
     }
 
-    override suspend fun getToken(): String? {
-        return withContext(ioDispatcher) {
-            loadIfNeeded()
-            synchronized(clearLock) {
-                record.token.also { cachedWsToken = it }
-            }
+    override suspend fun getToken(): String? = withContext(ioDispatcher) {
+        loadIfNeeded()
+        synchronized(clearLock) {
+            record.token.also { cachedWsToken = it }
         }
     }
 
-    override suspend fun getUserId(): Int? {
-        return withContext(ioDispatcher) {
-            loadIfNeeded()
-            synchronized(clearLock) { record.userId }
-        }
+    override suspend fun getUserId(): Int? = withContext(ioDispatcher) {
+        loadIfNeeded()
+        synchronized(clearLock) { record.userId }
     }
 
-    override suspend fun getUserFullName(): String? {
-        return withContext(ioDispatcher) {
-            loadIfNeeded()
-            synchronized(clearLock) { record.fullName }
-        }
+    override suspend fun getUserFullName(): String? = withContext(ioDispatcher) {
+        loadIfNeeded()
+        synchronized(clearLock) { record.fullName }
     }
 
     override suspend fun clearAll() {
@@ -226,9 +213,8 @@ internal data class AuthRecord(
     }
 
     // Never leak credentials through logs or crash reports.
-    override fun toString(): String =
-        "AuthRecord(token=${if (token != null) "***" else null}, userId=$userId, " +
-            "fullName=${if (fullName != null) "***" else null}, passports=${if (passports != null) "***" else null})"
+    override fun toString(): String = "AuthRecord(token=${if (token != null) "***" else null}, userId=$userId, " +
+        "fullName=${if (fullName != null) "***" else null}, passports=${if (passports != null) "***" else null})"
 
     companion object {
         const val KEY_WS_TOKEN = "ws_token"
@@ -272,6 +258,5 @@ internal object PendingPassports {
     fun add(entries: List<Entry>, passport: String, nowMs: Long): List<Entry> =
         (entries.filterNot { it.passport == passport } + Entry(passport, nowMs)).takeLast(MAX_ENTRIES)
 
-    fun serialize(entries: List<Entry>): String =
-        entries.joinToString("\n") { "${it.passport}|${it.createdAtMs}" }
+    fun serialize(entries: List<Entry>): String = entries.joinToString("\n") { "${it.passport}|${it.createdAtMs}" }
 }

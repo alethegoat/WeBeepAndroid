@@ -23,8 +23,8 @@ import it.polimi.webeep.feature.sync.CourseSyncWorker
 import it.polimi.webeep.feature.sync.SyncScheduler
 import it.polimi.webeep.navigation.Screen
 import it.polimi.webeep.navigation.navigateToLogin
-import kotlinx.coroutines.launch
 import javax.inject.Inject
+import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class MainActivity : AppCompatActivity() {

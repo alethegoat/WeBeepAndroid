@@ -30,11 +30,9 @@ fun findSiblings(sections: List<Section>, fileUrl: String): List<ViewerFile> {
     return siblings.map { it.toViewerFile() }
 }
 
-private fun Module.isSingleFile(): Boolean =
-    modName != "folder" && modName !in LINK_MODULE_TYPES && files.size == 1
+private fun Module.isSingleFile(): Boolean = modName != "folder" && modName !in LINK_MODULE_TYPES && files.size == 1
 
-private fun FileResource.matches(strippedUrl: String): Boolean =
-    MoodleFileUrlBuilder.stripAuthFromUrl(fileUrl) == strippedUrl
+private fun FileResource.matches(strippedUrl: String): Boolean = MoodleFileUrlBuilder.stripAuthFromUrl(fileUrl) == strippedUrl
 
 private fun FileResource.toViewerFile() = ViewerFile(
     url = MoodleFileUrlBuilder.stripAuthFromUrl(fileUrl),

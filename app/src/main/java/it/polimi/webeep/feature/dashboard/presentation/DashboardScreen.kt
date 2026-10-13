@@ -76,8 +76,6 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.filter
 import it.polimi.webeep.R
 import it.polimi.webeep.core.ui.components.AuroraBackground
 import it.polimi.webeep.core.ui.components.CourseCard
@@ -87,9 +85,11 @@ import it.polimi.webeep.core.ui.components.WeBeepSearchField
 import it.polimi.webeep.core.ui.theme.WeBeepMotion
 import it.polimi.webeep.core.ui.theme.WeBeepSpacing
 import it.polimi.webeep.core.ui.util.LocalReduceMotion
-import it.polimi.webeep.core.ui.util.StaggerStepMs
+import it.polimi.webeep.core.ui.util.STAGGER_STEP_MS
 import it.polimi.webeep.core.ui.util.bouncyClickable
 import it.polimi.webeep.core.ui.util.staggeredEntrance
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.filter
 
 /** Minimum card width: one column on phones, more on tablets / landscape. */
 private val CourseGridMinCellWidth = 320.dp
@@ -98,10 +98,10 @@ private val CourseGridMinCellWidth = 320.dp
 private val DashboardHeaderMaxWidth = 600.dp
 
 /** Cards that take part in the first-load entrance (about one screenful). */
-private const val EntranceItemCount = 8
+private const val ENTRANCE_ITEM_COUNT = 8
 
 /** Long enough for the last staggered card to settle. */
-private const val EntranceDurationMs = EntranceItemCount * StaggerStepMs + WeBeepMotion.MediumMs + 100L
+private const val ENTRANCE_DURATION_MS = ENTRANCE_ITEM_COUNT * STAGGER_STEP_MS + WeBeepMotion.MEDIUM_MS + 100L
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -133,7 +133,7 @@ fun DashboardScreen(
     var entrancePlayed by rememberSaveable { mutableStateOf(reduceMotion) }
     LaunchedEffect(success != null) {
         if (success != null && !entrancePlayed) {
-            delay(EntranceDurationMs)
+            delay(ENTRANCE_DURATION_MS)
             entrancePlayed = true
         }
     }
@@ -201,12 +201,7 @@ fun DashboardScreen(
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun DashboardTopBar(
-    userName: String?,
-    avatarUrl: String,
-    scrollBehavior: TopAppBarScrollBehavior,
-    onSettingsClick: () -> Unit
-) {
+private fun DashboardTopBar(userName: String?, avatarUrl: String, scrollBehavior: TopAppBarScrollBehavior, onSettingsClick: () -> Unit) {
     TopAppBar(
         title = {
             if (userName == null) {
@@ -241,11 +236,7 @@ private fun DashboardTopBar(
 }
 
 @Composable
-private fun GreetingHeader(
-    userName: String,
-    avatarUrl: String,
-    modifier: Modifier = Modifier
-) {
+private fun GreetingHeader(userName: String, avatarUrl: String, modifier: Modifier = Modifier) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
@@ -380,7 +371,7 @@ private fun DashboardCourseGrid(
                                 placementSpec = WeBeepMotion.softSpring(reduceMotion)
                             )
                             .then(
-                                if (playEntrance && index < EntranceItemCount) {
+                                if (playEntrance && index < ENTRANCE_ITEM_COUNT) {
                                     Modifier.staggeredEntrance(index)
                                 } else {
                                     Modifier
@@ -458,11 +449,7 @@ private fun OfflineBanner(isCacheAvailable: Boolean) {
 }
 
 @Composable
-private fun CourseFilterBar(
-    selected: CourseFilter,
-    onSelect: (CourseFilter) -> Unit,
-    modifier: Modifier = Modifier
-) {
+private fun CourseFilterBar(selected: CourseFilter, onSelect: (CourseFilter) -> Unit, modifier: Modifier = Modifier) {
     val reduceMotion = LocalReduceMotion.current
     val haptics = LocalHapticFeedback.current
     val filters = listOf(
@@ -539,5 +526,7 @@ private fun CourseFilterBar(
 }
 
 enum class CourseFilter {
-    Active, Past, All
+    Active,
+    Past,
+    All
 }

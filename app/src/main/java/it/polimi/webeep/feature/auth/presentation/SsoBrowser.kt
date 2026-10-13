@@ -33,23 +33,21 @@ object SsoBrowser {
         context.startActivity(viewIntent)
     }
 
-    private fun launchCustomTab(context: Context, uri: Uri): Boolean {
-        return try {
-            val customTabs = CustomTabsIntent.Builder()
-                .setShareState(CustomTabsIntent.SHARE_STATE_OFF)
-                .setShowTitle(true)
-                .setInstantAppsEnabled(true)
-                .setSendToExternalDefaultHandlerEnabled(true)
-                .build()
-            customTabs.intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            resolveCustomTabsPackage(context)?.let { packageName ->
-                customTabs.intent.setPackage(packageName)
-            }
-            customTabs.launchUrl(context, uri)
-            true
-        } catch (_: Exception) {
-            false
+    private fun launchCustomTab(context: Context, uri: Uri): Boolean = try {
+        val customTabs = CustomTabsIntent.Builder()
+            .setShareState(CustomTabsIntent.SHARE_STATE_OFF)
+            .setShowTitle(true)
+            .setInstantAppsEnabled(true)
+            .setSendToExternalDefaultHandlerEnabled(true)
+            .build()
+        customTabs.intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        resolveCustomTabsPackage(context)?.let { packageName ->
+            customTabs.intent.setPackage(packageName)
         }
+        customTabs.launchUrl(context, uri)
+        true
+    } catch (_: Exception) {
+        false
     }
 
     private fun resolveCustomTabsPackage(context: Context): String? {
@@ -61,13 +59,11 @@ object SsoBrowser {
         return resolved.firstOrNull()?.serviceInfo?.packageName
     }
 
-    private fun isInstalled(pm: PackageManager, packageName: String): Boolean {
-        return try {
-            pm.getPackageInfo(packageName, 0)
-            true
-        } catch (_: PackageManager.NameNotFoundException) {
-            false
-        }
+    private fun isInstalled(pm: PackageManager, packageName: String): Boolean = try {
+        pm.getPackageInfo(packageName, 0)
+        true
+    } catch (_: PackageManager.NameNotFoundException) {
+        false
     }
 
     private fun supportsCustomTabs(pm: PackageManager, packageName: String): Boolean {

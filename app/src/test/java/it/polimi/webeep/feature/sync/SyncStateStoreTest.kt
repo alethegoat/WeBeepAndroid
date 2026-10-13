@@ -3,6 +3,7 @@ package it.polimi.webeep.feature.sync
 import it.polimi.webeep.feature.sync.FileChangeDetector.ChangeType
 import it.polimi.webeep.feature.sync.FileChangeDetector.FileChange
 import it.polimi.webeep.feature.sync.FileChangeDetector.FileEntry
+import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
@@ -11,7 +12,6 @@ import org.junit.Assert.assertFalse
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
-import java.io.File
 
 class SyncStateStoreTest {
 

@@ -80,11 +80,7 @@ import it.polimi.webeep.core.ui.theme.WeBeepSpacing
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsScreen(
-    viewModel: SettingsViewModel,
-    onBackClick: () -> Unit,
-    onLogoutSuccess: () -> Unit
-) {
+fun SettingsScreen(viewModel: SettingsViewModel, onBackClick: () -> Unit, onLogoutSuccess: () -> Unit) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val lastCheckAt by viewModel.lastCheckAt.collectAsStateWithLifecycle()
     val checkInProgress by viewModel.checkInProgress.collectAsStateWithLifecycle()
@@ -286,10 +282,7 @@ private val SettingsRowMinHeight = WeBeepSpacing.touchTarget + WeBeepSpacing.xs
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ThemeSelectionRow(
-    selectedTheme: ThemePreference,
-    onThemeSelected: (ThemePreference) -> Unit
-) {
+private fun ThemeSelectionRow(selectedTheme: ThemePreference, onThemeSelected: (ThemePreference) -> Unit) {
     val haptics = LocalHapticFeedback.current
     Column(modifier = Modifier.padding(bottom = WeBeepSpacing.md)) {
         SettingsRow(icon = Icons.Rounded.DarkMode, title = stringResource(R.string.app_theme))
@@ -322,13 +315,7 @@ private fun ThemeSelectionRow(
 }
 
 @Composable
-private fun SettingsSwitchItem(
-    icon: ImageVector,
-    title: String,
-    subtitle: String,
-    checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit
-) {
+private fun SettingsSwitchItem(icon: ImageVector, title: String, subtitle: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
     SettingsRow(
         icon = icon,
         title = title,
@@ -396,10 +383,7 @@ private fun <T> SettingsDropdownRow(
 }
 
 @Composable
-private fun SyncFrequencyItem(
-    selectedFrequency: SyncFrequency,
-    onFrequencySelected: (SyncFrequency) -> Unit
-) {
+private fun SyncFrequencyItem(selectedFrequency: SyncFrequency, onFrequencySelected: (SyncFrequency) -> Unit) {
     val options = listOf(
         SyncFrequency.FIFTEEN_MINUTES to stringResource(R.string.settings_sync_freq_15m),
         SyncFrequency.ONE_HOUR to stringResource(R.string.settings_sync_freq_1h),
@@ -417,11 +401,7 @@ private fun SyncFrequencyItem(
 }
 
 @Composable
-private fun LastCheckItem(
-    lastCheckAt: Long?,
-    checkInProgress: Boolean,
-    onCheckNow: () -> Unit
-) {
+private fun LastCheckItem(lastCheckAt: Long?, checkInProgress: Boolean, onCheckNow: () -> Unit) {
     val status = when {
         checkInProgress -> stringResource(R.string.settings_check_started)
         lastCheckAt != null -> stringResource(

@@ -11,6 +11,7 @@ import it.polimi.webeep.feature.dashboard.domain.SyncCoursesUseCase
 import it.polimi.webeep.feature.dashboard.domain.model.Course
 import it.polimi.webeep.feature.dashboard.presentation.DashboardUiState
 import it.polimi.webeep.feature.dashboard.presentation.DashboardViewModel
+import java.io.IOException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -19,7 +20,6 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
-import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -27,12 +27,9 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TestWatcher
 import org.junit.runner.Description
-import java.io.IOException
 
 @OptIn(ExperimentalCoroutinesApi::class)
-class MainDispatcherRule(
-    val testDispatcher: kotlinx.coroutines.test.TestDispatcher = UnconfinedTestDispatcher()
-) : TestWatcher() {
+class MainDispatcherRule(val testDispatcher: kotlinx.coroutines.test.TestDispatcher = UnconfinedTestDispatcher()) : TestWatcher() {
     override fun starting(description: Description) {
         Dispatchers.setMain(testDispatcher)
     }
@@ -77,7 +74,7 @@ class DashboardViewModelTest {
 
         getCoursesUseCase = GetCoursesUseCase(fakeDashboardRepository, fakeConnectivity)
         syncCoursesUseCase = SyncCoursesUseCase(fakeDashboardRepository, fakeConnectivity)
-        
+
         fakeDashboardRepository.userInfoResult = Result.success("Alessio" to "avatar.png")
         fakeDashboardRepository.cachedCoursesFlow.value = sampleCourses
         fakeDashboardRepository.syncResult = Result.success(sampleCourses)
@@ -119,7 +116,7 @@ class DashboardViewModelTest {
             // skip initial Loading
             var state = awaitItem()
             if (state is DashboardUiState.Loading) state = awaitItem()
-            
+
             // Should be Error now
             assertTrue(state is DashboardUiState.Error)
             assertEquals(R.string.error_data_network, (state as DashboardUiState.Error).messageRes)
@@ -130,7 +127,7 @@ class DashboardViewModelTest {
     fun `loadCourses with empty list emits Success with empty courses`() = runTest {
         fakeDashboardRepository.cachedCoursesFlow.value = emptyList()
         fakeDashboardRepository.syncResult = Result.success(emptyList())
-        
+
         initViewModel()
 
         viewModel.uiState.test {
@@ -160,13 +157,13 @@ class DashboardViewModelTest {
         // Errore iniziale
         fakeDashboardRepository.cachedCoursesFlow.value = emptyList()
         fakeDashboardRepository.syncResult = Result.failure(Exception("Sync fallito"))
-        
+
         initViewModel()
-        
+
         // Risolve l'errore per il refresh
         fakeDashboardRepository.cachedCoursesFlow.value = sampleCourses
         fakeDashboardRepository.syncResult = Result.success(sampleCourses)
-        
+
         viewModel.refresh()
 
         viewModel.uiState.test {
@@ -204,7 +201,7 @@ class DashboardViewModelTest {
     @Test
     fun `refresh failure with existing data keeps data and resets refresh flag`() = runTest {
         initViewModel()
-        
+
         fakeDashboardRepository.syncResult = Result.failure(Exception("Sync fallito"))
         viewModel.refresh()
 
@@ -287,12 +284,11 @@ class DashboardViewModelTest {
         var logoutCalled = false
         override suspend fun validateToken(token: String): Result<it.polimi.webeep.feature.auth.domain.UserSession> =
             Result.failure(Exception())
-        override suspend fun saveAuthData(
-            token: String,
-            privateToken: String?,
-            session: it.polimi.webeep.feature.auth.domain.UserSession
-        ) = Unit
+        override suspend fun saveAuthData(token: String, privateToken: String?, session: it.polimi.webeep.feature.auth.domain.UserSession) =
+            Unit
         override suspend fun isLoggedIn(): Boolean = false
-        override suspend fun logout() { logoutCalled = true }
+        override suspend fun logout() {
+            logoutCalled = true
+        }
     }
 }

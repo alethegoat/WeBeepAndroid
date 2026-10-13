@@ -13,6 +13,8 @@ import it.polimi.webeep.feature.dashboard.domain.DashboardRepository
 import it.polimi.webeep.feature.dashboard.domain.GetCoursesUseCase
 import it.polimi.webeep.feature.dashboard.domain.SyncCoursesUseCase
 import it.polimi.webeep.feature.dashboard.domain.model.Course
+import javax.inject.Inject
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -20,9 +22,7 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
 sealed interface DashboardUiState {
     data object Loading : DashboardUiState
@@ -74,8 +74,8 @@ class DashboardViewModel @Inject constructor(
         }
     }
 
-    private val _vmState = MutableStateFlow(VmState())
-    val uiState: StateFlow<DashboardUiState> = _vmState
+    private val vmState = MutableStateFlow(VmState())
+    val uiState: StateFlow<DashboardUiState> = vmState
         .map { it.toUiState() }
         .stateIn(
             scope = viewModelScope,
@@ -93,7 +93,7 @@ class DashboardViewModel @Inject constructor(
     private suspend fun loadUserInfo() {
         dashboardRepository.getUserInfo().fold(
             onSuccess = { (name, avatar) ->
-                _vmState.update { it.copy(userName = name, userAvatar = avatar) }
+                vmState.update { it.copy(userName = name, userAvatar = avatar) }
             },
             onFailure = {
             }
@@ -101,18 +101,18 @@ class DashboardViewModel @Inject constructor(
     }
 
     private suspend fun loadCoursesInternal() {
-        if (_vmState.value.courses == null) {
-            _vmState.update { it.copy(isLoading = true, error = null) }
+        if (vmState.value.courses == null) {
+            vmState.update { it.copy(isLoading = true, error = null) }
         }
         getCoursesUseCase().collectLatest { resource ->
             when (resource) {
                 is Resource.Loading -> {
-                    if (_vmState.value.courses == null) {
-                        _vmState.update { it.copy(isLoading = true, error = null) }
+                    if (vmState.value.courses == null) {
+                        vmState.update { it.copy(isLoading = true, error = null) }
                     }
                 }
                 is Resource.Success -> {
-                    _vmState.update {
+                    vmState.update {
                         it.copy(
                             isLoading = false,
                             courses = resource.data.map { course -> course.toUiModel() },
@@ -121,7 +121,7 @@ class DashboardViewModel @Inject constructor(
                     }
                 }
                 is Resource.Error -> {
-                    _vmState.update { it.copy(isLoading = false, error = resource.error.toMessageRes()) }
+                    vmState.update { it.copy(isLoading = false, error = resource.error.toMessageRes()) }
                 }
             }
         }
@@ -135,11 +135,11 @@ class DashboardViewModel @Inject constructor(
     }
 
     fun refresh() {
-        _vmState.update { it.copy(isRefreshing = true) }
+        vmState.update { it.copy(isRefreshing = true) }
         viewModelScope.launch {
             when (val result = syncCoursesUseCase()) {
                 is Resource.Success -> {
-                    _vmState.update {
+                    vmState.update {
                         it.copy(
                             isRefreshing = false,
                             courses = result.data.map { course -> course.toUiModel() },
@@ -149,7 +149,7 @@ class DashboardViewModel @Inject constructor(
                     }
                 }
                 is Resource.Error -> {
-                    _vmState.update {
+                    vmState.update {
                         // Keep existing data; surface the error only when there is nothing to show.
                         val newError = if (it.courses == null) result.error.toMessageRes() else null
                         it.copy(isRefreshing = false, error = newError, isLoading = false)

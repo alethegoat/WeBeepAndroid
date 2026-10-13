@@ -6,6 +6,10 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import it.polimi.webeep.core.di.DefaultDispatcher
+import it.polimi.webeep.core.di.IoDispatcher
+import it.polimi.webeep.core.util.FileUtils
+import it.polimi.webeep.core.util.MoodleText
 import it.polimi.webeep.core.util.Resource
 import it.polimi.webeep.core.util.toMessageRes
 import it.polimi.webeep.feature.course.domain.CourseRepository
@@ -15,11 +19,15 @@ import it.polimi.webeep.feature.course.domain.model.Module
 import it.polimi.webeep.feature.course.domain.model.Section
 import it.polimi.webeep.feature.download.domain.DownloadFileUseCase
 import it.polimi.webeep.feature.download.domain.DownloadRepository
+import java.util.concurrent.ConcurrentHashMap
+import javax.inject.Inject
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOn
@@ -27,22 +35,10 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import java.util.Locale
-import java.util.concurrent.ConcurrentHashMap
-import javax.inject.Inject
-import it.polimi.webeep.core.di.DefaultDispatcher
-import it.polimi.webeep.core.di.IoDispatcher
-import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.CancellationException
-import it.polimi.webeep.core.util.FileUtils
-import it.polimi.webeep.core.util.MoodleText
 
 sealed interface CourseDetailUiState {
     data object Loading : CourseDetailUiState
-    data class Success(
-        val courseName: String,
-        val sections: List<SectionUiModel>
-    ) : CourseDetailUiState
+    data class Success(val courseName: String, val sections: List<SectionUiModel>) : CourseDetailUiState
     data class Error(@StringRes val messageRes: Int) : CourseDetailUiState
 }
 
@@ -283,9 +279,7 @@ class CourseDetailViewModel @Inject constructor(
      * A cache re-emit rebuilds every [FileUiModel] from disk state only: carry over
      * DOWNLOADING (the job is still running) and FAILED (unless the file is now on disk).
      */
-    private fun List<SectionUiModel>.withInFlightDownloadStates(
-        previous: CourseDetailUiState
-    ): List<SectionUiModel> {
+    private fun List<SectionUiModel>.withInFlightDownloadStates(previous: CourseDetailUiState): List<SectionUiModel> {
         if (previous !is CourseDetailUiState.Success) return this
         val carriedStates = previous.sections.asSequence()
             .flatMap { it.modules.asSequence() }
@@ -303,8 +297,11 @@ class CourseDetailViewModel @Inject constructor(
                             when (carriedStates[file.fileUrl]) {
                                 DownloadState.DOWNLOADING -> file.copy(downloadState = DownloadState.DOWNLOADING)
                                 DownloadState.FAILED ->
-                                    if (file.downloadState == DownloadState.COMPLETED) file
-                                    else file.copy(downloadState = DownloadState.FAILED)
+                                    if (file.downloadState == DownloadState.COMPLETED) {
+                                        file
+                                    } else {
+                                        file.copy(downloadState = DownloadState.FAILED)
+                                    }
                                 else -> file
                             }
                         }

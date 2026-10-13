@@ -34,7 +34,7 @@ interface CourseDao {
     suspend fun replaceAllCourses(courses: List<CourseEntity>) {
         val oldIds = getAllCourseIds()
         val newIds = courses.map { it.id }.toSet()
-        
+
         val toDelete = oldIds.subtract(newIds)
         if (toDelete.isNotEmpty()) {
             deleteCoursesByIds(toDelete.toList())

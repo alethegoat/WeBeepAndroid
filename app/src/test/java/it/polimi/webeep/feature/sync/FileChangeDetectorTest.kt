@@ -110,24 +110,22 @@ class FileChangeDetectorTest {
     private fun course(vararg modules: Module) =
         listOf(Section(id = 1, name = "General", summary = null, sectionNumber = 0, modules = modules.toList()))
 
-    private fun module(id: Int, modName: String, vararg files: FileResource) =
-        Module(
-            id = id,
-            name = "Module $id",
-            modName = modName,
-            iconUrl = null,
-            description = null,
-            url = null,
-            files = files.toList()
-        )
+    private fun module(id: Int, modName: String, vararg files: FileResource) = Module(
+        id = id,
+        name = "Module $id",
+        modName = modName,
+        iconUrl = null,
+        description = null,
+        url = null,
+        files = files.toList()
+    )
 
-    private fun file(name: String, rev: Int, time: Long, size: Long = 1_000L) =
-        FileResource(
-            filename = name,
-            filepath = "/",
-            fileUrl = "https://webeep.polimi.it/webservice/pluginfile.php/5/mod_folder/content/$rev/$name",
-            fileSize = size,
-            mimeType = "application/pdf",
-            timeModified = time
-        )
+    private fun file(name: String, rev: Int, time: Long, size: Long = 1_000L) = FileResource(
+        filename = name,
+        filepath = "/",
+        fileUrl = "https://webeep.polimi.it/webservice/pluginfile.php/5/mod_folder/content/$rev/$name",
+        fileSize = size,
+        mimeType = "application/pdf",
+        timeModified = time
+    )
 }

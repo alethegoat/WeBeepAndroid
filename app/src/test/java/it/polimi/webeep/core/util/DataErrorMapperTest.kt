@@ -3,11 +3,11 @@ package it.polimi.webeep.core.util
 import it.polimi.webeep.R
 import it.polimi.webeep.core.datastore.MissingTokenException
 import it.polimi.webeep.core.network.MoodleException
-import org.junit.Assert.assertEquals
-import org.junit.Test
 import java.io.IOException
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
+import org.junit.Assert.assertEquals
+import org.junit.Test
 
 class DataErrorMapperTest {
 

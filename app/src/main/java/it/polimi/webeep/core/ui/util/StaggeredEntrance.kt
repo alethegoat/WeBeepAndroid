@@ -15,7 +15,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /** Delay between two consecutive items of a staggered entrance. */
-const val StaggerStepMs = 35L
+const val STAGGER_STEP_MS = 35L
 
 /**
  * Fades the content in and lifts it by [offset] once, when it is first attached,
@@ -23,13 +23,9 @@ const val StaggerStepMs = 35L
  * recomposition); apply it only while the entrance should play, e.g. on the first
  * load of a list and not when coming back to it.
  */
-fun Modifier.staggeredEntrance(index: Int, offset: Dp = 16.dp): Modifier =
-    this then StaggeredEntranceElement(index, offset)
+fun Modifier.staggeredEntrance(index: Int, offset: Dp = 16.dp): Modifier = this then StaggeredEntranceElement(index, offset)
 
-private data class StaggeredEntranceElement(
-    val index: Int,
-    val offset: Dp
-) : ModifierNodeElement<StaggeredEntranceNode>() {
+private data class StaggeredEntranceElement(val index: Int, val offset: Dp) : ModifierNodeElement<StaggeredEntranceNode>() {
     override fun create() = StaggeredEntranceNode(index, offset)
 
     override fun update(node: StaggeredEntranceNode) {
@@ -37,17 +33,16 @@ private data class StaggeredEntranceElement(
     }
 }
 
-private class StaggeredEntranceNode(
-    private val index: Int,
-    var offset: Dp
-) : Modifier.Node(), LayoutModifierNode {
+private class StaggeredEntranceNode(private val index: Int, var offset: Dp) :
+    Modifier.Node(),
+    LayoutModifierNode {
 
     private val progress = Animatable(0f)
 
     override fun onAttach() {
         coroutineScope.launch {
-            delay(index * StaggerStepMs)
-            progress.animateTo(1f, WeBeepMotion.enter(WeBeepMotion.MediumMs))
+            delay(index * STAGGER_STEP_MS)
+            progress.animateTo(1f, WeBeepMotion.enter(WeBeepMotion.MEDIUM_MS))
         }
     }
 
