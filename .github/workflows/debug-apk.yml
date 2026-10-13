@@ -38,5 +38,5 @@ jobs:
           gh release create debug-latest WeBeep-debug.apk \
             --prerelease \
             --target "$GITHUB_SHA" \
-            --title "WeBeep debug (latest master)" \
-            --notes "Debug build of ${GITHUB_SHA}. Install WeBeep-debug.apk directly on the phone."
+            --title "WeBeep debug (latest master, developer build)" \
+            --notes "Developer build of ${GITHUB_SHA}, signed with a publicly known debug key. For development and testing only. To use the app, install the signed APK from the latest versioned release instead: https://github.com/alethegoat/WeBeepAndroid/releases/latest"

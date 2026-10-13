@@ -80,3 +80,9 @@ See [ADR 0006](docs/adr/0006-jvm-first-testing.md) for the reasoning.
 ## Release signing
 
 Release builds need a keystore and fail without one. Set `KEYSTORE_FILE`, `KEYSTORE_PASSWORD`, `KEY_ALIAS` and `KEY_PASSWORD`, as described in the README, [Build it yourself](README.md#build-it-yourself). `ALLOW_DEBUG_RELEASE_SIGNING=true` is for CI smoke builds only. Never commit keystores or passwords.
+
+## Releases
+
+1. Bump `versionName` in `app/build.gradle.kts` and move the `## [Unreleased]` entries of [CHANGELOG.md](CHANGELOG.md) under a `## [x.y.z]` heading.
+2. Push a tag `vX.Y.Z` that matches `versionName`. The Release workflow builds the signed APK and AAB and publishes them with the changelog section as notes. To rebuild an existing tag, run the workflow manually with that tag.
+3. The repository secrets `KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `KEY_ALIAS` and `KEY_PASSWORD` must be set. The workflow fails if any is empty or if the APK is debug-signed.

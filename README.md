@@ -36,6 +36,12 @@ WeBeep Android is a native application designed to make it easier for Politecnic
 
 ---
 
+### Install
+
+Download `WeBeep-vX.Y.Z.apk` from the [latest Release](https://github.com/alethegoat/WeBeepAndroid/releases/latest). It is signed with the project's release key. Do not use `debug-latest`: it is a developer build signed with a publicly known debug key. The notes of each release include the signing certificate SHA-256, so you can check it before installing.
+
+Maintainers publish a release by pushing a tag `vX.Y.Z` that matches `versionName`, or by running the Release workflow manually for an existing tag. The workflow needs these repository secrets: `KEYSTORE_BASE64` (the keystore, base64-encoded), `KEYSTORE_PASSWORD`, `KEY_ALIAS` and `KEY_PASSWORD`.
+
 ### Build it yourself
 
 1. Clone the repository:
@@ -100,6 +106,12 @@ WeBeep Android è un'app nativa che semplifica l'accesso ai corsi di WeBeep per 
 - **Interfaccia**: Jetpack Compose e Material 3, con Dark Mode e colori dinamici opzionali.
 
 ---
+
+### Installazione
+
+Scarica `WeBeep-vX.Y.Z.apk` dall'[ultima Release](https://github.com/alethegoat/WeBeepAndroid/releases/latest). È firmato con la chiave di release del progetto. Non usare `debug-latest`: è una build per sviluppatori firmata con una chiave debug pubblicamente nota. Le note di ogni release riportano lo SHA-256 del certificato di firma, da controllare prima di installare.
+
+I maintainer pubblicano una release facendo il push di un tag `vX.Y.Z` uguale a `versionName`, oppure lanciando a mano il workflow Release per un tag esistente. Il workflow richiede questi secret del repository: `KEYSTORE_BASE64` (il keystore codificato in base64), `KEYSTORE_PASSWORD`, `KEY_ALIAS` e `KEY_PASSWORD`.
 
 ### Compilazione manuale
 
