@@ -8,6 +8,7 @@ import it.polimi.webeep.feature.auth.data.AuthRepositoryImpl
 import it.polimi.webeep.feature.auth.domain.AuthRepository
 import javax.inject.Singleton
 
+/** Binds the auth feature's repository. */
 @Module
 @InstallIn(SingletonComponent::class)
 abstract class AuthModule {

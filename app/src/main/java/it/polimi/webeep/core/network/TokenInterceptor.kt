@@ -27,6 +27,7 @@ class TokenInterceptor @Inject constructor(private val tokenProvider: TokenProvi
 
     private var trustedHost: String = MoodleFileUrlBuilder.TRUSTED_HOST
 
+    /** Limits and markers used to recognize an invalid-token response. */
     companion object {
         private const val TOKEN_PEEK_BYTES = 8_192L
         private const val FORM_SUBTYPE = "x-www-form-urlencoded"

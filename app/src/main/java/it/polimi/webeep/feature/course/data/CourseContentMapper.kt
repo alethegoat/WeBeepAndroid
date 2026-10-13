@@ -19,6 +19,7 @@ import it.polimi.webeep.feature.course.domain.model.Section
  */
 object CourseContentMapper {
 
+    /** The same content in the three shapes callers need: domain [sections] and the Room entities to persist. */
     data class MappedCourseContent(
         val sections: List<Section>,
         val sectionEntities: List<CourseSectionEntity>,
@@ -26,6 +27,7 @@ object CourseContentMapper {
         val contentEntities: List<ModuleContentEntity>
     )
 
+    /** Maps [sectionDtos] of [courseId], dropping unsupported module types. Pure and thread-agnostic; callers pick the dispatcher. */
     fun map(courseId: Int, sectionDtos: List<CourseSectionDto>): MappedCourseContent {
         val sections = sectionDtos.map(::mapSection)
         return MappedCourseContent(

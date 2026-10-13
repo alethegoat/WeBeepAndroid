@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 
+/** [ConnectivityObserver] backed by the system `ConnectivityManager`; online means internet capability and a validated network. */
 @Singleton
 class NetworkMonitor @Inject constructor(application: Application) : ConnectivityObserver {
 

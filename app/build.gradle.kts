@@ -8,6 +8,7 @@ plugins {
     alias(libs.plugins.detekt)
     alias(libs.plugins.ktlint)
     alias(libs.plugins.kover)
+    alias(libs.plugins.dokka)
 }
 
 android {
@@ -167,6 +168,20 @@ kover {
                 minBound(75)
             }
         }
+    }
+}
+
+// API reference: ./gradlew :app:dokkaGeneratePublicationHtml -> app/build/dokka/html.
+// Undocumented members are not reported here; detekt's Undocumented* rules enforce KDoc.
+dokka {
+    moduleName.set("WeBeep Android")
+    dokkaSourceSets.configureEach {
+        // Only the hand-written `main` sources are documented. Hilt/KSP/Room output (_Factory, Hilt_*, _Impl, ...)
+        // lives in the generated variant source sets, which also repeat main's roots and would fail Dokka's
+        // "one source set per file" check.
+        if (name != "main") suppress.set(true)
+        includes.from("Module.md")
+        reportUndocumented.set(false)
     }
 }
 

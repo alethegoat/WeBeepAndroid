@@ -23,6 +23,7 @@ import kotlinx.coroutines.withContext
 class TokenManager @Inject constructor(private val application: Application, @IoDispatcher private val ioDispatcher: CoroutineDispatcher) :
     TokenProvider {
 
+    /** Logging tag. */
     companion object {
         private const val TAG = "TokenManager"
     }
@@ -183,6 +184,7 @@ class TokenManager @Inject constructor(private val application: Application, @Io
 internal data class AuthRecord(val token: String? = null, val userId: Int? = null, val passports: String? = null) {
     fun isEmpty(): Boolean = toMap().isEmpty()
 
+    /** Flat form that is stored; absent and empty fields are omitted. The keys are the persisted format and must not change. */
     fun toMap(): Map<String, String> = buildMap {
         token?.let { put(KEY_WS_TOKEN, it) }
         userId?.let { put(KEY_USER_ID, it.toString()) }
@@ -193,6 +195,7 @@ internal data class AuthRecord(val token: String? = null, val userId: Int? = nul
     override fun toString(): String = "AuthRecord(token=${if (token != null) "***" else null}, userId=$userId, " +
         "passports=${if (passports != null) "***" else null})"
 
+    /** Persisted keys of the session record. They are the stored format and must not change. */
     companion object {
         const val KEY_WS_TOKEN = "ws_token"
         const val KEY_USER_ID = "user_id"
@@ -201,6 +204,7 @@ internal data class AuthRecord(val token: String? = null, val userId: Int? = nul
 
         val EMPTY = AuthRecord()
 
+        /** Inverse of [toMap]; the legacy `-1` user id sentinel reads as unknown. */
         fun fromMap(values: Map<String, String>): AuthRecord = AuthRecord(
             token = values[KEY_WS_TOKEN],
             userId = values[KEY_USER_ID]?.toIntOrNull()?.takeIf { it != USER_ID_DEFAULT },
@@ -217,8 +221,10 @@ internal object PendingPassports {
     const val TTL_MS = 10 * 60_000L
     const val MAX_ENTRIES = 8
 
+    /** One pending passport and when it was created. */
     data class Entry(val passport: String, val createdAtMs: Long)
 
+    /** Entries in [raw] that are well-formed and younger than [TTL_MS] at [nowMs]. */
     fun parse(raw: String?, nowMs: Long): List<Entry> {
         if (raw.isNullOrBlank()) return emptyList()
         return raw.split('\n').mapNotNull { line ->
@@ -230,8 +236,10 @@ internal object PendingPassports {
         }
     }
 
+    /** Adds [passport] (replacing an equal one) and keeps only the newest [MAX_ENTRIES]. */
     fun add(entries: List<Entry>, passport: String, nowMs: Long): List<Entry> =
         (entries.filterNot { it.passport == passport } + Entry(passport, nowMs)).takeLast(MAX_ENTRIES)
 
+    /** Inverse of [parse] for the stored text. */
     fun serialize(entries: List<Entry>): String = entries.joinToString("\n") { "${it.passport}|${it.createdAtMs}" }
 }

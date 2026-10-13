@@ -21,5 +21,6 @@ data class SiteInfoDto(
     @SerialName("functions") val functions: List<FunctionDto>? = null
 )
 
+/** A web-service function the token is allowed to call. */
 @Serializable
 data class FunctionDto(@SerialName("name") val name: String = "", @SerialName("version") val version: String? = null)

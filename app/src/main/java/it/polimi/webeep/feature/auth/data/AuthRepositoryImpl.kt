@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
+/** [AuthRepository] over Moodle and [TokenProvider]; logout cancels sync and wipes local data in a fixed order. */
 class AuthRepositoryImpl @Inject constructor(
     private val apiService: MoodleApiService,
     private val tokenProvider: TokenProvider,

@@ -14,6 +14,7 @@ class GetCoursesUseCase @Inject constructor(
     private val repository: DashboardRepository,
     private val connectivityObserver: ConnectivityObserver
 ) {
+    /** Emits cached courses, then the refreshed list; a failed refresh is reported only if the cache is empty (see [cacheThenRefresh]). */
     operator fun invoke(): Flow<Resource<List<Course>>> = cacheThenRefresh(
         cache = repository.getCoursesFromCache(),
         connectivity = connectivityObserver,

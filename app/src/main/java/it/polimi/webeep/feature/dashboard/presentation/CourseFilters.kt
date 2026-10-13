@@ -1,5 +1,6 @@
 package it.polimi.webeep.feature.dashboard.presentation
 
+/** Which courses the list shows: ongoing, finished or both. */
 enum class CourseFilter {
     ACTIVE,
     PAST,
@@ -9,6 +10,7 @@ enum class CourseFilter {
 /** The filter shown when nothing has been chosen yet. */
 internal val DEFAULT_COURSE_FILTER = CourseFilter.ACTIVE
 
+/** Courses whose name matches [query] and that pass [filter]; a course with no end date counts as active. */
 internal fun filterCourses(courses: List<CourseUiModel>, query: String, filter: CourseFilter, nowEpochSeconds: Long): List<CourseUiModel> {
     val needle = query.trim()
     return courses.filter { course ->

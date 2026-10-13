@@ -38,6 +38,7 @@ import okhttp3.Request
  * Downloads and classifies files for the viewer. Auth tokens are added only by
  * the OkHttp interceptors (pluginfile); files already saved in `downloads/` and
  * the bounded `viewer/` cache are reused without hitting the network.
+ * Downloads are written to `.part` files and committed atomically, and cancelling the collector cancels the HTTP call.
  */
 class FileContentRepositoryImpl @Inject constructor(
     private val tokenProvider: TokenProvider,

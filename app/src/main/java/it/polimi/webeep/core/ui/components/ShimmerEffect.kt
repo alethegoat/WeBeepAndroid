@@ -38,6 +38,7 @@ private const val SHIMMER_GRADIENT_SPAN = 500f
 @Stable
 class ShimmerStyle internal constructor(val progress: State<Float>, val baseColor: Color, val highlightColor: Color, val animated: Boolean)
 
+/** One shared [ShimmerStyle] per list; static when reduced motion is on. */
 @Composable
 fun rememberShimmerStyle(): ShimmerStyle {
     val animated = !LocalReduceMotion.current
@@ -77,6 +78,7 @@ fun Modifier.shimmerPlaceholder(style: ShimmerStyle, shape: Shape): Modifier {
     }
 }
 
+/** Placeholder block that shimmers using [style]. */
 @Composable
 fun ShimmerEffect(
     modifier: Modifier = Modifier,

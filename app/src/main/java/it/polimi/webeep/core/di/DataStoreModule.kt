@@ -10,6 +10,7 @@ import it.polimi.webeep.core.datastore.TokenProvider
 import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineDispatcher
 
+/** Provides the credential store ([TokenManager]) and its [TokenProvider] interface. */
 @Module
 @InstallIn(SingletonComponent::class)
 object DataStoreModule {

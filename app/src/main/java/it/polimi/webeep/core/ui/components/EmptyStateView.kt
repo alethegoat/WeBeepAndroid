@@ -40,6 +40,7 @@ private val EmptyStateIconContainerSize = 88.dp
 /** Size of the icon inside [EmptyStateIconContainerSize]. */
 private val EmptyStateIconSize = 40.dp
 
+/** Centered icon, title and optional subtitle and action, for lists with nothing to show. */
 @Composable
 fun EmptyStateView(
     icon: ImageVector,

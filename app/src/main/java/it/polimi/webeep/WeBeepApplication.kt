@@ -18,6 +18,12 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
 
+/**
+ * Process entry point: Hilt root, WorkManager configuration (so workers get injected) and the Coil image loader.
+ *
+ * Images use the app's authenticated OkHttp client, so pluginfile images need no token in their URL. The client is obtained lazily to keep
+ * it off the startup path.
+ */
 @HiltAndroidApp
 class WeBeepApplication :
     Application(),

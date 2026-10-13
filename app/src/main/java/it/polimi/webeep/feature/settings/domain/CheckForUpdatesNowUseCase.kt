@@ -5,6 +5,7 @@ import javax.inject.Inject
 
 /** Runs a sync even when background sync is set to never. */
 class CheckForUpdatesNowUseCase @Inject constructor(private val scheduling: SyncScheduling) {
+    /** Enqueues a manual one-off sync. */
     suspend operator fun invoke() {
         scheduling.enqueueImmediate(manual = true)
     }

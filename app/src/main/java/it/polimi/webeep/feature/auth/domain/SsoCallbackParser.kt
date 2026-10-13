@@ -8,6 +8,7 @@ import java.net.URLDecoder
  */
 object SsoCallbackParser {
 
+    /** Returns the decoded value after `token=`, or `null` if absent or blank. */
     fun extractToken(rawUri: String): String? {
         val marker = "token="
         val start = rawUri.indexOf(marker, ignoreCase = true)

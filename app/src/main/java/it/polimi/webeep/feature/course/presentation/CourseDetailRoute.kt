@@ -13,6 +13,7 @@ import it.polimi.webeep.core.ui.util.openWithExternalApp
 import it.polimi.webeep.navigation.FileViewer
 import it.polimi.webeep.navigation.dropUnlessResumedWith
 
+/** Stateful entry of the course screen: performs the one-shot effects (open in another app, Custom Tab, file viewer). */
 @Composable
 fun CourseDetailRoute(
     onOpenViewer: (FileViewer) -> Unit,

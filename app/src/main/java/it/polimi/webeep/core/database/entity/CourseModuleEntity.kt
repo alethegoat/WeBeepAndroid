@@ -5,6 +5,7 @@ import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
 
+/** Row of a module (activity) inside a section; [url] and [iconUrl] are stored without tokens. */
 @Entity(
     tableName = "course_modules",
     foreignKeys = [

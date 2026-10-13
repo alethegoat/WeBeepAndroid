@@ -23,7 +23,10 @@ import it.polimi.webeep.feature.dashboard.presentation.dashboardDestination
 import it.polimi.webeep.feature.fileviewer.presentation.fileViewerDestination
 import it.polimi.webeep.feature.settings.presentation.settingsDestination
 
-/** Wires the features' destinations together; each feature owns its own screen setup. */
+/**
+ * Wires the features' destinations together; each feature owns its own screen setup.
+ * [startLoggedIn] picks the start destination (dashboard or login) and is read once, when the graph is first built.
+ */
 @Composable
 fun NavGraph(startLoggedIn: Boolean, modifier: Modifier = Modifier, navController: NavHostController = rememberNavController()) {
     val reduceMotion = LocalReduceMotion.current

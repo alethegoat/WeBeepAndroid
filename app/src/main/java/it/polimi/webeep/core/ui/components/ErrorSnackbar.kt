@@ -28,6 +28,7 @@ import it.polimi.webeep.R
 import it.polimi.webeep.core.ui.theme.WeBeepSpacing
 import it.polimi.webeep.core.ui.theme.WeBeepTheme
 
+/** Snackbar content used by [showErrorSnackbar]; dismissable by default. */
 data class WeBeepSnackbarVisuals(
     override val message: String,
     override val actionLabel: String? = null,
@@ -35,6 +36,7 @@ data class WeBeepSnackbarVisuals(
     override val duration: SnackbarDuration = SnackbarDuration.Short
 ) : SnackbarVisuals
 
+/** Host that draws the app's snackbar style. */
 @Composable
 fun WeBeepSnackbarHost(hostState: SnackbarHostState, modifier: Modifier = Modifier) {
     SnackbarHost(
@@ -113,6 +115,10 @@ private fun WeBeepSnackbar(snackbarData: SnackbarData, modifier: Modifier = Modi
     }
 }
 
+/**
+ * Shows [message] with a retry action and suspends until it is gone: [onAction] runs if the user taps the action,
+ * [onDismiss] if it is dismissed.
+ */
 suspend fun showErrorSnackbar(
     snackbarHostState: SnackbarHostState,
     message: String,

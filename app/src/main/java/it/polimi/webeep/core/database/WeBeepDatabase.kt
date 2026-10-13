@@ -9,6 +9,12 @@ import it.polimi.webeep.core.database.entity.CourseModuleEntity
 import it.polimi.webeep.core.database.entity.CourseSectionEntity
 import it.polimi.webeep.core.database.entity.ModuleContentEntity
 
+/**
+ * Local cache of the user's courses and their contents, so screens work offline.
+ *
+ * It only holds data that Moodle can provide again, never credentials. Bumping the database version requires
+ * a migration in [DatabaseMigrations] and an exported schema.
+ */
 @Database(
     entities = [
         CourseEntity::class,

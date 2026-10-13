@@ -7,6 +7,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import it.polimi.webeep.core.ui.util.ObserveEffects
 
+/** Stateful entry of the settings screen: collects the ViewModel state, forwards [onLoggedOut] on the logout effect. */
 @Composable
 fun SettingsRoute(
     onBackClick: () -> Unit,

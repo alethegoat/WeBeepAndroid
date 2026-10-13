@@ -29,6 +29,8 @@ object FileChangeDetector {
     }
 
     /**
+     * Files in [current] that are new or modified compared with [previous].
+     *
      * @param previous the last known snapshot; null means the course was never synced, so the
      * current contents become the baseline and nothing is reported.
      */

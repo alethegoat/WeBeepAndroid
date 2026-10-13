@@ -15,6 +15,7 @@ import it.polimi.webeep.feature.settings.data.SettingsRepositoryImpl
 import it.polimi.webeep.feature.settings.domain.SettingsRepository
 import javax.inject.Singleton
 
+/** Binds the settings repository and provides the DataStore it persists to. */
 @Module
 @InstallIn(SingletonComponent::class)
 abstract class SettingsModule {

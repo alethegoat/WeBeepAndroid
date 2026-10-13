@@ -22,6 +22,7 @@ fun openWithExternalApp(context: Context, file: File, mimeType: String, chooserT
     false
 }
 
+/** Shares [file] through the system chooser. Returns false if no app can take it. */
 fun shareFile(context: Context, file: File, mimeType: String, title: String, chooserTitle: String): Boolean = try {
     val intent = Intent(Intent.ACTION_SEND).apply {
         type = mimeType

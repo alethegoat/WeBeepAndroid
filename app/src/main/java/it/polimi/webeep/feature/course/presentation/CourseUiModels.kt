@@ -3,6 +3,7 @@ package it.polimi.webeep.feature.course.presentation
 import androidx.compose.runtime.Immutable
 import it.polimi.webeep.feature.download.domain.model.DownloadState
 
+/** A section as shown on screen; [isExpanded] is forced on while a search matches it. */
 @Immutable
 data class SectionUiModel(
     val id: Int,
@@ -12,6 +13,7 @@ data class SectionUiModel(
     val isExpanded: Boolean = false
 )
 
+/** A module as shown on screen; [type] is the Moodle module type. */
 @Immutable
 data class ModuleUiModel(
     val id: Int,
@@ -23,6 +25,7 @@ data class ModuleUiModel(
     val files: List<FileUiModel>
 )
 
+/** A file as shown on screen. [localFileName] is the collision-free name used for the downloaded copy; [fileUrl] is token-free. */
 @Immutable
 data class FileUiModel(
     val filename: String,

@@ -21,6 +21,10 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
+/**
+ * State and actions of the settings screen. "Check now" shows progress until the sync records a check newer than the one
+ * seen when it was tapped; logout emits [SettingsEffect.LoggedOut] only after local data is wiped.
+ */
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val settingsRepository: SettingsRepository,

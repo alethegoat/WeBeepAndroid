@@ -10,6 +10,11 @@ object LogRedactor {
     private val TOKEN_REGEX = Regex("""(?i)(^|[?&\s])token=[^&\s]+""")
     private val BEARER_REGEX = Regex("""(?i)Bearer\s+\S+""")
 
+    /**
+     * Returns [message] with `wstoken`, `private_token`, `token` and bearer values replaced by `<REDACTED>`.
+     *
+     * Apply it to every HTTP log line before it reaches logcat: tokens must never be logged.
+     */
     fun redact(message: String): String = message
         .replace(WS_TOKEN_REGEX, "wstoken=<REDACTED>")
         .replace(PRIVATE_TOKEN_REGEX, "private_token=<REDACTED>")

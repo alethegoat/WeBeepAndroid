@@ -13,6 +13,7 @@ import it.polimi.webeep.core.database.dao.CourseContentDao
 import it.polimi.webeep.core.database.dao.CourseDao
 import javax.inject.Singleton
 
+/** Provides the Room database and its DAOs. */
 @Module
 @InstallIn(SingletonComponent::class)
 object DatabaseModule {

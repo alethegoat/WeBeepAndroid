@@ -8,7 +8,9 @@ enum class SyncFrequency {
     DAILY,
     NEVER;
 
+    /** Holder of [DEFAULT]. */
     companion object {
+        /** Frequency used until the user picks one. */
         val DEFAULT = ONE_HOUR
     }
 }

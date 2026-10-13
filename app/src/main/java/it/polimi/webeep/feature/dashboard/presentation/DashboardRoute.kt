@@ -6,6 +6,7 @@ import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
+/** Stateful entry of the dashboard: wires the ViewModel to [DashboardScreen] and the two navigation callbacks. */
 @Composable
 fun DashboardRoute(
     onCourseClick: (courseId: Int) -> Unit,

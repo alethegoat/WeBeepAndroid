@@ -21,6 +21,7 @@ data class CourseDetailUiState(
 /** The mutually exclusive stages of the course contents. */
 @Immutable
 sealed interface CourseDetailContent {
+    /** First load still running. */
     data object Loading : CourseDetailContent
 
     /** The course has no sections at all (as opposed to a search hiding them). */
@@ -29,5 +30,6 @@ sealed interface CourseDetailContent {
     /** Rows are built off the main thread before this state exists, so the list never shows up empty. */
     data class Content(val list: CourseListContent) : CourseDetailContent
 
+    /** Loading failed with nothing to show; [messageRes] is the text. */
     data class Error(@StringRes val messageRes: Int) : CourseDetailContent
 }

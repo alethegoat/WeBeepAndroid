@@ -5,5 +5,6 @@ package it.polimi.webeep.core.session
  * notifications, web session and caches) without touching credentials.
  */
 interface SessionDataCleaner {
+    /** Erases the data described on the interface. Idempotent, and a failing step must not stop the others. */
     suspend fun wipe()
 }

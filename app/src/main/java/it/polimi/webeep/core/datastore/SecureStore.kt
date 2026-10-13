@@ -40,6 +40,10 @@ internal class SecureStore(context: Context) {
     // Null when Keystore/Tink is unusable even after a reset.
     private val aead: Aead? by lazy { openAead() }
 
+    /**
+     * All readable entries. Unreadable or tampered ones are skipped, and an unusable Keystore yields an empty map,
+     * so a broken store reads as logged out.
+     */
     fun readAll(): Map<String, String> {
         val aead = aead ?: return emptyMap()
         val prefs = try {
@@ -72,6 +76,7 @@ internal class SecureStore(context: Context) {
         }
     }
 
+    /** Removes every entry. */
     fun clear() {
         runBlocking { dataStore.edit { it.clear() } }
     }
@@ -143,6 +148,7 @@ internal class SecureStore(context: Context) {
 /** Seals single values with the key name as associated data; Base64 for string storage. */
 internal object SecureValueCodec {
 
+    /** Encrypts [value] bound to [key] and encodes it as Base64. */
     fun seal(aead: Aead, key: String, value: String): String {
         val ciphertext = aead.encrypt(value.toByteArray(Charsets.UTF_8), key.toByteArray(Charsets.UTF_8))
         return Base64.getEncoder().encodeToString(ciphertext)

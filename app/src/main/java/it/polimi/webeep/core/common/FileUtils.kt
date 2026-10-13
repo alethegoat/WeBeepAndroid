@@ -3,6 +3,7 @@ package it.polimi.webeep.core.common
 import java.security.MessageDigest
 import java.util.Locale
 
+/** Pure helpers for naming and describing downloaded files. */
 object FileUtils {
     private const val MAX_LOCAL_FILE_BASENAME_LENGTH = 80
     private val UNSAFE_FILE_NAME_CHARS = Regex("""[\\/:*?"<>|\p{Cntrl}]""")
@@ -35,6 +36,11 @@ object FileUtils {
         }
     }
 
+    /**
+     * Short hex digest of [fileUrl], stable across runs and devices.
+     *
+     * Because it names files on disk, the algorithm and length must not change: existing installs depend on it.
+     */
     fun stableUrlHash(fileUrl: String): String = try {
         val digest = MessageDigest.getInstance("SHA-256")
         val bytes = digest.digest(fileUrl.toByteArray(Charsets.UTF_8))
@@ -45,6 +51,7 @@ object FileUtils {
 
     private fun urlHashPrefix(fileUrl: String): String = stableUrlHash(fileUrl)
 
+    /** Human-readable size with binary (1024) steps, e.g. `1.5 MB`; non-positive sizes render as `0 B`. */
     fun formatFileSize(size: Long): String {
         if (size <= 0) return "0 B"
         val units = arrayOf("B", "KB", "MB", "GB", "TB")

@@ -24,10 +24,12 @@ data class DashboardUiState(
 /** The mutually exclusive stages of the course list. */
 @Immutable
 sealed interface DashboardContent {
+    /** Nothing cached yet and the first load is still running. */
     data object Loading : DashboardContent
 
     /** [courses] is the unfiltered list (cache availability); [visibleCourses] is what is shown. */
     data class Success(val courses: List<CourseUiModel>, val visibleCourses: List<CourseUiModel>) : DashboardContent
 
+    /** Loading failed and there is nothing cached to show; [messageRes] is the text. */
     data class Error(@StringRes val messageRes: Int) : DashboardContent
 }

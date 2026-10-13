@@ -65,6 +65,7 @@ class ZoomState(private val maxScale: Float = 5f) {
         animateTo(target, focus, spec)
     }
 
+    /** Animates to [targetScale] (clamped to `1..maxScale`) keeping [focus] under the same screen point. */
     suspend fun animateTo(targetScale: Float, focus: Offset, spec: AnimationSpec<Float> = WeBeepMotion.smooth()) {
         val startScale = scale
         val startOffset = offset
@@ -77,6 +78,7 @@ class ZoomState(private val maxScale: Float = 5f) {
         }
     }
 
+    /** Back to 1x, centered, without animation. */
     fun reset() {
         scale = 1f
         offset = Offset.Zero
@@ -95,6 +97,7 @@ class ZoomState(private val maxScale: Float = 5f) {
     }
 }
 
+/** Remembers a [ZoomState] whose scale is capped at [maxScale]. */
 @Composable
 fun rememberZoomState(maxScale: Float = 5f): ZoomState = remember { ZoomState(maxScale) }
 

@@ -14,6 +14,7 @@ class GetCourseContentsUseCase @Inject constructor(
     private val repository: CourseRepository,
     private val connectivityObserver: ConnectivityObserver
 ) {
+    /** Emits the cached sections first, then the refreshed ones; see [cacheThenRefresh] for how errors and empty caches are reported. */
     operator fun invoke(courseId: Int): Flow<Resource<List<Section>>> = cacheThenRefresh(
         cache = repository.getCachedCourseContents(courseId),
         connectivity = connectivityObserver,

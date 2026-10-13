@@ -45,6 +45,7 @@ import kotlinx.coroutines.flow.filter
 /** Long enough for the last staggered card to settle. */
 private const val ENTRANCE_DURATION_MS = ENTRANCE_ITEM_COUNT * STAGGER_STEP_MS + WeBeepMotion.MEDIUM_MS + 100L
 
+/** Course grid with search, filters, pull-to-refresh and loading, empty and error states, driven entirely by [state]. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardScreen(

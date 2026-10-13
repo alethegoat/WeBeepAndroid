@@ -51,6 +51,10 @@ private sealed interface Loaded {
     data class Error(val messageRes: Int) : Loaded
 }
 
+/**
+ * Loads the course contents (cache first), builds the filtered rows off the main thread and tracks downloads per file.
+ * Open folders and the search query live in the saved state.
+ */
 @HiltViewModel
 class CourseDetailViewModel @Inject constructor(
     private val getCourseContentsUseCase: GetCourseContentsUseCase,

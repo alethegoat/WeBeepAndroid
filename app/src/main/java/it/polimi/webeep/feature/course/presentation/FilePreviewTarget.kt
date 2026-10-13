@@ -8,6 +8,7 @@ sealed interface FilePreviewTarget {
     /** A web link outside WeBeep: a Custom Tab, with no viewer flash on the way. */
     data class ExternalLink(val url: String) : FilePreviewTarget
 
+    /** The in-app viewer. */
     data class Viewer(val route: FileViewer) : FilePreviewTarget
 }
 

@@ -5,6 +5,10 @@ import java.io.File
 /**
  * A directory of app-private files with a size budget. Shared by downloads and the viewer
  * cache so both write through `.part` files, replace atomically and evict the same way.
+ *
+ * Does no locking of its own: callers serialize operations on the same file.
+ *
+ * @property directory Root of the store; every file handed out stays inside it (see [containedFile]).
  */
 class LocalFileStore(val directory: File, private val maxBytes: Long) {
 

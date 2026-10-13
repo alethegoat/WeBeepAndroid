@@ -78,7 +78,9 @@ class SyncStateStore internal constructor(private val fileProvider: () -> File, 
         }
     }
 
+    /** Holder of [FILE_NAME]. */
     companion object {
+        /** Name of the state file in `noBackupFilesDir`; it must not change: existing installs depend on it. */
         const val FILE_NAME = "sync_state.json"
     }
 }

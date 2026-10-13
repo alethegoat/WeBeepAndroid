@@ -5,6 +5,6 @@ data class ViewerFile(
     val url: String,
     val title: String,
     val mimeType: String,
-    /** Size reported by Moodle; 0 when unknown. */
+    /** Size in bytes reported by Moodle; 0 when unknown. */
     val size: Long = 0L
 )

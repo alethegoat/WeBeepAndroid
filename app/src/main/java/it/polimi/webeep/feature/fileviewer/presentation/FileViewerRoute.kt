@@ -12,6 +12,7 @@ import it.polimi.webeep.core.ui.util.ObserveEffects
 import it.polimi.webeep.core.ui.util.openWithExternalApp
 import it.polimi.webeep.core.ui.util.shareFile
 
+/** Stateful entry of the viewer: performs share and open-with effects. */
 @Composable
 fun FileViewerRoute(onBackClick: () -> Unit, modifier: Modifier = Modifier, viewModel: FileViewerViewModel = hiltViewModel()) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()

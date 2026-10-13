@@ -34,6 +34,7 @@ detekt = "1.23.8"
 composeRules = "0.4.28"
 ktlintGradle = "14.2.0"
 kover = "0.9.9"
+dokka = "2.2.0"
 
 [libraries]
 # Compose lint rules for detekt; 0.4.x is the last line targeting detekt 1.x (0.5+ needs detekt 2).
@@ -126,3 +127,4 @@ kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", versi
 detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt" }
 ktlint = { id = "org.jlleitschuh.gradle.ktlint", version.ref = "ktlintGradle" }
 kover = { id = "org.jetbrains.kotlinx.kover", version.ref = "kover" }
+dokka = { id = "org.jetbrains.dokka", version.ref = "dokka" }

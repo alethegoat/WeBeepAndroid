@@ -25,6 +25,7 @@ data class CourseDto(
     @SerialName("category") val category: Int? = null
 )
 
+/** Course overview image as reported by Moodle; every field is optional because the server omits unset ones. */
 @Serializable
 data class OverviewFileDto(
     @SerialName("filename") val filename: String? = null,

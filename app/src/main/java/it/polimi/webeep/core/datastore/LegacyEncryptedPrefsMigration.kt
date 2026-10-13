@@ -19,6 +19,7 @@ internal object LegacyEncryptedPrefsMigration {
     private const val KEY_PENDING_PASSPORTS = "pending_sso_passports"
     private const val USER_ID_DEFAULT = -1
 
+    /** Whether the legacy preferences file is present. */
     fun exists(context: Context): Boolean = File(context.dataDir, "shared_prefs/$PREFS_NAME.xml").exists()
 
     /** Returns the legacy session, or null if the file cannot be decrypted. */
@@ -44,6 +45,7 @@ internal object LegacyEncryptedPrefsMigration {
         null
     }
 
+    /** Removes the legacy file; failures are logged and ignored. */
     fun delete(context: Context) {
         try {
             context.deleteSharedPreferences(PREFS_NAME)

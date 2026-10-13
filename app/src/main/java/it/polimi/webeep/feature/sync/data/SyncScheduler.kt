@@ -20,6 +20,12 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.first
 
+/**
+ * [SyncScheduling] on WorkManager.
+ *
+ * A session is detected from the persisted token, not the in-memory cache. Work needs a connected network (unmetered when
+ * Wi-Fi-only is on) and battery not low.
+ */
 @Singleton
 class SyncScheduler internal constructor(
     private val settingsRepository: SettingsRepository,
@@ -113,8 +119,12 @@ class SyncScheduler internal constructor(
             .build()
     }
 
+    /** Unique work names and timing constants. */
     companion object {
+        /** Unique name of the periodic work; it is stored by WorkManager, so it must not change. */
         const val UNIQUE_PERIODIC_WORK = "CourseSyncWorker"
+
+        /** Unique name of the one-off work; it is stored by WorkManager, so it must not change. */
         const val UNIQUE_ONE_SHOT_WORK = "CourseSyncWorkerImmediate"
         private const val FIFTEEN_MINUTES_INTERVAL = 15L
         private const val TWELVE_HOURS_INTERVAL = 12L
