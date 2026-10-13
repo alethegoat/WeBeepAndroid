@@ -145,6 +145,31 @@ ktlint {
     }
 }
 
+kover {
+    reports {
+        filters {
+            excludes {
+                // Generated or declarative code: coverage here says nothing about our logic.
+                classes(
+                    "*_Factory", "*_Factory$*", "*_MembersInjector", "*_HiltModules*", "Hilt_*",
+                    "*_HiltComponents*", "dagger.hilt.internal.*", "hilt_aggregated_deps.*",
+                    "*_GeneratedInjector",
+                    "*_Impl", "*_Impl$*",
+                    "*.BuildConfig", "*.R", "*.R$*",
+                    "*ComposableSingletons*"
+                )
+                annotatedBy("androidx.compose.ui.tooling.preview.Preview")
+            }
+        }
+        verify {
+            rule {
+                // Ratchet: set to the measured line coverage (29.5%), raise as tests are added.
+                minBound(29)
+            }
+        }
+    }
+}
+
 ksp {
     arg("room.schemaLocation", "$projectDir/schemas")
     arg("room.incremental", "true")
@@ -219,6 +244,9 @@ dependencies {
     implementation(libs.work.runtime.ktx)
     implementation(libs.hilt.work)
     ksp(libs.hilt.compiler.ext)
+
+    // Static analysis
+    detektPlugins(libs.detekt.compose.rules)
 
     // Debug
     debugImplementation(libs.compose.ui.tooling)
