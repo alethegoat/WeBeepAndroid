@@ -57,7 +57,10 @@
             </intent-filter>
 
             <!-- Deep link per callback SSO Moodle.
-                 moodlemobile: rimozione da valutare dopo aver verificato tool_mobile_forcedurlscheme. -->
+                 moodlemobile: trade-off noto (audit SEC-05). Tenerlo mantiene la compatibilita' con
+                 l'SSO PoliMi, che potrebbe reindirizzare a questo schema (tool_mobile_forcedurlscheme).
+                 Il costo e' la collisione con l'app Moodle ufficiale, che gestisce lo stesso schema.
+                 Non rimuovere senza prima verificare il flusso SSO con una sessione reale. -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />

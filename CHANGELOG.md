@@ -4,7 +4,9 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 
 ## [Unreleased]
 
-The app's `versionName` is still `1.0.1`. This section covers everything on `master` since the `v1.0.1` tag, ending with the code-quality stack (PRs #37 to #44).
+## [1.1.0] - 2026-10-13
+
+Everything on `master` since the `v1.0.1` tag, ending with the code-quality stack (PRs #37 to #44).
 
 ### Added
 
@@ -14,6 +16,7 @@ The app's `versionName` is still `1.0.1`. This section covers everything on `mas
 - Restyled settings (grouped, tonal surfaces) and a new "layered glass" launcher icon.
 - Bundled Outfit and Inter fonts, Material 3 colour roles and spacing tokens.
 - ktlint (blocking), detekt with Compose rules (blocking) and a Kover line-coverage floor of 75% in CI.
+- `SECURITY.md` (private vulnerability reporting), `CODE_OF_CONDUCT.md` (Contributor Covenant 2.1), issue forms and a pull request template.
 - Optional `scripts/pre-commit` hook, `docs/ARCHITECTURE.md`, architecture decision records in `docs/adr` and `CONTRIBUTING.md`.
 - 488 JVM unit tests, including Room DAO and migration tests and Compose UI tests of every screen (Robolectric).
 
@@ -76,6 +79,7 @@ First tagged version.
 
 - Background sync and notification channel are initialized at startup.
 
-[Unreleased]: https://github.com/alethegoat/WeBeepAndroid/compare/v1.0.1...HEAD
+[Unreleased]: https://github.com/alethegoat/WeBeepAndroid/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/alethegoat/WeBeepAndroid/compare/v1.0.1...v1.1.0
 [1.0.1]: https://github.com/alethegoat/WeBeepAndroid/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/alethegoat/WeBeepAndroid/releases/tag/v1.0.0
