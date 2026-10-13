@@ -4,6 +4,10 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 
 ## [Unreleased]
 
+### Added
+
+- Release workflow: pushing a `vX.Y.Z` tag (or running it manually for an existing tag) builds the signed APK and AAB and publishes them with checksums and the signing certificate SHA-256. The `debug-latest` release is now labelled as a developer build.
+
 ### Documentation
 
 - Confirmed on a real device (2026-10-13) that the PoliMi SSO requires the `moodlemobile://` callback scheme: the server forces it, and a build with only `webeepandroid://` could not complete login. The scheme is kept and documented as an accepted risk (collision with the official Moodle app, audit SEC-05).
