@@ -163,8 +163,8 @@ kover {
         }
         verify {
             rule {
-                // Ratchet: set to the measured line coverage (29.5%), raise as tests are added.
-                minBound(29)
+                // Ratchet: set to the measured line coverage (75.7%) rounded down, raise as tests are added.
+                minBound(75)
             }
         }
     }
@@ -251,6 +251,8 @@ dependencies {
 
     // Debug
     debugImplementation(libs.compose.ui.tooling)
+    // Provides the ComponentActivity that createComposeRule needs under Robolectric.
+    debugImplementation(libs.compose.ui.test.manifest)
 
     // Testing
     testImplementation(libs.junit)
@@ -260,7 +262,10 @@ dependencies {
     testImplementation(libs.mockwebserver)
     testImplementation(libs.robolectric)
     testImplementation(libs.work.testing)
+    testImplementation(libs.room.testing)
     testImplementation(libs.androidx.test.ext.junit)
+    testImplementation(platform(libs.compose.bom))
+    testImplementation(libs.compose.ui.test.junit4)
 
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.androidx.test.core)

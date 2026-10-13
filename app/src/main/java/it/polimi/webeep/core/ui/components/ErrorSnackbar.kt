@@ -20,7 +20,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
+import it.polimi.webeep.R
 import it.polimi.webeep.core.ui.theme.WeBeepSpacing
 import it.polimi.webeep.core.ui.theme.WeBeepTheme
 
@@ -86,7 +90,11 @@ private fun WeBeepSnackbar(snackbarData: SnackbarData, modifier: Modifier = Modi
             },
             dismissAction = if (snackbarData.visuals.withDismissAction) {
                 {
-                    TextButton(onClick = { snackbarData.dismiss() }) {
+                    val dismissLabel = stringResource(R.string.cd_dismiss)
+                    TextButton(
+                        onClick = { snackbarData.dismiss() },
+                        modifier = Modifier.semantics { contentDescription = dismissLabel }
+                    ) {
                         Text(
                             text = "✕",
                             style = MaterialTheme.typography.labelLarge

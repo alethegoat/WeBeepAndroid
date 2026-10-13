@@ -25,6 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import it.polimi.webeep.R
@@ -86,7 +87,9 @@ fun DashboardScreen(
             ) { content ->
                 when (content) {
                     is DashboardContent.Loading -> CourseListSkeleton(
-                        modifier = Modifier.padding(top = innerPadding.calculateTopPadding())
+                        modifier = Modifier
+                            .padding(top = innerPadding.calculateTopPadding())
+                            .testTag(TestTags.COURSE_SKELETON)
                     )
                     is DashboardContent.Success -> DashboardCourseGrid(
                         state = state,
@@ -139,7 +142,7 @@ private fun rememberEntrancePending(loaded: Boolean): Boolean {
     return !entrancePlayed
 }
 
-private val previewCourses = listOf(
+internal val previewCourses = listOf(
     CourseUiModel(
         id = 1,
         shortname = "052537",
@@ -161,7 +164,7 @@ private fun PreviewScreen(state: DashboardUiState) {
     }
 }
 
-private fun previewContentState(courses: List<CourseUiModel>, isOnline: Boolean = true) = DashboardUiState(
+internal fun previewContentState(courses: List<CourseUiModel>, isOnline: Boolean = true) = DashboardUiState(
     content = DashboardContent.Success(courses = courses, visibleCourses = courses),
     userName = "Alessio Rossi",
     isOnline = isOnline
