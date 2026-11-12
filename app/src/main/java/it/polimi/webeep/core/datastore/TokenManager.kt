@@ -128,27 +128,30 @@ class TokenManager @Inject constructor(private val application: Application, @Io
         clearInternal()
     }
 
-    override fun savePendingPassportSync(passport: String) {
-        synchronized(clearLock) {
-            loadIfNeeded()
-            val now = System.currentTimeMillis()
-            val entries = PendingPassports.add(PendingPassports.parse(record.passports, now), passport, now)
-            record = record.copy(passports = PendingPassports.serialize(entries))
-            persist(record)
+    // The passport calls encrypt and write to disk: they run on IO because the login screen calls them from the main thread.
+    override suspend fun savePendingPassport(passport: String) {
+        withContext(ioDispatcher) {
+            synchronized(clearLock) {
+                loadIfNeeded()
+                val now = System.currentTimeMillis()
+                val entries = PendingPassports.add(PendingPassports.parse(record.passports, now), passport, now)
+                record = record.copy(passports = PendingPassports.serialize(entries))
+                persist(record)
+            }
         }
     }
 
-    override fun getPendingPassportsSync(): List<String> {
-        synchronized(clearLock) {
-            return readPassportList()
-        }
+    override suspend fun getPendingPassports(): List<String> = withContext(ioDispatcher) {
+        synchronized(clearLock) { readPassportList() }
     }
 
-    override fun clearPendingPassportSync() {
-        synchronized(clearLock) {
-            loadIfNeeded()
-            record = record.copy(passports = null)
-            persist(record)
+    override suspend fun clearPendingPassport() {
+        withContext(ioDispatcher) {
+            synchronized(clearLock) {
+                loadIfNeeded()
+                record = record.copy(passports = null)
+                persist(record)
+            }
         }
     }
 

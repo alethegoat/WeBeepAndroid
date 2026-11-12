@@ -81,7 +81,7 @@ class DashboardRepositoryImpl @Inject constructor(
             shortname = MoodleText.parse(shortname),
             fullname = MoodleText.parse(fullname),
             displayname = MoodleText.parse(displayname),
-            summary = MoodleText.parse(summary),
+            summary = MoodleText.resolveLanguage(summary),
             startdate = startdate,
             enddate = enddate,
             progress = progress,

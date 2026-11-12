@@ -38,7 +38,7 @@ class SessionDataCleanerImplTest {
 
     private fun TestScope.cleaner(): SessionDataCleanerImpl {
         val dispatcher = UnconfinedTestDispatcher(testScheduler)
-        return SessionDataCleanerImpl(application, database, downloads, syncState, notifications, dispatcher, dispatcher)
+        return SessionDataCleanerImpl(application, database, downloads, syncState, notifications, dispatcher)
     }
 
     @Test

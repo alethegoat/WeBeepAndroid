@@ -55,6 +55,46 @@ class CourseContentMapperTest {
     }
 
     @Test
+    fun `unescapes entities in names but leaves file names and html fields untouched`() {
+        val mapped = CourseContentMapper.map(
+            courseId = 7,
+            sectionDtos = listOf(
+                CourseSectionDto(
+                    id = 1,
+                    name = "Models &amp; Algorithms",
+                    summary = "<p>a &lt; b</p>",
+                    modules = listOf(
+                        CourseModuleDto(
+                            id = 10,
+                            name = "Q&amp;A",
+                            modname = "resource",
+                            description = "<p>R&amp;D</p>",
+                            contents = listOf(
+                                ModuleContentDto(
+                                    type = "file",
+                                    filename = "R&amp;D.pdf",
+                                    fileurl = "https://webeep.polimi.it/pluginfile.php/1/rd.pdf",
+                                    filesize = 10,
+                                    mimetype = "application/pdf",
+                                    timemodified = 1L
+                                )
+                            )
+                        )
+                    )
+                )
+            )
+        )
+
+        val section = mapped.sections.single()
+        val module = section.modules.single()
+        assertEquals("Models & Algorithms", section.name)
+        assertEquals("<p>a &lt; b</p>", section.summary)
+        assertEquals("Q&A", module.name)
+        assertEquals("<p>R&amp;D</p>", module.description)
+        assertEquals("R&amp;D.pdf", module.files.single().filename)
+    }
+
+    @Test
     fun `retains legitimate non-empty index html files`() {
         val mapped = CourseContentMapper.map(
             courseId = 7,

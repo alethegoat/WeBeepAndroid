@@ -59,14 +59,17 @@ fun WeBeepApp(
     // cold start (or process death) waits for the store to open.
     var startLoggedIn by rememberSaveable { mutableStateOf<Boolean?>(null) }
     var storeReady by remember { mutableStateOf(tokenProvider.isLoaded) }
+    var sessionEndedWhileAway by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         // Keystore-backed prefs are opened on IO here, not on the main thread.
         tokenProvider.ensureLoaded()
-        storeReady = true
+        val isLoggedIn = tokenProvider.isLoggedIn.first()
+        sessionEndedWhileAway = sessionEndedWhileAway(restoredStartLoggedIn = startLoggedIn, isLoggedIn = isLoggedIn)
         if (startLoggedIn == null) {
-            startLoggedIn = !startAtLogin && tokenProvider.isLoggedIn.first()
+            startLoggedIn = !startAtLogin && isLoggedIn
         }
+        storeReady = true
         sessionExpiryHandler.wipeStaleDataIfLoggedOut()
     }
 
@@ -109,6 +112,10 @@ fun WeBeepApp(
                         navController.navigateToLogin()
                     }
                 }
+                LaunchedEffect(navController, sessionEndedWhileAway) {
+                    // sessionLost only reports a logout seen by this process: this covers the one it missed.
+                    if (sessionEndedWhileAway) navController.navigateToLogin()
+                }
                 NavGraph(
                     startLoggedIn = loggedIn,
                     navController = navController,
@@ -118,3 +125,13 @@ fun WeBeepApp(
         }
     }
 }
+
+/**
+ * Whether the screens restored from saved state belong to a session that no longer exists.
+ *
+ * [restoredStartLoggedIn] survives process death, the token does not have to: the background sync can clear it
+ * (expired or revoked token) while no UI is alive. The restored back stack would then show the dashboard with
+ * no session and no way back to the login screen.
+ */
+internal fun sessionEndedWhileAway(restoredStartLoggedIn: Boolean?, isLoggedIn: Boolean): Boolean =
+    restoredStartLoggedIn == true && !isLoggedIn

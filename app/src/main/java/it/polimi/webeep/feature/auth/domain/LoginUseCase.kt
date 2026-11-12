@@ -18,9 +18,9 @@ import kotlinx.coroutines.CancellationException
  */
 class LoginUseCase @Inject constructor(private val authRepository: AuthRepository, private val tokenProvider: TokenProvider) {
     /** Starts a login attempt: stores a fresh passport as pending and returns the Moodle SSO URL that carries it. */
-    fun generateSsoLaunchUrl(): String {
+    suspend fun generateSsoLaunchUrl(): String {
         val passport = generatePassport()
-        tokenProvider.savePendingPassportSync(passport)
+        tokenProvider.savePendingPassport(passport)
         return buildSsoLaunchUrl(passport)
     }
 
@@ -40,7 +40,7 @@ class LoginUseCase @Inject constructor(private val authRepository: AuthRepositor
                 return LoginResult.Failure(LoginError.InvalidTokenFormat)
             }
 
-            val passports = tokenProvider.getPendingPassportsSync()
+            val passports = tokenProvider.getPendingPassports()
             if (passports.isEmpty()) {
                 return LoginResult.Failure(LoginError.SessionExpired)
             }
@@ -73,7 +73,7 @@ class LoginUseCase @Inject constructor(private val authRepository: AuthRepositor
 
     private suspend fun persistSession(wstoken: String, session: UserSession) {
         authRepository.saveAuthData(wstoken, session)
-        tokenProvider.clearPendingPassportSync()
+        tokenProvider.clearPendingPassport()
     }
 
     private fun decodeTokenParameter(encodedToken: String): String {

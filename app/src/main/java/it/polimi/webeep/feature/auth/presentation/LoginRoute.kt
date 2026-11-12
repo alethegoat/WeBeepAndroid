@@ -26,6 +26,7 @@ fun LoginRoute(onLoggedIn: () -> Unit, modifier: Modifier = Modifier, viewModel:
     ObserveEffects(viewModel.effects) { effect ->
         when (effect) {
             LoginEffect.LoggedIn -> onLoggedIn()
+            is LoginEffect.OpenSso -> SsoBrowser.open(context, effect.url)
             is LoginEffect.ShowError -> showErrorSnackbar(
                 snackbarHostState = snackbarHostState,
                 message = resources.getString(effect.messageRes),
@@ -37,7 +38,7 @@ fun LoginRoute(onLoggedIn: () -> Unit, modifier: Modifier = Modifier, viewModel:
     LoginScreen(
         state = state,
         snackbarHostState = snackbarHostState,
-        onLoginClick = { SsoBrowser.open(context, viewModel.generateSsoUrl()) },
+        onLoginClick = { viewModel.onAction(LoginAction.StartSso) },
         modifier = modifier
     )
 }
