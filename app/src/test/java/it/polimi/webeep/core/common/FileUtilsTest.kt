@@ -99,4 +99,22 @@ class FileUtilsTest {
         assertEquals("1.0 GB", FileUtils.formatFileSize(1024L * 1024 * 1024))
         assertEquals("1.0 TB", FileUtils.formatFileSize(1024L * 1024 * 1024 * 1024))
     }
+
+    @Test
+    fun `buildDisplayName keeps a title that already has an extension`() {
+        assertEquals("Slides 1.pdf", FileUtils.buildDisplayName("Slides 1.pdf", "ab12cd-0f.pdf"))
+    }
+
+    @Test
+    fun `buildDisplayName appends the local extension to a title without one`() {
+        assertEquals("Lecture notes.pdf", FileUtils.buildDisplayName("Lecture notes", "9f8e7d6c5b4a.pdf"))
+        assertEquals("Lecture 1.5 notes.pdf", FileUtils.buildDisplayName("Lecture 1.5 notes", "x.pdf"))
+    }
+
+    @Test
+    fun `buildDisplayName sanitizes the title and tolerates a local file without extension`() {
+        assertEquals("a_b.zip", FileUtils.buildDisplayName("a/b", "hash.zip"))
+        assertEquals("notes", FileUtils.buildDisplayName("notes", "9f8e7d6c5b4a"))
+        assertEquals("file.pdf", FileUtils.buildDisplayName("  ", "h.pdf"))
+    }
 }

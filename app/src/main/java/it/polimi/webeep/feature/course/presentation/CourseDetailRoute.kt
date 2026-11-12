@@ -32,7 +32,7 @@ fun CourseDetailRoute(
     ObserveEffects(viewModel.effects) { effect ->
         when (effect) {
             is CourseDetailEffect.OpenFile ->
-                openWithExternalApp(context, effect.file, effect.mimeType, chooserTitle = null)
+                openWithExternalApp(context, effect.file, effect.mimeType, effect.title, chooserTitle = null)
             is CourseDetailEffect.OpenLink -> openLink(effect.url)
             is CourseDetailEffect.OpenViewer -> openViewer(effect.route)
         }

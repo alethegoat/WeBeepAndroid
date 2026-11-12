@@ -92,7 +92,7 @@ class FileViewerViewModelTest {
         val vm = viewModel(LoadedContent.External(local, "application/zip"))
 
         vm.effects.test {
-            assertEquals(FileViewerEffect.OpenExternally(local, "application/zip"), awaitItem())
+            assertEquals(FileViewerEffect.OpenExternally(local, "application/zip", "notes.pdf"), awaitItem())
             vm.onAction(FileViewerAction.PageVisible(file))
             expectNoEvents()
         }
@@ -118,7 +118,7 @@ class FileViewerViewModelTest {
 
         vm.effects.test {
             vm.onAction(FileViewerAction.OpenWith(file))
-            assertEquals(FileViewerEffect.OpenExternally(copy, "application/pdf"), awaitItem())
+            assertEquals(FileViewerEffect.OpenExternally(copy, "application/pdf", "notes.pdf"), awaitItem())
         }
         assertFalse(vm.uiState.value.preparingShare)
     }
@@ -128,8 +128,8 @@ class FileViewerViewModelTest {
         val vm = viewModel()
 
         vm.effects.test {
-            vm.onAction(FileViewerAction.OpenExternally(local, "text/plain"))
-            assertEquals(FileViewerEffect.OpenExternally(local, "text/plain"), awaitItem())
+            vm.onAction(FileViewerAction.OpenExternally(local, "text/plain", "readme.txt"))
+            assertEquals(FileViewerEffect.OpenExternally(local, "text/plain", "readme.txt"), awaitItem())
         }
     }
 

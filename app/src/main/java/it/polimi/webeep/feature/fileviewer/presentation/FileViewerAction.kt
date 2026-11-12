@@ -24,5 +24,5 @@ sealed interface FileViewerAction {
     data class OpenWith(val file: ViewerFile) : FileViewerAction
 
     /** Hands an already local [file] to another app. */
-    data class OpenExternally(val file: File, val mimeType: String) : FileViewerAction
+    data class OpenExternally(val file: File, val mimeType: String, val title: String) : FileViewerAction
 }

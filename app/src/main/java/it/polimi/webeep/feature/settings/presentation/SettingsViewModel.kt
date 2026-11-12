@@ -9,11 +9,11 @@ import it.polimi.webeep.feature.settings.domain.CheckForUpdatesNowUseCase
 import it.polimi.webeep.feature.settings.domain.SettingsRepository
 import it.polimi.webeep.feature.settings.domain.UpdateSyncFrequencyUseCase
 import it.polimi.webeep.feature.settings.domain.UpdateWifiOnlySyncUseCase
+import it.polimi.webeep.feature.sync.domain.SyncScheduling
 import it.polimi.webeep.feature.sync.domain.SyncStateRepository
 import javax.inject.Inject
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -22,8 +22,8 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 /**
- * State and actions of the settings screen. "Check now" shows progress until the sync records a check newer than the one
- * seen when it was tapped; logout emits [SettingsEffect.LoggedOut] only after local data is wiped.
+ * State and actions of the settings screen. "Check now" shows the real state of the one-off sync work (queued or running),
+ * so it ends when the work ends even if nothing was fetched; logout emits [SettingsEffect.LoggedOut] only after local data is wiped.
  */
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
@@ -32,13 +32,9 @@ class SettingsViewModel @Inject constructor(
     private val updateWifiOnlySync: UpdateWifiOnlySyncUseCase,
     private val updateSyncFrequency: UpdateSyncFrequencyUseCase,
     private val checkForUpdatesNow: CheckForUpdatesNowUseCase,
-    syncStateRepository: SyncStateRepository
+    syncStateRepository: SyncStateRepository,
+    syncScheduling: SyncScheduling
 ) : ViewModel() {
-
-    /** Last-check time seen when "check now" was tapped; null when no manual check is running. */
-    private data class CheckRequest(val previousCheckAt: Long?)
-
-    private val checkRequest = MutableStateFlow<CheckRequest?>(null)
 
     private val preferences = combine(
         settingsRepository.themePreference,
@@ -57,13 +53,9 @@ class SettingsViewModel @Inject constructor(
     val uiState: StateFlow<SettingsUiState> = combine(
         preferences,
         syncStateRepository.lastCheckAt,
-        checkRequest
-    ) { prefs, lastCheckAt, request ->
-        prefs.copy(
-            lastCheckAt = lastCheckAt,
-            // True from "check now" until the background sync records a newer check.
-            checkInProgress = request != null && lastCheckAt == request.previousCheckAt
-        )
+        syncScheduling.oneShotStatus()
+    ) { prefs, lastCheckAt, status ->
+        prefs.copy(lastCheckAt = lastCheckAt, checkStatus = status)
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS),
@@ -89,7 +81,6 @@ class SettingsViewModel @Inject constructor(
     }
 
     private fun checkNow() {
-        checkRequest.value = CheckRequest(previousCheckAt = uiState.value.lastCheckAt)
         viewModelScope.launch {
             checkForUpdatesNow()
         }

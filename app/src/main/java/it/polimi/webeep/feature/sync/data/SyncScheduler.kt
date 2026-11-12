@@ -8,17 +8,22 @@ import androidx.work.ExistingWorkPolicy
 import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import dagger.hilt.android.qualifiers.ApplicationContext
 import it.polimi.webeep.core.datastore.TokenProvider
 import it.polimi.webeep.feature.settings.domain.SettingsRepository
 import it.polimi.webeep.feature.settings.domain.model.SyncFrequency
 import it.polimi.webeep.feature.sync.CourseSyncWorker
+import it.polimi.webeep.feature.sync.domain.SyncRunStatus
 import it.polimi.webeep.feature.sync.domain.SyncScheduling
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 
 /**
  * [SyncScheduling] on WorkManager.
@@ -98,6 +103,15 @@ class SyncScheduler internal constructor(
             request
         )
     }
+
+    override fun oneShotStatus(): Flow<SyncRunStatus> = workManager.getWorkInfosForUniqueWorkFlow(UNIQUE_ONE_SHOT_WORK).map { infos ->
+        val states = infos.map { it.state }
+        when {
+            WorkInfo.State.RUNNING in states -> SyncRunStatus.RUNNING
+            WorkInfo.State.ENQUEUED in states || WorkInfo.State.BLOCKED in states -> SyncRunStatus.QUEUED
+            else -> SyncRunStatus.IDLE
+        }
+    }.distinctUntilChanged()
 
     override fun cancelAll() {
         workManager.cancelUniqueWork(UNIQUE_PERIODIC_WORK)

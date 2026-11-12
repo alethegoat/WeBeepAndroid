@@ -34,6 +34,7 @@ import it.polimi.webeep.feature.settings.presentation.components.AppearanceSecti
 import it.polimi.webeep.feature.settings.presentation.components.LogoutConfirmDialog
 import it.polimi.webeep.feature.settings.presentation.components.SettingsTopBar
 import it.polimi.webeep.feature.settings.presentation.components.SyncSection
+import it.polimi.webeep.feature.sync.domain.SyncRunStatus
 
 private val SettingsMaxWidth = 640.dp
 
@@ -87,7 +88,7 @@ fun SettingsScreen(state: SettingsUiState, onAction: (SettingsAction) -> Unit, o
                     wifiOnlySync = state.wifiOnlySync,
                     syncFrequency = state.syncFrequency,
                     lastCheckAt = state.lastCheckAt,
-                    checkInProgress = state.checkInProgress,
+                    checkStatus = state.checkStatus,
                     onWifiOnlyChange = { onAction(SettingsAction.WifiOnlyChange(it)) },
                     onFrequencySelect = { onAction(SettingsAction.FrequencyChange(it)) },
                     onCheckNowClick = { onAction(SettingsAction.CheckNow) }
@@ -115,7 +116,13 @@ private fun SettingsScreenPreviewDefault() {
 @Preview(name = "Check in progress")
 @Composable
 private fun SettingsScreenPreviewCheckInProgress() {
-    PreviewScreen(SettingsUiState(lastCheckAt = PREVIEW_LAST_CHECK, checkInProgress = true))
+    PreviewScreen(SettingsUiState(lastCheckAt = PREVIEW_LAST_CHECK, checkStatus = SyncRunStatus.RUNNING))
+}
+
+@Preview(name = "Check queued")
+@Composable
+private fun SettingsScreenPreviewCheckQueued() {
+    PreviewScreen(SettingsUiState(lastCheckAt = PREVIEW_LAST_CHECK, checkStatus = SyncRunStatus.QUEUED))
 }
 
 @Preview(name = "Last check shown")

@@ -19,6 +19,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import it.polimi.webeep.R
 import it.polimi.webeep.feature.settings.domain.model.SyncFrequency
 import it.polimi.webeep.feature.settings.domain.model.ThemePreference
+import it.polimi.webeep.feature.sync.domain.SyncRunStatus
 import it.polimi.webeep.util.setAppContent
 import it.polimi.webeep.util.string
 import org.junit.Assert.assertEquals
@@ -141,9 +142,17 @@ class SettingsScreenTest {
 
     @Test
     fun `a check in progress says so and disables check now`() {
-        show(SettingsUiState(checkInProgress = true))
+        show(SettingsUiState(checkStatus = SyncRunStatus.RUNNING))
 
         composeRule.onNodeWithText(string(R.string.settings_check_started)).assertIsDisplayed()
+        composeRule.onNodeWithText(string(R.string.settings_check_now)).assertIsNotEnabled()
+    }
+
+    @Test
+    fun `a queued check says it waits for a connection and disables check now`() {
+        show(SettingsUiState(checkStatus = SyncRunStatus.QUEUED))
+
+        composeRule.onNodeWithText(string(R.string.settings_check_queued)).assertIsDisplayed()
         composeRule.onNodeWithText(string(R.string.settings_check_now)).assertIsNotEnabled()
     }
 

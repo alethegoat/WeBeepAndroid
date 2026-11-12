@@ -19,6 +19,7 @@ import it.polimi.webeep.core.ui.components.GroupedListGap
 import it.polimi.webeep.core.ui.components.GroupedListItem
 import it.polimi.webeep.core.ui.theme.WeBeepSpacing
 import it.polimi.webeep.feature.settings.domain.model.SyncFrequency
+import it.polimi.webeep.feature.sync.domain.SyncRunStatus
 
 /** Wi-Fi only, how often to check, and the manual "check now". */
 @Composable
@@ -26,7 +27,7 @@ fun SyncSection(
     wifiOnlySync: Boolean,
     syncFrequency: SyncFrequency,
     lastCheckAt: Long?,
-    checkInProgress: Boolean,
+    checkStatus: SyncRunStatus,
     onWifiOnlyChange: (Boolean) -> Unit,
     onFrequencySelect: (SyncFrequency) -> Unit,
     onCheckNowClick: () -> Unit,
@@ -49,7 +50,7 @@ fun SyncSection(
         GroupedListItem(position = GroupPosition.BOTTOM) {
             LastCheckItem(
                 lastCheckAt = lastCheckAt,
-                checkInProgress = checkInProgress,
+                checkStatus = checkStatus,
                 onCheckNowClick = onCheckNowClick
             )
         }
@@ -75,9 +76,10 @@ private fun SyncFrequencyItem(selectedFrequency: SyncFrequency, onFrequencySelec
 }
 
 @Composable
-private fun LastCheckItem(lastCheckAt: Long?, checkInProgress: Boolean, onCheckNowClick: () -> Unit) {
+private fun LastCheckItem(lastCheckAt: Long?, checkStatus: SyncRunStatus, onCheckNowClick: () -> Unit) {
     val status = when {
-        checkInProgress -> stringResource(R.string.settings_check_started)
+        checkStatus == SyncRunStatus.RUNNING -> stringResource(R.string.settings_check_started)
+        checkStatus == SyncRunStatus.QUEUED -> stringResource(R.string.settings_check_queued)
         lastCheckAt != null -> stringResource(
             R.string.settings_last_check_at,
             DateUtils.getRelativeTimeSpanString(lastCheckAt, System.currentTimeMillis(), DateUtils.MINUTE_IN_MILLIS)
@@ -91,7 +93,7 @@ private fun LastCheckItem(lastCheckAt: Long?, checkInProgress: Boolean, onCheckN
     ) {
         TextButton(
             onClick = onCheckNowClick,
-            enabled = !checkInProgress,
+            enabled = checkStatus == SyncRunStatus.IDLE,
             modifier = Modifier.heightIn(min = WeBeepSpacing.touchTarget)
         ) {
             Text(stringResource(R.string.settings_check_now))

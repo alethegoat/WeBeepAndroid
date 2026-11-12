@@ -80,10 +80,10 @@ class FileViewerViewModel @Inject constructor(
                 FileViewerEffect.Share(local, loader.resolveMimeType(action.file), action.file.title)
             }
             is FileViewerAction.OpenWith -> withLocalFile(action.file) { local ->
-                FileViewerEffect.OpenExternally(local, loader.resolveMimeType(action.file))
+                FileViewerEffect.OpenExternally(local, loader.resolveMimeType(action.file), action.file.title)
             }
             is FileViewerAction.OpenExternally ->
-                _effects.trySend(FileViewerEffect.OpenExternally(action.file, action.mimeType))
+                _effects.trySend(FileViewerEffect.OpenExternally(action.file, action.mimeType, action.title))
         }
     }
 
@@ -178,7 +178,7 @@ class FileViewerViewModel @Inject constructor(
         // Only the file the viewer was opened on opens by itself, and only once.
         if (content is FileContentState.External && file.url == initialFile.url && !autoLaunchConsumed) {
             autoLaunchConsumed = true
-            _effects.trySend(FileViewerEffect.OpenExternally(content.file, content.mimeType))
+            _effects.trySend(FileViewerEffect.OpenExternally(content.file, content.mimeType, file.title))
         }
     }
 

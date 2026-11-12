@@ -8,5 +8,5 @@ sealed interface FileViewerEffect {
     data class Share(val file: File, val mimeType: String, val title: String) : FileViewerEffect
 
     /** Open [file] in another app. */
-    data class OpenExternally(val file: File, val mimeType: String) : FileViewerEffect
+    data class OpenExternally(val file: File, val mimeType: String, val title: String) : FileViewerEffect
 }

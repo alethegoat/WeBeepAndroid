@@ -25,7 +25,7 @@ fun FileViewerRoute(onBackClick: () -> Unit, modifier: Modifier = Modifier, view
             is FileViewerEffect.Share ->
                 shareFile(context, effect.file, effect.mimeType, effect.title, shareChooserTitle)
             is FileViewerEffect.OpenExternally ->
-                openWithExternalApp(context, effect.file, effect.mimeType, openWithChooserTitle)
+                openWithExternalApp(context, effect.file, effect.mimeType, effect.title, openWithChooserTitle)
         }
     }
 

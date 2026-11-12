@@ -14,6 +14,9 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 - Reopening the app after the background sync found the session expired returns to the login screen instead of an empty dashboard.
 - The login button no longer encrypts and writes the SSO passport on the main thread.
 - Logout no longer loads the WebView engine to clear cookies the app never had; a device without a usable WebView can no longer break the local data wipe.
+- "Check now" in Settings no longer stays stuck when the device is offline or the check fails: it shows that the check is queued until a connection is available and becomes available again when the check ends.
+- Leaving a course while a file is downloading no longer cancels the download, and tapping download again on a file already downloading does not start a second copy.
+- Files opened with another app or shared from the viewer keep their title as file name instead of an internal code.
 
 ### Documentation
 

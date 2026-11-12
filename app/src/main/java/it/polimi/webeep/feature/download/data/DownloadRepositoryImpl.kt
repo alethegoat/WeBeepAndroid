@@ -54,6 +54,9 @@ class DownloadRepositoryImpl @Inject constructor(
     private val progress = ConcurrentHashMap<Long, MutableStateFlow<Int>>()
     private val jobs = ConcurrentHashMap<Long, Job>()
     private val calls = ConcurrentHashMap<Long, Call>()
+
+    /** Id of the running download per sanitized local file name; guarded by itself when starting a download. */
+    private val inFlightByFile = HashMap<String, Long>()
     private val store: LocalFileStore by lazy {
         LocalFileStore(File(context.filesDir, AppDirectories.DOWNLOADS), MAX_DOWNLOADS_BYTES)
     }
@@ -62,8 +65,15 @@ class DownloadRepositoryImpl @Inject constructor(
     override fun downloadFile(url: String, token: String?, localFileName: String, displayName: String, mimeType: String?): Resource<Long> {
         val safeLocalFileName = sanitizeFileName(localFileName)
         val destination = store.containedFile(safeLocalFileName) ?: return Resource.Error(DataError.Storage)
-        val part = store.partFileFor(destination)
 
+        return synchronized(inFlightByFile) {
+            inFlightByFile[safeLocalFileName]?.let { Resource.Success(it) }
+                ?: startDownload(url, token, safeLocalFileName, destination)
+        }
+    }
+
+    private fun startDownload(url: String, token: String?, safeLocalFileName: String, destination: File): Resource<Long> {
+        val part = store.partFileFor(destination)
         val call = try {
             okHttpClient.newCall(Request.Builder().url(requestUrl(url, token)).build())
         } catch (e: IllegalArgumentException) {
@@ -75,11 +85,19 @@ class DownloadRepositoryImpl @Inject constructor(
         progress[id] = state
         // Registered before launching so an immediate cancelDownload() reaches the network call.
         calls[id] = call
-        jobs[id] = scope.launch { runDownload(id, call, part, destination, state) }
+        inFlightByFile[safeLocalFileName] = id
+        jobs[id] = scope.launch { runDownload(id, safeLocalFileName, call, part, destination, state) }
         return Resource.Success(id)
     }
 
-    private suspend fun CoroutineScope.runDownload(id: Long, call: Call, part: File, destination: File, state: MutableStateFlow<Int>) {
+    private suspend fun CoroutineScope.runDownload(
+        id: Long,
+        safeLocalFileName: String,
+        call: Call,
+        part: File,
+        destination: File,
+        state: MutableStateFlow<Int>
+    ) {
         try {
             migrationJob.join()
             store.ensureDirectory()
@@ -103,6 +121,7 @@ class DownloadRepositoryImpl @Inject constructor(
         } finally {
             jobs.remove(id)
             calls.remove(id)
+            forgetInFlight(safeLocalFileName, id)
             if (state.value == PROGRESS_COMPLETE || state.value == PROGRESS_FAILED) {
                 scheduleProgressCleanup(id, state)
             }
@@ -135,6 +154,15 @@ class DownloadRepositoryImpl @Inject constructor(
         calls.remove(downloadId)?.cancel()
         jobs.remove(downloadId)?.cancel()
         progress.remove(downloadId)
+        synchronized(inFlightByFile) { inFlightByFile.values.remove(downloadId) }
+    }
+
+    override fun inFlightDownloadId(localFileName: String): Long? =
+        synchronized(inFlightByFile) { inFlightByFile[sanitizeFileName(localFileName)] }
+
+    /** Drops the bookkeeping entry only if it still belongs to [id], so a restarted download keeps its own. */
+    private fun forgetInFlight(safeLocalFileName: String, id: Long) {
+        synchronized(inFlightByFile) { inFlightByFile.remove(safeLocalFileName, id) }
     }
 
     /**
@@ -155,6 +183,7 @@ class DownloadRepositoryImpl @Inject constructor(
         jobs.values.forEach { it.cancel() }
         jobs.clear()
         progress.clear()
+        synchronized(inFlightByFile) { inFlightByFile.clear() }
         store.directory.listFiles()?.forEach { it.delete() }
     }
 

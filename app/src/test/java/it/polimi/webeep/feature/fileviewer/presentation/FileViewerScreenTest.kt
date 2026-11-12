@@ -178,6 +178,6 @@ class FileViewerScreenTest {
         composeRule.onNodeWithText(string(R.string.file_viewer_external_title)).assertIsDisplayed()
         composeRule.onNodeWithText(string(R.string.file_viewer_open_again)).performClick()
 
-        assertEquals(listOf<FileViewerAction>(FileViewerAction.OpenExternally(content.file, content.mimeType)), userActions())
+        assertEquals(listOf<FileViewerAction>(FileViewerAction.OpenExternally(content.file, content.mimeType, file.title)), userActions())
     }
 }
