@@ -111,12 +111,15 @@ class DownloadRepositoryImpl @Inject constructor(
             ensureActive()
             store.commit(part, destination)
             store.evict(keep = destination)
+            // Before the terminal state is published: whoever sees it must already find the file free to start again.
+            forgetInFlight(safeLocalFileName, id)
             state.value = PROGRESS_COMPLETE
         } catch (e: CancellationException) {
             part.delete()
             throw e
         } catch (_: Exception) {
             part.delete()
+            forgetInFlight(safeLocalFileName, id)
             state.value = PROGRESS_FAILED
         } finally {
             jobs.remove(id)
