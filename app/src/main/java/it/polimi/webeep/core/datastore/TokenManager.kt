@@ -71,17 +71,8 @@ class TokenManager internal constructor(
     }
 
     private fun readPersistedRecord(): AuthRecord {
-        val current = AuthRecord.fromMap(store.readAll())
-        if (!LegacyEncryptedPrefsMigration.exists(application)) return current
-        // Legacy migration, remove after next release.
-        val legacy = LegacyEncryptedPrefsMigration.read(application)
-        if (legacy == null || legacy.isEmpty() || !current.isEmpty()) {
-            LegacyEncryptedPrefsMigration.delete(application)
-            return current
-        }
-        // Keep the legacy file when the new store cannot persist, so the next launch retries.
-        if (persist(legacy)) LegacyEncryptedPrefsMigration.delete(application)
-        return legacy
+        LegacySecurePrefsCleanup.run(application)
+        return AuthRecord.fromMap(store.readAll())
     }
 
     override fun getTokenSync(): String? = cachedWsToken
@@ -171,7 +162,7 @@ class TokenManager internal constructor(
         synchronized(clearLock) {
             record = AuthRecord.EMPTY
             persist(record)
-            LegacyEncryptedPrefsMigration.delete(application)
+            LegacySecurePrefsCleanup.run(application)
             publish()
             loaded.set(true)
         }

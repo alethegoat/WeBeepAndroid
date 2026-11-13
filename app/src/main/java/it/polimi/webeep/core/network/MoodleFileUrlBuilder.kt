@@ -29,11 +29,17 @@ object MoodleFileUrlBuilder {
         return uri.scheme.equals("https", ignoreCase = true) && isTrustedHost(uri.host)
     }
 
-    /** Whether [url] is an http(s) link that is not a WeBeep pluginfile: those open in a Custom Tab, never in-app. */
+    /**
+     * Whether [url] is an http(s) link that is not a WeBeep pluginfile: those open in a Custom Tab, never in-app.
+     * A pluginfile only counts as WeBeep's when it is HTTPS on [TRUSTED_HOST] and `pluginfile.php` is in the path, so a
+     * foreign link that merely contains the string is not downloaded in-app.
+     */
     fun isExternalWebLink(url: String): Boolean {
-        val lowerUrl = url.lowercase()
-        val isHttp = lowerUrl.startsWith("http://") || lowerUrl.startsWith("https://")
-        return isHttp && !lowerUrl.contains("pluginfile.php")
+        val uri = parseUri(url)
+        val scheme = uri?.scheme?.lowercase()
+        if (scheme != "http" && scheme != "https") return false
+        val isWeBeepPluginFile = isTrustedWeBeepUrl(url) && isPluginFilePath(uri?.rawPath.orEmpty())
+        return !isWeBeepPluginFile
     }
 
     /**

@@ -26,7 +26,13 @@ fun LoginRoute(onLoggedIn: () -> Unit, modifier: Modifier = Modifier, viewModel:
     ObserveEffects(viewModel.effects) { effect ->
         when (effect) {
             LoginEffect.LoggedIn -> onLoggedIn()
-            is LoginEffect.OpenSso -> SsoBrowser.open(context, effect.url)
+            is LoginEffect.OpenSso -> if (!SsoBrowser.open(context, effect.url)) {
+                showErrorSnackbar(
+                    snackbarHostState = snackbarHostState,
+                    message = resources.getString(R.string.error_login_no_browser),
+                    actionLabel = retryLabel
+                )
+            }
             is LoginEffect.ShowError -> showErrorSnackbar(
                 snackbarHostState = snackbarHostState,
                 message = resources.getString(effect.messageRes),

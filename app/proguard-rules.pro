@@ -8,10 +8,6 @@
 # Keep DTO data classes used as Moodle models
 -keep class it.polimi.webeep.core.network.dto.** { *; }
 
-# ---- OkHttp / Okio (warnings only; consumer rules handle keep) ----
--dontwarn okhttp3.**
--dontwarn okio.**
-
 # ---- Room ----
 -keep class * extends androidx.room.RoomDatabase
 -keep class it.polimi.webeep.core.database.entity.** { *; }
@@ -19,21 +15,9 @@
 -keepclassmembers class * {
     @androidx.room.* <methods>;
 }
--dontwarn androidx.room.paging.**
 
-# ---- Hilt / Dagger (warnings only; Hilt generates its own keep rules) ----
--dontwarn dagger.**
+# ---- Hilt / Dagger (Hilt generates its own keep rules) ----
 -keep class * extends dagger.hilt.android.internal.managers.ViewComponentManager$FragmentContextWrapper { *; }
-
-# ---- Tink (compile-only annotations referenced by the library) ----
--dontwarn com.google.errorprone.annotations.**
--dontwarn javax.annotation.**
-
-# ---- Coroutines ----
--dontwarn kotlinx.coroutines.**
-
-# ---- Compose ----
--dontwarn androidx.compose.**
 
 # ---- General ----
 -keepclassmembers class * implements android.os.Parcelable {

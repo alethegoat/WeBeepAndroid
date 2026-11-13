@@ -7,7 +7,6 @@ hilt = "2.60.1"
 okhttp = "5.5.0"
 room = "2.8.5"
 datastore = "1.1.4"
-securityCrypto = "1.1.0"
 tink = "1.23.0"
 navigationCompose = "2.10.2"
 hiltNavigationCompose = "1.4.0"
@@ -72,8 +71,6 @@ okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhtt
 okhttp-logging-interceptor = { group = "com.squareup.okhttp3", name = "logging-interceptor", version.ref = "okhttp" }
 ktor-client-core = { group = "io.ktor", name = "ktor-client-core", version.ref = "ktor" }
 ktor-client-okhttp = { group = "io.ktor", name = "ktor-client-okhttp", version.ref = "ktor" }
-ktor-client-content-negotiation = { group = "io.ktor", name = "ktor-client-content-negotiation", version.ref = "ktor" }
-ktor-serialization-kotlinx-json = { group = "io.ktor", name = "ktor-serialization-kotlinx-json", version.ref = "ktor" }
 kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinxSerialization" }
 
 # Room
@@ -84,7 +81,6 @@ room-testing = { group = "androidx.room", name = "room-testing", version.ref = "
 
 # DataStore & Security
 datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }
-security-crypto = { group = "androidx.security", name = "security-crypto", version.ref = "securityCrypto" }
 tink-android = { group = "com.google.crypto.tink", name = "tink-android", version.ref = "tink" }
 
 # Coil

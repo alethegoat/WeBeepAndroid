@@ -125,6 +125,7 @@
     <string name="error_login_invalid_token">Token di accesso non valido. Riprova con SSO.</string>
     <string name="error_login_process_failed">Impossibile elaborare il token. Riprova.</string>
     <string name="error_login_validation_failed">Impossibile convalidare il token con il server.</string>
+    <string name="error_login_no_browser">Nessun browser disponibile per accedere</string>
     <string name="file_viewer_error_network">Impossibile scaricare il file. Controlla la connessione e riprova.</string>
     <string name="file_viewer_error_pdf">Il PDF è danneggiato o non può essere aperto.</string>
     <string name="settings_logout_dialog_title">Disconnettersi?</string>

@@ -1,8 +1,6 @@
 package it.polimi.webeep.core.datastore
 
 import android.app.Application
-import androidx.security.crypto.EncryptedSharedPreferences
-import androidx.security.crypto.MasterKey
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import java.io.File
@@ -125,39 +123,8 @@ class TokenManagerTest {
         assertFalse(raw.contains("plaintext-token-marker"))
     }
 
-    // Legacy migration, remove after next release.
     @Test
-    fun `legacy encrypted prefs are migrated once and deleted`() = runBlocking {
-        val masterKey = MasterKey.Builder(application)
-            .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
-            .build()
-        EncryptedSharedPreferences.create(
-            application,
-            LEGACY_PREFS_NAME,
-            masterKey,
-            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
-        ).edit()
-            .putString("ws_token", "legacy-token")
-            .putInt("user_id", 5)
-            .putString("full_name", "Legacy User")
-            .putString("private_token", "never-migrated")
-            .commit()
-
-        val migrated = TokenManager(application, Dispatchers.IO)
-        migrated.ensureLoaded()
-
-        assertEquals("legacy-token", migrated.getTokenSync())
-        assertEquals(5, migrated.getUserId())
-        assertFalse("Legacy file deleted", legacyPrefsFile().exists())
-
-        val reloaded = TokenManager(application, Dispatchers.IO)
-        reloaded.ensureLoaded()
-        assertEquals("legacy-token", reloaded.getTokenSync())
-    }
-
-    @Test
-    fun `legacy prefs without a session are discarded`() = runBlocking {
+    fun `a legacy prefs file is deleted on load and never imported`() = runBlocking {
         legacyPrefsFile().apply {
             parentFile?.mkdirs()
             writeText("<?xml version='1.0' encoding='utf-8' standalone='yes' ?><map><string name=\"x\">garbage</string></map>")

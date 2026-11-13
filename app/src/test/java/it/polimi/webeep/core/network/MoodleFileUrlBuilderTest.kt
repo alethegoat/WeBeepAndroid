@@ -92,4 +92,12 @@ class MoodleFileUrlBuilderTest {
         )
         assertFalse(MoodleFileUrlBuilder.isExternalWebLink("mailto:someone@polimi.it"))
     }
+
+    @Test
+    fun `isExternalWebLink is true for foreign or cleartext links that merely mention pluginfile`() {
+        assertTrue(MoodleFileUrlBuilder.isExternalWebLink("https://evil.example.com/pluginfile.php/1/a.pdf"))
+        assertTrue(MoodleFileUrlBuilder.isExternalWebLink("https://evil.example.com/redirect?to=pluginfile.php"))
+        assertTrue(MoodleFileUrlBuilder.isExternalWebLink("https://webeep.polimi.it/mod/url/view.php?next=/pluginfile.php/1/a.pdf"))
+        assertTrue(MoodleFileUrlBuilder.isExternalWebLink("http://webeep.polimi.it/pluginfile.php/1/a.pdf"))
+    }
 }

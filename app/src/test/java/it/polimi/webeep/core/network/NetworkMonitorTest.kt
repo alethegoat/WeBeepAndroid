@@ -4,7 +4,6 @@ import android.app.Application
 import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
-import android.net.NetworkRequest
 import app.cash.turbine.test
 import io.mockk.every
 import io.mockk.mockk
@@ -17,7 +16,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 
-/** Robolectric only provides a working [NetworkRequest.Builder]; the system service is a mock. */
+/** The system service is a mock; Robolectric only supplies the Android framework classes. */
 @RunWith(RobolectricTestRunner::class)
 class NetworkMonitorTest {
 
@@ -32,7 +31,7 @@ class NetworkMonitorTest {
         every { manager.activeNetwork } returns if (online) network else null
         every { manager.getNetworkCapabilities(network) } returns if (online) capabilities(internet = true, validated = true) else null
         every { manager.getNetworkCapabilities(null) } returns null
-        every { manager.registerNetworkCallback(any<NetworkRequest>(), capture(callback)) } returns Unit
+        every { manager.registerDefaultNetworkCallback(capture(callback)) } returns Unit
     }
 
     private fun capabilities(internet: Boolean, validated: Boolean) = mockk<NetworkCapabilities> {
@@ -79,7 +78,7 @@ class NetworkMonitorTest {
     }
 
     @Test
-    fun `onAvailable reports online`() = runTest {
+    fun `onAvailable alone does not report online before validation`() = runTest {
         currentlyOnline(false)
 
         NetworkMonitor(application).isOnline.test {
@@ -87,23 +86,37 @@ class NetworkMonitorTest {
 
             callback.captured.onAvailable(network)
 
-            assertTrue(awaitItem())
+            expectNoEvents()
             cancelAndIgnoreRemainingEvents()
         }
     }
 
     @Test
-    fun `onLost re-checks the active network`() = runTest {
+    fun `losing the default network reports offline`() = runTest {
         currentlyOnline(true)
 
         NetworkMonitor(application).isOnline.test {
             assertTrue(awaitItem())
 
-            every { manager.activeNetwork } returns null
             callback.captured.onLost(network)
 
             assertFalse(awaitItem())
             cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `registers for the default network only`() = runTest {
+        currentlyOnline(true)
+
+        NetworkMonitor(application).isOnline.test {
+            awaitItem()
+            cancelAndIgnoreRemainingEvents()
+        }
+
+        verify { manager.registerDefaultNetworkCallback(any<ConnectivityManager.NetworkCallback>()) }
+        verify(exactly = 0) {
+            manager.registerNetworkCallback(any<android.net.NetworkRequest>(), any<ConnectivityManager.NetworkCallback>())
         }
     }
 

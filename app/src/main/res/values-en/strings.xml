@@ -125,6 +125,7 @@
     <string name="error_login_invalid_token">Invalid access token. Please try logging in with SSO again.</string>
     <string name="error_login_process_failed">Unable to process access token. Please try again.</string>
     <string name="error_login_validation_failed">Unable to validate the token with the server.</string>
+    <string name="error_login_no_browser">No browser available to sign in</string>
     <string name="file_viewer_error_network">Unable to download the file. Check your connection and try again.</string>
     <string name="file_viewer_error_pdf">The PDF is damaged or cannot be opened.</string>
     <string name="settings_logout_dialog_title">Log out?</string>

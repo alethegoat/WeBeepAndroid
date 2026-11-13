@@ -10,11 +10,17 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 
 ### Changed
 
+- Removed the migration from the old `EncryptedSharedPreferences` store and the deprecated `security-crypto` dependency. Users upgrading from a version before 1.1.0 must sign in again; the old preferences file and its Keystore key are deleted on first launch.
+- Removed the unused Ktor ContentNegotiation plugin and its two dependencies (responses are parsed by `MoodleApiService`) and the unneeded `-dontwarn` rules from the R8 configuration.
 - Build toolchain cleanup: AGP built-in Kotlin and the new DSL (no `kotlin-android` plugin), AGP 9 defaults instead of the deprecated opt-out flags, Kotlin language level 2.4 instead of 2.1, `activity-compose` 1.13.0, `lifecycle-runtime-compose` 2.11.0 and the relocated `hiltViewModel` import.
 - `TokenManager` now sits on a small `CredentialStore` interface and is covered by JVM tests; tests were also added for navigation transitions and actions and for the PDF viewer components.
 
 ### Fixed
 
+- Signing in on a device with no browser installed shows a message instead of crashing the app.
+- Rotating the device while a video plays keeps the playback position and the paused state instead of restarting from the beginning.
+- Links to other hosts that merely contain `pluginfile.php` open in a Custom Tab instead of being downloaded in-app, and the session token is only added to HTTPS requests on the WeBeep host.
+- The offline state follows the default network only, so a secondary network losing validation no longer reports the device as offline.
 - Course, section and module names show `&` instead of `&amp;`: HTML entities are now decoded in every name, not only in multi-language ones.
 - Reopening the app after the background sync found the session expired returns to the login screen instead of an empty dashboard.
 - The login button no longer encrypts and writes the SSO passport on the main thread.

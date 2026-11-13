@@ -18,6 +18,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -26,6 +27,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
@@ -39,7 +41,6 @@ import it.polimi.webeep.R
 import it.polimi.webeep.core.network.MoodleFileUrlBuilder
 import it.polimi.webeep.core.ui.components.EmptyStateView
 import it.polimi.webeep.core.ui.theme.WeBeepTheme
-import java.util.concurrent.atomic.AtomicBoolean
 import okhttp3.Call
 
 @OptIn(UnstableApi::class)
@@ -50,7 +51,8 @@ fun MediaViewer(url: String, callFactory: Call.Factory, modifier: Modifier = Mod
 
     var hasError by remember { mutableStateOf(false) }
     var isBuffering by remember { mutableStateOf(true) }
-    val userPaused = remember { AtomicBoolean(false) }
+    var resume by rememberSaveable(url, stateSaver = PlaybackResume.Saver) { mutableStateOf(PlaybackResume()) }
+    val isCurrent by rememberUpdatedState(isCurrentPage)
 
     val exoPlayer = remember {
         // Goes through the shared OkHttp client: the pluginfile token is added
@@ -60,7 +62,7 @@ fun MediaViewer(url: String, callFactory: Call.Factory, modifier: Modifier = Mod
             .setMediaSourceFactory(DefaultMediaSourceFactory(dataSourceFactory))
             .build()
             .apply {
-                setMediaItem(MediaItem.fromUri(Uri.parse(MoodleFileUrlBuilder.stripAuthFromUrl(url))))
+                setMediaItem(MediaItem.fromUri(Uri.parse(MoodleFileUrlBuilder.stripAuthFromUrl(url))), resume.positionMs)
                 addListener(object : Player.Listener {
                     override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
                         hasError = true
@@ -73,18 +75,17 @@ fun MediaViewer(url: String, callFactory: Call.Factory, modifier: Modifier = Mod
 
                     override fun onIsPlayingChanged(isPlaying: Boolean) {
                         if (isPlaying) {
-                            userPaused.set(false)
-                        } else if (playbackState == Player.STATE_READY) {
-                            userPaused.set(true)
+                            resume = resume.copy(userPaused = false)
+                        } else if (playbackState == Player.STATE_READY && isForeground(lifecycleOwner) && isCurrent) {
+                            // Pauses caused by the lifecycle or by swiping away are not the user's choice.
+                            resume = resume.copy(userPaused = true)
                         }
                     }
                 })
                 prepare()
-                playWhenReady = true
+                playWhenReady = !resume.userPaused
             }
     }
-
-    val isCurrent by rememberUpdatedState(isCurrentPage)
 
     // Swiping to another file pauses playback right away.
     LaunchedEffect(isCurrentPage) {
@@ -94,9 +95,12 @@ fun MediaViewer(url: String, callFactory: Call.Factory, modifier: Modifier = Mod
     DisposableEffect(lifecycleOwner, exoPlayer) {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
-                Lifecycle.Event.ON_PAUSE -> exoPlayer.pause()
+                Lifecycle.Event.ON_PAUSE -> {
+                    saveProgress(exoPlayer, resume) { resume = it }
+                    exoPlayer.pause()
+                }
                 Lifecycle.Event.ON_RESUME -> {
-                    if (!userPaused.get() && isCurrent) {
+                    if (!resume.userPaused && isCurrent) {
                         exoPlayer.play()
                     }
                 }
@@ -106,6 +110,7 @@ fun MediaViewer(url: String, callFactory: Call.Factory, modifier: Modifier = Mod
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose {
             lifecycleOwner.lifecycle.removeObserver(observer)
+            saveProgress(exoPlayer, resume) { resume = it }
             exoPlayer.release()
         }
     }
@@ -138,6 +143,12 @@ fun MediaViewer(url: String, callFactory: Call.Factory, modifier: Modifier = Mod
             MediaErrorState(url = url, modifier = Modifier.fillMaxSize())
         }
     }
+}
+
+private fun isForeground(lifecycleOwner: LifecycleOwner) = lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)
+
+private fun saveProgress(player: ExoPlayer, current: PlaybackResume, update: (PlaybackResume) -> Unit) {
+    update(current.withPosition(player.currentPosition, player.playbackState == Player.STATE_ENDED))
 }
 
 /** Opaque themed surface over the player so the empty state keeps its contrast. */

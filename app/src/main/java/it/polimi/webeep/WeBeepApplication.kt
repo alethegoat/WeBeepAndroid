@@ -9,11 +9,13 @@ import coil.disk.DiskCache
 import coil.memory.MemoryCache
 import dagger.hilt.android.HiltAndroidApp
 import it.polimi.webeep.core.common.AppDirectories
+import it.polimi.webeep.core.common.runCatchingCancellable
 import it.polimi.webeep.core.datastore.TokenProvider
+import it.polimi.webeep.core.di.DefaultDispatcher
 import it.polimi.webeep.feature.sync.domain.SyncNotifications
 import javax.inject.Inject
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
@@ -42,13 +44,16 @@ class WeBeepApplication :
     @Inject
     lateinit var syncNotifications: SyncNotifications
 
-    private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    @Inject
+    @DefaultDispatcher
+    lateinit var defaultDispatcher: CoroutineDispatcher
 
     override fun onCreate() {
         super.onCreate()
         syncNotifications.createChannel()
         // Warm up the Keystore-backed session off the main thread, before the first frame needs it.
-        appScope.launch { runCatching { tokenProvider.ensureLoaded() } }
+        // Built here, not at field initialisation: the injected dispatcher only exists after super.onCreate().
+        CoroutineScope(SupervisorJob() + defaultDispatcher).launch { runCatchingCancellable { tokenProvider.ensureLoaded() } }
     }
 
     override val workManagerConfiguration: Configuration

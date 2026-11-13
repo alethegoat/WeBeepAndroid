@@ -224,8 +224,6 @@ dependencies {
     implementation(libs.okhttp.logging.interceptor)
     implementation(libs.ktor.client.core)
     implementation(libs.ktor.client.okhttp)
-    implementation(libs.ktor.client.content.negotiation)
-    implementation(libs.ktor.serialization.kotlinx.json)
     implementation(libs.kotlinx.serialization.json)
 
     // Room
@@ -235,7 +233,6 @@ dependencies {
 
     // DataStore & Security
     implementation(libs.datastore.preferences)
-    implementation(libs.security.crypto)
     implementation(libs.tink.android)
 
     // Coil (image loading)
