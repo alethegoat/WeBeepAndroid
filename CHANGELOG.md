@@ -4,6 +4,8 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-11-13
+
 ### Added
 
 - Release workflow: pushing a `vX.Y.Z` tag (or running it manually for an existing tag) builds the signed APK and AAB and publishes them with checksums and the signing certificate SHA-256. The `debug-latest` release is now labelled as a developer build.
@@ -108,7 +110,8 @@ First tagged version.
 
 - Background sync and notification channel are initialized at startup.
 
-[Unreleased]: https://github.com/alethegoat/WeBeepAndroid/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/alethegoat/WeBeepAndroid/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/alethegoat/WeBeepAndroid/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/alethegoat/WeBeepAndroid/compare/v1.0.1...v1.1.0
 [1.0.1]: https://github.com/alethegoat/WeBeepAndroid/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/alethegoat/WeBeepAndroid/releases/tag/v1.0.0
