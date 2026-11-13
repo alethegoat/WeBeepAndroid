@@ -43,7 +43,7 @@ object CourseContentMapper {
     private fun mapSection(sectionDto: CourseSectionDto) = Section(
         id = sectionDto.id,
         name = MoodleText.parse(sectionDto.name),
-        summary = MoodleText.parse(sectionDto.summary),
+        summary = MoodleText.resolveLanguage(sectionDto.summary),
         sectionNumber = sectionDto.section,
         modules = sectionDto.modules
             .filter { it.modname in ModuleType.Supported }
@@ -61,7 +61,7 @@ object CourseContentMapper {
             name = MoodleText.parse(moduleDto.name),
             modName = moduleDto.modname,
             iconUrl = iconUrl,
-            description = MoodleText.parse(moduleDto.description),
+            description = MoodleText.resolveLanguage(moduleDto.description),
             url = finalUrl,
             files = mapFiles(moduleDto)
         )
@@ -80,8 +80,10 @@ object CourseContentMapper {
         return if (files.isEmpty() && !moduleDto.url.isNullOrBlank()) listOf(pageFile(moduleDto, moduleDto.url)) else files
     }
 
+    // File names are raw in Moodle, not escaped: they stay byte-for-byte because they also name local copies and identify
+    // files in the background sync diff.
     private fun toFileResource(contentDto: ModuleContentDto) = FileResource(
-        filename = MoodleText.parse(contentDto.filename ?: "untitled"),
+        filename = MoodleText.resolveLanguage(contentDto.filename ?: "untitled"),
         filepath = contentDto.filepath ?: "/",
         fileUrl = MoodleFileUrlBuilder.stripAuthFromUrl(contentDto.fileurl ?: ""),
         fileSize = contentDto.filesize,

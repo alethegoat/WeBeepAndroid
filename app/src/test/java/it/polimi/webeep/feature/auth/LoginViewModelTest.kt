@@ -7,6 +7,7 @@ import it.polimi.webeep.core.common.Resource
 import it.polimi.webeep.feature.auth.domain.LoginUseCase
 import it.polimi.webeep.feature.auth.domain.SsoCallbackRelay
 import it.polimi.webeep.feature.auth.domain.UserSession
+import it.polimi.webeep.feature.auth.presentation.LoginAction
 import it.polimi.webeep.feature.auth.presentation.LoginEffect
 import it.polimi.webeep.feature.auth.presentation.LoginUiState
 import it.polimi.webeep.feature.auth.presentation.LoginViewModel
@@ -30,7 +31,7 @@ class LoginViewModelTest {
     private val session = UserSession(1, "Mario Rossi", "mariorossi", "https://webeep.polimi.it", "avatar.png")
 
     private val auth = FakeAuthRepository()
-    private val tokens = FakeTokenProvider().also { it.savePendingPassportSync(passport) }
+    private val tokens = FakeTokenProvider().also { it.passports.add(passport) }
     private val scheduling = FakeSyncScheduling()
     private val relay = SsoCallbackRelay()
 
@@ -57,6 +58,21 @@ class LoginViewModelTest {
 
         viewModel().effects.test {
             assertEquals(LoginEffect.LoggedIn, awaitItem())
+        }
+    }
+
+    @Test
+    fun `starting the SSO stores a passport and asks the UI to open its launch url`() = runTest {
+        tokens.passports.clear()
+        val vm = viewModel()
+
+        vm.effects.test {
+            vm.onAction(LoginAction.StartSso)
+
+            val effect = awaitItem() as LoginEffect.OpenSso
+            val stored = tokens.passports.single()
+            assertTrue(effect.url.startsWith("${LoginUseCase.SITE_WWWROOT}/admin/tool/mobile/launch.php"))
+            assertTrue(effect.url.contains("passport=$stored"))
         }
     }
 
@@ -124,7 +140,7 @@ class LoginViewModelTest {
 
     @Test
     fun `an expired passport emits the session expired error`() = runTest {
-        tokens.clearPendingPassportSync()
+        tokens.passports.clear()
 
         viewModel().effects.test {
             relay.offer(validToken())

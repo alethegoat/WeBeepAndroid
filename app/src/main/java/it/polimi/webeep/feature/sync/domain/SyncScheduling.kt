@@ -1,5 +1,7 @@
 package it.polimi.webeep.feature.sync.domain
 
+import kotlinx.coroutines.flow.Flow
+
 /** Decides when the background sync runs. */
 interface SyncScheduling {
 
@@ -15,6 +17,12 @@ interface SyncScheduling {
      * @param manual the user asked for a check, so it runs even with background sync disabled.
      */
     suspend fun enqueueImmediate(manual: Boolean = false)
+
+    /**
+     * Live status of the one-off sync. It follows the real work state, so a check that waits for a connection or
+     * fails ends up [SyncRunStatus.QUEUED] or [SyncRunStatus.IDLE] instead of looking "in progress" forever.
+     */
+    fun oneShotStatus(): Flow<SyncRunStatus>
 
     /** Cancels both the periodic and the one-off sync. */
     fun cancelAll()

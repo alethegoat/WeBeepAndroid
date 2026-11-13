@@ -7,7 +7,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 class FakeTokenProvider : TokenProvider {
     /** Token returned by [getToken]; null simulates a logged-out session. */
     var token: String? = null
-    private val passports = mutableListOf<String>()
+
+    /** Pending SSO passports; tests may seed or clear it directly. */
+    val passports = mutableListOf<String>()
     override val isLoggedIn: Flow<Boolean> = MutableStateFlow(false)
     override val wsToken: Flow<String?> = MutableStateFlow(null)
     override fun getTokenSync(): String? = null
@@ -17,11 +19,11 @@ class FakeTokenProvider : TokenProvider {
     override suspend fun getUserId(): Int? = null
     override suspend fun clearAll() = Unit
     override fun clearSessionSync() = Unit
-    override fun savePendingPassportSync(passport: String) {
+    override suspend fun savePendingPassport(passport: String) {
         passports.add(passport)
     }
-    override fun getPendingPassportsSync(): List<String> = passports.toList()
-    override fun clearPendingPassportSync() {
+    override suspend fun getPendingPassports(): List<String> = passports.toList()
+    override suspend fun clearPendingPassport() {
         passports.clear()
     }
 }

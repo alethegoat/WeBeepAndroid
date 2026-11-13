@@ -53,6 +53,7 @@ private sealed interface Loaded {
 
 /**
  * Loads the course contents (cache first), builds the filtered rows off the main thread and tracks downloads per file.
+ * Leaving the screen stops only the tracking; downloads continue and are picked up again when the contents are rebuilt.
  * Open folders and the search query live in the saved state.
  */
 @HiltViewModel
@@ -114,7 +115,6 @@ class CourseDetailViewModel @Inject constructor(
     private var contentsJob: Job? = null
 
     private val downloadJobs = ConcurrentHashMap<String, Job>()
-    private val downloadIds = ConcurrentHashMap<String, Long>()
 
     init {
         loadCourseName()
@@ -155,12 +155,21 @@ class CourseDetailViewModel @Inject constructor(
     }
 
     private suspend fun showSections(sections: List<Section>) {
+        // Downloads outlive the screen, so one started before this ViewModel existed may still be running.
+        val runningElsewhere = mutableMapOf<String, Long>()
         val uiSections = withContext(ioDispatcher) {
             val previous = (loaded.value as? Loaded.Sections)?.sections.orEmpty()
-            sections.toUiModels(previous.expansionById(), downloadRepository::isFileDownloaded)
+            sections.toUiModels(previous.expansionById(), downloadRepository::isFileDownloaded).mapFiles { file ->
+                val id = downloadRepository.inFlightDownloadId(file.localFileName) ?: return@mapFiles file
+                runningElsewhere[file.fileUrl] = id
+                file.copy(downloadState = DownloadState.DOWNLOADING)
+            }
         }
         loaded.update { current ->
             Loaded.Sections(uiSections.withInFlightDownloadStates((current as? Loaded.Sections)?.sections.orEmpty()))
+        }
+        runningElsewhere.forEach { (url, id) ->
+            if (downloadJobs[url]?.isActive != true) observeDownload(url, downloadTracker.follow(id))
         }
     }
 
@@ -204,28 +213,30 @@ class CourseDetailViewModel @Inject constructor(
     /** The ViewModel only locates the finished copy; starting the chooser is the route's job. */
     private fun openFile(file: FileUiModel) {
         downloadRepository.downloadedFile(file.localFileName)?.let { local ->
-            _effects.trySend(CourseDetailEffect.OpenFile(local, mimeTypeForFileName(local.name)))
+            _effects.trySend(CourseDetailEffect.OpenFile(local, mimeTypeForFileName(local.name), file.filename))
         }
     }
 
     private fun downloadFile(file: FileUiModel) {
         val url = file.fileUrl
-        downloadJobs[url]?.cancel()
-        downloadIds.remove(url)?.let { downloadRepository.cancelDownload(it) }
-
-        downloadJobs[url] = viewModelScope.launch {
+        // The repository returns the running download for this file instead of starting a second one.
+        observeDownload(
+            url,
             downloadTracker.track(
                 url = url,
                 localFileName = file.localFileName,
                 displayName = file.filename,
-                mimeType = file.mimeType,
-                onStarted = { downloadIds[url] = it }
-            ).collect { state ->
+                mimeType = file.mimeType
+            )
+        )
+    }
+
+    private fun observeDownload(url: String, states: Flow<DownloadState>) {
+        downloadJobs[url]?.cancel()
+        downloadJobs[url] = viewModelScope.launch {
+            states.collect { state ->
                 setFileDownloadState(url, state)
-                if (state != DownloadState.DOWNLOADING) {
-                    downloadJobs.remove(url)
-                    downloadIds.remove(url)
-                }
+                if (state != DownloadState.DOWNLOADING) downloadJobs.remove(url)
             }
         }
     }
@@ -244,9 +255,8 @@ class CourseDetailViewModel @Inject constructor(
 
     override fun onCleared() {
         super.onCleared()
+        // Only the observers stop: the downloads themselves keep running in the repository.
         downloadJobs.values.forEach { it.cancel() }
         downloadJobs.clear()
-        downloadIds.values.forEach { downloadRepository.cancelDownload(it) }
-        downloadIds.clear()
     }
 }

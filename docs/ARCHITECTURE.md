@@ -150,14 +150,13 @@ The user-facing summary is in the README [Security model](../README.md#security-
 - **Required, accepted risk: `moodlemobile://`.** The manifest claims the `moodlemobile` scheme because the PoliMi server forces it (Moodle's `tool_mobile_forcedurlscheme`). Verified on a real device on 2026-10-13: a build that registered only `webeepandroid://` could not complete the SSO login, because the browser never returned to the app. Restoring `moodlemobile://` fixed it. The cost is a collision with the official Moodle app, which may also handle that scheme, so another app could receive the callback or the user could be asked which app to open. The passport check and token validation in `LoginUseCase.execute` limit the impact. The scheme must stay (audit SEC-05).
 - **Not stored.** The SSO `private_token` is dropped in `LoginUseCase.execute`. The user's full name is kept in memory only (`UserSession`, `UserProfile`); `AuthRecord` holds the token, user id and pending passports.
 - **No tokens at rest elsewhere.** `stripAuthFromUrl` runs in `CourseContentMapper`, in the Room-to-domain mappers, in `DashboardRepositoryImpl` and before URLs go into a `FileViewer` route. Room never holds a token. `LogRedactor` masks `wstoken`, `token`, `private_token` and Bearer values; HTTP body logging exists only in debug builds.
-- **Session loss.** `TokenInterceptor` clears the token on an auth failure. `SessionExpiryHandler.sessionLost` emits on each logged-in to logged-out transition, after calling `AuthRepository.logout()` (under `NonCancellable`). `WeBeepApp` collects it and calls `navigateToLogin()`. At startup, `wipeStaleDataIfLoggedOut` removes data left by a session revoked while the app was closed.
+- **Session loss.** `TokenInterceptor` clears the token on an auth failure. `SessionExpiryHandler.sessionLost` emits on each logged-in to logged-out transition, after calling `AuthRepository.logout()` (under `NonCancellable`). `WeBeepApp` collects it and calls `navigateToLogin()`. At startup, `wipeStaleDataIfLoggedOut` removes data left by a session revoked while the app was closed, and `sessionEndedWhileAway` sends a restored back stack to the login screen when the session ended in a process that had no UI (the background sync).
 - **Wipe order.** `AuthRepositoryImpl.logout` (serialized by a mutex): cancel sync work, clear credentials, then `SessionDataCleaner.wipe()`:
   1. `clearAllTables()` (Room)
   2. `DownloadRepository.clearAllDownloads()`
   3. `SyncStateRepository.clear()`
   4. cancel sync notifications
-  5. WebView cookies and web storage (main thread)
-  6. HTTP, viewer and image caches in `cacheDir`
+  5. HTTP, viewer and image caches in `cacheDir`
 
   Each step is isolated so one failure leaves the others running.
 

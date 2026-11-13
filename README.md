@@ -83,7 +83,7 @@ This project follows Clean Architecture and MVVM (StateFlow + Compose). Version 
 * **Tokens**: the `wstoken` is stored in a Tink AES-256-GCM `SecureStore` whose keyset is wrapped by an Android Keystore key, in a file excluded from cloud backup and device transfer. If Keystore is unusable, nothing is written in clear. The SSO `private_token` is discarded and your full name is not stored. Tokens never reach Room or navigation args (`stripAuthFromUrl`). API calls send the token in the POST body; Moodle requires it as a URL query param for file downloads, and responses carrying them are `no-store`, and logs redact `wstoken`/`token`/`private_token`/Bearer.
 * **No WebView**: in-app viewers are native (PDF, Media3, images, code); web pages open in Custom Tabs.
 * **Files**: downloads live in app-private internal storage (`files/downloads`) and are shared outward only via FileProvider.
-* **Session**: logout, and a forced logout when the server revokes the token, wipe Room, downloads, caches and cookies, then return to the login screen.
+* **Session**: logout, and a forced logout when the server revokes the token, wipe Room, downloads and caches, then return to the login screen.
 * **Builds**: release packaging/signing fails fast without a keystore; R8 minifies and strips verbose logs. CI runs lint, detekt, ktlint, Kover and validates the Gradle wrapper; Dependabot tracks dependencies.
 
 See [PRIVACY.md](PRIVACY.md) for the data the app handles.
@@ -154,7 +154,7 @@ Il progetto segue Clean Architecture e MVVM (StateFlow + Compose). Versione `1.1
 * **Token**: il `wstoken` sta in uno `SecureStore` cifrato con Tink AES-256-GCM, il cui keyset è protetto da una chiave Android Keystore, in un file escluso da backup cloud e trasferimento tra dispositivi. Se il Keystore non è utilizzabile non viene scritto nulla in chiaro. Il `private_token` dell'SSO viene scartato e il tuo nome completo non viene salvato. I token non finiscono mai in Room o negli args di navigazione (`stripAuthFromUrl`). Le chiamate API inviano il token nel body POST; Moodle lo richiede come query param per il download dei file, e le risposte che lo contengono sono `no-store` e i log oscurano `wstoken`/`token`/`private_token`/Bearer.
 * **Niente WebView**: i viewer in-app sono nativi (PDF, Media3, immagini, codice); le pagine web si aprono in Custom Tabs.
 * **File**: i download stanno nello storage interno privato dell'app (`files/downloads`) e sono condivisi solo via FileProvider.
-* **Sessione**: il logout, e il logout forzato quando il server revoca il token, cancellano Room, download, cache e cookie, poi riportano al login.
+* **Sessione**: il logout, e il logout forzato quando il server revoca il token, cancellano Room, download e cache, poi riportano al login.
 * **Build**: packaging e firma release falliscono senza keystore; R8 minifica e rimuove i log verbosi. La CI esegue lint, detekt, ktlint, Kover e valida il Gradle wrapper; Dependabot tiene d'occhio le dipendenze.
 
 Vedi [PRIVACY.md](PRIVACY.md) per i dati trattati dall'app.

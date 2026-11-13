@@ -37,7 +37,7 @@ class LoginUseCaseTest {
     fun setup() {
         fakeAuthRepository = FakeAuthRepository()
         fakeTokenProvider = FakeTokenProvider()
-        fakeTokenProvider.savePendingPassportSync(passport)
+        fakeTokenProvider.passports.add(passport)
         loginUseCase = LoginUseCase(fakeAuthRepository, fakeTokenProvider)
     }
 
@@ -52,7 +52,7 @@ class LoginUseCaseTest {
         assertEquals(sampleSession, (result as LoginResult.Success).session)
         assertEquals("wstoken_123", fakeAuthRepository.savedToken)
         assertEquals(sampleSession, fakeAuthRepository.savedSession)
-        assertNull(fakeTokenProvider.getPendingPassportsSync().lastOrNull())
+        assertNull(fakeTokenProvider.getPendingPassports().lastOrNull())
     }
 
     @Test
@@ -60,7 +60,7 @@ class LoginUseCaseTest {
         val encodedToken = encodeSsoPayload(LoginUseCase.md5Hex(passport), "wstoken_123", "private_token_456")
         fakeAuthRepository.validateResult = Resource.Success(sampleSession)
         // TokenManager drops passports older than the TTL, so an expired one reads as none.
-        fakeTokenProvider.clearPendingPassportSync()
+        fakeTokenProvider.clearPendingPassport()
 
         val result = loginUseCase.execute(encodedToken)
 
@@ -124,7 +124,7 @@ class LoginUseCaseTest {
 
         assertTrue(result is LoginResult.Success)
         assertEquals("wstoken_123", fakeAuthRepository.savedToken)
-        assertNull(fakeTokenProvider.getPendingPassportsSync().lastOrNull())
+        assertNull(fakeTokenProvider.getPendingPassports().lastOrNull())
     }
 
     @Test
@@ -146,8 +146,8 @@ class LoginUseCaseTest {
     @Test
     fun `execute accepts an earlier passport after a second login tap`() = runTest {
         val firstPassport = "first-passport"
-        fakeTokenProvider.savePendingPassportSync(firstPassport)
-        fakeTokenProvider.savePendingPassportSync(passport)
+        fakeTokenProvider.savePendingPassport(firstPassport)
+        fakeTokenProvider.savePendingPassport(passport)
         fakeAuthRepository.validateResult = Resource.Success(sampleSession)
 
         val encodedToken = encodeSsoPayload(LoginUseCase.md5Hex(firstPassport), "wstoken_123", "private_token_456")
@@ -158,11 +158,11 @@ class LoginUseCaseTest {
     }
 
     @Test
-    fun `generateSsoLaunchUrl stores a numeric passport like the official Moodle app`() {
-        fakeTokenProvider.clearPendingPassportSync()
+    fun `generateSsoLaunchUrl stores a numeric passport like the official Moodle app`() = runTest {
+        fakeTokenProvider.clearPendingPassport()
 
         val url = loginUseCase.generateSsoLaunchUrl()
-        val stored = fakeTokenProvider.getPendingPassportsSync().lastOrNull()
+        val stored = fakeTokenProvider.getPendingPassports().lastOrNull()
 
         assertTrue(stored != null && stored.all { it.isDigit() })
         assertTrue(url.startsWith("${LoginUseCase.SITE_WWWROOT}/admin/tool/mobile/launch.php"))

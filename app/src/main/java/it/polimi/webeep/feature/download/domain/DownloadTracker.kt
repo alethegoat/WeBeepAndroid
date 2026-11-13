@@ -6,6 +6,7 @@ import it.polimi.webeep.feature.download.domain.DownloadRepository.Companion.PRO
 import it.polimi.webeep.feature.download.domain.model.DownloadState
 import javax.inject.Inject
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
 
 /**
@@ -33,12 +34,25 @@ class DownloadTracker @Inject constructor(
             is Resource.Error -> emit(DownloadState.FAILED)
             is Resource.Success -> {
                 onStarted(started.data)
-                downloadRepository.getDownloadProgress(started.data).collect { progress ->
-                    when (progress) {
-                        PROGRESS_COMPLETE -> emit(DownloadState.COMPLETED)
-                        PROGRESS_FAILED -> emit(DownloadState.FAILED)
-                    }
-                }
+                emitAll(states(started.data))
+            }
+        }
+    }
+
+    /**
+     * Follows a download that is already running (for example one started from another screen), with the same
+     * states as [track].
+     */
+    fun follow(downloadId: Long): Flow<DownloadState> = flow {
+        emit(DownloadState.DOWNLOADING)
+        emitAll(states(downloadId))
+    }
+
+    private fun states(downloadId: Long): Flow<DownloadState> = flow {
+        downloadRepository.getDownloadProgress(downloadId).collect { progress ->
+            when (progress) {
+                PROGRESS_COMPLETE -> emit(DownloadState.COMPLETED)
+                PROGRESS_FAILED -> emit(DownloadState.FAILED)
             }
         }
     }

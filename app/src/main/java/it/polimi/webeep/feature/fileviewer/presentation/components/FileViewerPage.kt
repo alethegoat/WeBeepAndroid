@@ -115,7 +115,7 @@ private fun FileContent(
         )
         is FileContentState.External -> ExternalFileContent(
             title = file.title,
-            onOpenAgain = { onAction(FileViewerAction.OpenExternally(state.file, state.mimeType)) }
+            onOpenAgain = { onAction(FileViewerAction.OpenExternally(state.file, state.mimeType, file.title)) }
         )
         is FileContentState.Error -> EmptyStateView(
             icon = Icons.Rounded.Description,

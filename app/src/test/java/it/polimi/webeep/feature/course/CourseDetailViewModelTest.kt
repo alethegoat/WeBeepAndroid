@@ -111,6 +111,7 @@ class CourseDetailViewModelTest {
         coEvery { courseRepository.getCourseName(5) } returns "Informatica 1"
         coEvery { getCourseContentsUseCase(5) } returns flowOf(Resource.Success(sampleSections))
         every { downloadRepository.isFileDownloaded(any()) } returns false
+        every { downloadRepository.inFlightDownloadId(any()) } returns null
     }
 
     private fun initViewModel() {
@@ -325,7 +326,7 @@ class CourseDetailViewModelTest {
         viewModel.effects.test {
             viewModel.onAction(CourseDetailAction.OpenFile(firstFile()))
 
-            assertEquals(CourseDetailEffect.OpenFile(local, "application/pdf"), awaitItem())
+            assertEquals(CourseDetailEffect.OpenFile(local, "application/pdf", "syllabus.pdf"), awaitItem())
         }
         verify(exactly = 1) {
             downloadRepository.downloadedFile(match { it.startsWith("syllabus-") && it.endsWith(".pdf") })
@@ -422,6 +423,39 @@ class CourseDetailViewModelTest {
         every { downloadRepository.isFileDownloaded(any()) } returns true
         cache.value = sampleSections.map { it.copy(summary = "v3") }
         advanceUntilIdle()
+        assertEquals(DownloadState.COMPLETED, firstFile().downloadState)
+    }
+
+    @Test
+    fun `clearing the view model leaves running downloads alone`() = runTest {
+        val fileUrl = "https://webeep.polimi.it/webservice/pluginfile.php/123/syllabus.pdf"
+        coEvery { downloadFileUseCase(fileUrl, any(), any(), any()) } returns Resource.Success(7L)
+        every { downloadRepository.getDownloadProgress(7L) } returns MutableSharedFlow<Int>()
+
+        initViewModel()
+        backgroundScope.launch { viewModel.uiState.collect {} }
+        advanceUntilIdle()
+        viewModel.onAction(CourseDetailAction.DownloadFile(firstFile()))
+        advanceUntilIdle()
+        viewModel.javaClass.getDeclaredMethod("onCleared").apply { isAccessible = true }.invoke(viewModel)
+
+        verify(exactly = 0) { downloadRepository.cancelDownload(any()) }
+    }
+
+    @Test
+    fun `a download still running when the contents load shows DOWNLOADING then its result`() = runTest {
+        val progress = MutableSharedFlow<Int>()
+        every { downloadRepository.inFlightDownloadId(any()) } returns 7L
+        every { downloadRepository.getDownloadProgress(7L) } returns progress
+
+        initViewModel()
+        backgroundScope.launch { viewModel.uiState.collect {} }
+        advanceUntilIdle()
+        assertEquals(DownloadState.DOWNLOADING, firstFile().downloadState)
+
+        progress.emit(100)
+        advanceUntilIdle()
+
         assertEquals(DownloadState.COMPLETED, firstFile().downloadState)
     }
 

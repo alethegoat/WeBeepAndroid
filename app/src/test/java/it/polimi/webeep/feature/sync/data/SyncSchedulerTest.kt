@@ -4,6 +4,7 @@ import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequest
 import androidx.work.PeriodicWorkRequest
+import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import io.mockk.coEvery
 import io.mockk.every
@@ -13,6 +14,8 @@ import io.mockk.verify
 import it.polimi.webeep.core.datastore.TokenProvider
 import it.polimi.webeep.feature.settings.domain.SettingsRepository
 import it.polimi.webeep.feature.settings.domain.model.SyncFrequency
+import it.polimi.webeep.feature.sync.domain.SyncRunStatus
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -94,6 +97,31 @@ class SyncSchedulerTest {
         verify {
             workManager.enqueueUniqueWork(SyncScheduler.UNIQUE_ONE_SHOT_WORK, ExistingWorkPolicy.KEEP, any<OneTimeWorkRequest>())
         }
+    }
+
+    @Test
+    fun `one-off status is running when any work runs`() = runTest {
+        assertEquals(SyncRunStatus.RUNNING, statusFor(WorkInfo.State.ENQUEUED, WorkInfo.State.RUNNING))
+    }
+
+    @Test
+    fun `one-off status is queued while enqueued or blocked`() = runTest {
+        assertEquals(SyncRunStatus.QUEUED, statusFor(WorkInfo.State.ENQUEUED))
+        assertEquals(SyncRunStatus.QUEUED, statusFor(WorkInfo.State.BLOCKED))
+    }
+
+    @Test
+    fun `one-off status is idle without work or once it ended`() = runTest {
+        assertEquals(SyncRunStatus.IDLE, statusFor())
+        assertEquals(SyncRunStatus.IDLE, statusFor(WorkInfo.State.SUCCEEDED))
+        assertEquals(SyncRunStatus.IDLE, statusFor(WorkInfo.State.FAILED))
+        assertEquals(SyncRunStatus.IDLE, statusFor(WorkInfo.State.CANCELLED))
+    }
+
+    private suspend fun statusFor(vararg states: WorkInfo.State): SyncRunStatus {
+        val infos = states.map { state -> mockk<WorkInfo> { every { this@mockk.state } returns state } }
+        every { workManager.getWorkInfosForUniqueWorkFlow(SyncScheduler.UNIQUE_ONE_SHOT_WORK) } returns flowOf(infos)
+        return scheduler.oneShotStatus().first()
     }
 
     @Test

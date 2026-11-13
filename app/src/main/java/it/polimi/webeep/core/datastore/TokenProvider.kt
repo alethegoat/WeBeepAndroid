@@ -7,10 +7,11 @@ import kotlinx.coroutines.flow.Flow
  * Allows fake implementations in tests.
  *
  * Two families of members exist on purpose. The `suspend` ones switch to an IO dispatcher and are meant
- * for coroutines. The `*Sync` ones exist for OkHttp interceptors, which run on OkHttp's own threads
- * where a coroutine cannot be awaited: reads come from the in-memory copy, writes block briefly on the
- * secure store, so keep them off the main thread. Until [ensureLoaded] has completed the in-memory copy
- * is still empty and the `*Sync` reads see a logged-out session.
+ * for coroutines, so they are safe to call from the main thread. The `*Sync` ones exist for OkHttp
+ * interceptors, which run on OkHttp's own threads where a coroutine cannot be awaited: reads come from
+ * the in-memory copy, writes block briefly on the secure store, so keep them off the main thread. Until
+ * [ensureLoaded] has completed the in-memory copy is still empty and the `*Sync` reads see a logged-out
+ * session.
  */
 interface TokenProvider {
     /** Whether a session token is currently stored; emits its current value on subscription. */
@@ -45,13 +46,13 @@ interface TokenProvider {
      * Persisted (not just in memory) because the process may die while the browser is in front. Entries
      * expire after a few minutes and the list is bounded.
      */
-    fun savePendingPassportSync(passport: String)
+    suspend fun savePendingPassport(passport: String)
 
-    /** Passports saved by [savePendingPassportSync] that have not expired yet, oldest first. */
-    fun getPendingPassportsSync(): List<String>
+    /** Passports saved by [savePendingPassport] that have not expired yet, oldest first. */
+    suspend fun getPendingPassports(): List<String>
 
     /** Forgets all pending passports once a login has completed. */
-    fun clearPendingPassportSync()
+    suspend fun clearPendingPassport()
 
     /** Loads the persisted session off the main thread. No-op for in-memory fakes. */
     suspend fun ensureLoaded() {}

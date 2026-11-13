@@ -47,8 +47,18 @@ class LoginViewModel @Inject constructor(
         }
     }
 
-    /** Starts a login attempt and returns the SSO URL to open; see [LoginUseCase.generateSsoLaunchUrl]. */
-    fun generateSsoUrl(): String = loginUseCase.generateSsoLaunchUrl()
+    fun onAction(action: LoginAction) {
+        when (action) {
+            LoginAction.StartSso -> startSso()
+        }
+    }
+
+    /** The passport is stored (encrypted, on disk) before the browser opens, so this cannot be a synchronous getter. */
+    private fun startSso() {
+        viewModelScope.launch {
+            _effects.send(LoginEffect.OpenSso(loginUseCase.generateSsoLaunchUrl()))
+        }
+    }
 
     private fun handleSsoCallback(encodedToken: String) {
         if (encodedToken.isBlank() || encodedToken == "{token}") {

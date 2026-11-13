@@ -12,9 +12,14 @@ import kotlinx.coroutines.flow.Flow
 interface DownloadRepository {
     /**
      * In-app download (not the system DownloadManager). Returns a local id to follow with
-     * [getDownloadProgress], or an error when the download could not even start.
+     * [getDownloadProgress], or an error when the download could not even start. Idempotent per destination: while a
+     * download of the same (sanitized) [localFileName] is still running, its id is returned instead of starting another
+     * one that would write the same partial file.
      */
     fun downloadFile(url: String, token: String?, localFileName: String, displayName: String, mimeType: String?): Resource<Long>
+
+    /** The id of the running download that writes [localFileName], or null when none is in flight. */
+    fun inFlightDownloadId(localFileName: String): Long?
 
     /** Stops [downloadId] and discards its partial file. Unknown ids are ignored. */
     fun cancelDownload(downloadId: Long)

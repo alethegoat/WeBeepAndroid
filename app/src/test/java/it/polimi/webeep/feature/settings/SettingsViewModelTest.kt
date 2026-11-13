@@ -10,6 +10,7 @@ import it.polimi.webeep.feature.settings.presentation.SettingsAction
 import it.polimi.webeep.feature.settings.presentation.SettingsEffect
 import it.polimi.webeep.feature.settings.presentation.SettingsUiState
 import it.polimi.webeep.feature.settings.presentation.SettingsViewModel
+import it.polimi.webeep.feature.sync.domain.SyncRunStatus
 import it.polimi.webeep.util.MainDispatcherRule
 import it.polimi.webeep.util.fakes.FakeAuthRepository
 import it.polimi.webeep.util.fakes.FakeSettingsRepository
@@ -38,7 +39,8 @@ class SettingsViewModelTest {
         updateWifiOnlySync = UpdateWifiOnlySyncUseCase(settings, scheduling),
         updateSyncFrequency = UpdateSyncFrequencyUseCase(settings, scheduling),
         checkForUpdatesNow = CheckForUpdatesNowUseCase(scheduling),
-        syncStateRepository = syncState
+        syncStateRepository = syncState,
+        syncScheduling = scheduling
     )
 
     @Test
@@ -106,20 +108,28 @@ class SettingsViewModelTest {
     }
 
     @Test
-    fun `check now enqueues a manual sync and stays in progress until a newer check`() = runTest {
+    fun `check now enqueues a manual sync`() = runTest {
+        viewModel().onAction(SettingsAction.CheckNow)
+
+        assertEquals(listOf(true), scheduling.immediateRequests)
+    }
+
+    @Test
+    fun `check status follows the one-off work even when no course is fetched`() = runTest {
         syncState.lastCheckAt.value = 10L
         val vm = viewModel()
 
         vm.uiState.test {
-            assertFalse(expectMostRecentItem().checkInProgress)
-            vm.onAction(SettingsAction.CheckNow)
-            assertTrue(awaitItem().checkInProgress)
-            syncState.lastCheckAt.value = 20L
+            assertEquals(SyncRunStatus.IDLE, expectMostRecentItem().checkStatus)
+            scheduling.oneShotStatus.value = SyncRunStatus.QUEUED
+            assertEquals(SyncRunStatus.QUEUED, awaitItem().checkStatus)
+            scheduling.oneShotStatus.value = SyncRunStatus.RUNNING
+            assertEquals(SyncRunStatus.RUNNING, awaitItem().checkStatus)
+            scheduling.oneShotStatus.value = SyncRunStatus.IDLE
             val done = awaitItem()
-            assertFalse(done.checkInProgress)
-            assertEquals(20L, done.lastCheckAt)
+            assertEquals(SyncRunStatus.IDLE, done.checkStatus)
+            assertEquals(10L, done.lastCheckAt)
         }
-        assertEquals(listOf(true), scheduling.immediateRequests)
     }
 
     @Test

@@ -5,10 +5,19 @@ object MoodleText {
     private val singleMlangRegex = """\{mlang\s+([a-zA-Z0-9_-]+)\}(.*?)\{mlang\}""".toRegex(RegexOption.DOT_MATCHES_ALL)
 
     /**
-     * Resolves Moodle multi-language tags (`{mlang xx}...{mlang}`) to a single language.
+     * Plain-text fields (course, section and module names): resolves the multi-language tags and unescapes the
+     * entities Moodle puts in them (`&amp;` for `&`), so the result can be shown as is.
+     *
+     * Not for HTML fields: unescaping before the markup is stripped would turn an escaped `&lt;` into a tag.
+     * Use [resolveLanguage] there and let [cleanHtml] unescape.
+     */
+    fun parse(text: String?, preferredLang: String = "it"): String = unescapeHtml(resolveLanguage(text, preferredLang))
+
+    /**
+     * Resolves Moodle multi-language tags (`{mlang xx}...{mlang}`) to a single language, leaving markup and entities alone.
      * Picks the block matching [preferredLang], or the first available one if there is no match.
      */
-    fun parse(text: String?, preferredLang: String = "it"): String {
+    fun resolveLanguage(text: String?, preferredLang: String = "it"): String {
         if (text.isNullOrEmpty()) return ""
         if (!text.contains("{mlang")) return text
 
@@ -19,13 +28,11 @@ object MoodleText {
         val firstLang = tags.firstOrNull()?.groupValues?.get(1)
         val langToKeep = if (hasPreferredLang) preferredLang else firstLang
 
-        var result = text.replace(singleMlangRegex) { matchResult ->
+        return text.replace(singleMlangRegex) { matchResult ->
             val lang = matchResult.groupValues[1]
             val content = matchResult.groupValues[2]
             if (lang == langToKeep) content else ""
-        }
-
-        return unescapeHtml(result.trim())
+        }.trim()
     }
 
     private val HTML_TAG_REGEX = Regex("<[^>]*>")

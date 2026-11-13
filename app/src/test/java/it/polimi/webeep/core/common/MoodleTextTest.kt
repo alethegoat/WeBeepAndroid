@@ -16,6 +16,23 @@ class MoodleTextTest {
     }
 
     @Test
+    fun `parse unescapes entities in names without mlang tags`() {
+        assertEquals("Models & Algorithms", MoodleText.parse("Models &amp; Algorithms"))
+        assertEquals("L'analisi", MoodleText.parse("{mlang it}L&#039;analisi{mlang}{mlang en}Analysis{mlang}"))
+    }
+
+    @Test
+    fun `resolveLanguage keeps markup and entities for html fields`() {
+        val html = "{mlang it}<p>se a &lt; b &amp; c &gt; d</p>{mlang}{mlang en}<p>if</p>{mlang}"
+
+        val resolved = MoodleText.resolveLanguage(html)
+
+        assertEquals("<p>se a &lt; b &amp; c &gt; d</p>", resolved)
+        assertEquals("se a < b & c > d", MoodleText.cleanHtml(resolved))
+        assertEquals("a &amp; b", MoodleText.resolveLanguage("a &amp; b"))
+    }
+
+    @Test
     fun `unescapes common html entities`() {
         val input = "Algebra &amp; Geometria &quot;A.A. 2024&#39;25&quot; &lt;Base&gt;"
         val unescaped = MoodleText.unescapeHtml(input)

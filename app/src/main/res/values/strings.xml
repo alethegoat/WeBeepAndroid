@@ -91,6 +91,7 @@
     <string name="settings_last_check_at">Ultimo controllo: %1$s</string>
     <string name="settings_last_check_never">Nessun controllo completato finora</string>
     <string name="settings_check_started">Controllo in corso…</string>
+    <string name="settings_check_queued">In coda: parte appena c\'è una connessione</string>
     <string name="settings_check_now">Controlla ora</string>
     <string name="sync_channel_name">Nuovi Documenti WeBeep</string>
     <string name="sync_channel_desc">Notifiche per i file nuovi o aggiornati nei corsi</string>

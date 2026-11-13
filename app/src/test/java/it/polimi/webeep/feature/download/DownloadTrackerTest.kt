@@ -61,4 +61,15 @@ class DownloadTrackerTest {
             awaitComplete()
         }
     }
+
+    @Test
+    fun `following a running download maps its progress without starting another`() = runTest {
+        every { repository.getDownloadProgress(7L) } returns flowOf(30, PROGRESS_COMPLETE)
+
+        tracker.follow(7L).test {
+            assertEquals(DownloadState.DOWNLOADING, awaitItem())
+            assertEquals(DownloadState.COMPLETED, awaitItem())
+            awaitComplete()
+        }
+    }
 }

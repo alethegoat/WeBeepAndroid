@@ -3,6 +3,7 @@ package it.polimi.webeep.feature.download.data
 import android.app.Application
 import it.polimi.webeep.core.common.Resource
 import java.io.File
+import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.last
 import kotlinx.coroutines.flow.toList
@@ -15,6 +16,8 @@ import okhttp3.mockwebserver.MockWebServer
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -114,6 +117,52 @@ class DownloadRepositoryImplTest {
 
         assertEquals(0, server.requestCount)
         assertFalse(repository.isFileDownloaded("cancelled.pdf"))
+    }
+
+    @Test
+    fun `starting the same file twice returns the running download`() = runBlocking {
+        // The delayed body keeps the first download in flight while the second one is requested.
+        server.enqueue(pdfResponse("once").setBodyDelay(500, TimeUnit.MILLISECONDS))
+        val repository = DownloadRepositoryImpl(context, client, Dispatchers.IO)
+
+        val first = startedId(repository.downloadFile(server.url("/a.pdf").toString(), null, "same.pdf", "same.pdf", null))
+        val second = startedId(repository.downloadFile(server.url("/b.pdf").toString(), null, "same.pdf", "same.pdf", null))
+
+        assertEquals(first, second)
+        assertEquals(first, repository.inFlightDownloadId("same.pdf"))
+        assertEquals(100, withTimeout(TIMEOUT_MS) { repository.getDownloadProgress(first).last() })
+        assertEquals(1, server.requestCount)
+    }
+
+    @Test
+    fun `a finished download is no longer in flight and the file can start again`() = runBlocking {
+        server.enqueue(pdfResponse("one"))
+        server.enqueue(pdfResponse("two"))
+        val repository = DownloadRepositoryImpl(context, client, Dispatchers.IO)
+
+        val first = startedId(repository.downloadFile(server.url("/f.pdf").toString(), null, "again.pdf", "again.pdf", null))
+        withTimeout(TIMEOUT_MS) { repository.getDownloadProgress(first).last() }
+        assertNull(repository.inFlightDownloadId("again.pdf"))
+
+        val second = startedId(repository.downloadFile(server.url("/f.pdf").toString(), null, "again.pdf", "again.pdf", null))
+        withTimeout(TIMEOUT_MS) { repository.getDownloadProgress(second).last() }
+
+        assertNotEquals(first, second)
+    }
+
+    @Test
+    fun `cancelling or clearing forgets the in-flight download`() {
+        server.enqueue(pdfResponse("x"))
+        server.enqueue(pdfResponse("y"))
+        val repository = DownloadRepositoryImpl(context, client, StandardTestDispatcher())
+
+        val id = startedId(repository.downloadFile(server.url("/f.pdf").toString(), null, "c1.pdf", "c1.pdf", null))
+        repository.cancelDownload(id)
+        assertNull(repository.inFlightDownloadId("c1.pdf"))
+
+        startedId(repository.downloadFile(server.url("/f.pdf").toString(), null, "c2.pdf", "c2.pdf", null))
+        repository.clearAllDownloads()
+        assertNull(repository.inFlightDownloadId("c2.pdf"))
     }
 
     @Test

@@ -55,16 +55,16 @@ class TokenManagerTest {
     }
 
     @Test
-    fun `pending passports are stored, listed and cleared`() {
-        tokenManager.savePendingPassportSync("111")
-        tokenManager.savePendingPassportSync("222")
+    fun `pending passports are stored, listed and cleared`() = runBlocking {
+        tokenManager.savePendingPassport("111")
+        tokenManager.savePendingPassport("222")
 
-        assertEquals(listOf("111", "222"), tokenManager.getPendingPassportsSync())
-        assertEquals("222", tokenManager.getPendingPassportsSync().lastOrNull())
+        assertEquals(listOf("111", "222"), tokenManager.getPendingPassports())
+        assertEquals("222", tokenManager.getPendingPassports().lastOrNull())
 
-        tokenManager.clearPendingPassportSync()
+        tokenManager.clearPendingPassport()
 
-        assertTrue(tokenManager.getPendingPassportsSync().isEmpty())
+        assertTrue(tokenManager.getPendingPassports().isEmpty())
     }
 
     @Test
