@@ -162,11 +162,11 @@ The user-facing summary is in the README [Security model](../README.md#security-
 
 ## Testing strategy
 
-Unit tests run on the JVM with `./gradlew test` (488 tests). Details and conventions: [ADR 0006](adr/0006-jvm-first-testing.md) and [CONTRIBUTING.md](../CONTRIBUTING.md#tests).
+Unit tests run on the JVM with `./gradlew test`. Details and conventions: [ADR 0006](adr/0006-jvm-first-testing.md) and [CONTRIBUTING.md](../CONTRIBUTING.md#tests).
 
 - Plain JUnit for domain logic, mappers, interceptors (MockWebServer), use cases and ViewModels (`MainDispatcherRule`, Turbine, hand-written fakes in `app/src/test/java/it/polimi/webeep/util/fakes`).
 - Robolectric for Room DAOs and migrations (`core/database`), `SavedStateHandle` routes, and Compose UI tests of each stateless screen (`util/ComposeTestSupport.kt`).
-- `TokenManager` is tested on a device in `app/src/androidTest` because it needs the real Keystore.
+- `TokenManager` logic is tested on the JVM against an in-memory `CredentialStore`; `app/src/androidTest` runs it once more on the real Keystore, which Robolectric cannot provide. `SecureStore` itself (Tink + Keystore) is only exercised there.
 - Kover enforces a minimum of 75% line coverage on the debug variant (`app/build.gradle.kts`). It is a ratchet: raise it when coverage rises.
 
 ## Where to put new code

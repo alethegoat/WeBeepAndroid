@@ -21,6 +21,15 @@ import java.util.Base64
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 
+/** The two blocking operations [TokenManager] needs from its persistent storage. */
+internal interface CredentialStore {
+    /** All readable entries; empty when nothing is stored or the storage is unusable. */
+    fun readAll(): Map<String, String>
+
+    /** Atomically replaces the whole content with [values] (empty clears it). Throws if this cannot be done securely. */
+    fun replaceAll(values: Map<String, String>)
+}
+
 /**
  * Encrypted key-value store for credentials.
  *
@@ -32,7 +41,7 @@ import kotlinx.coroutines.runBlocking
  *
  * All calls are blocking; callers are expected to serialize them.
  */
-internal class SecureStore(context: Context) {
+internal class SecureStore(context: Context) : CredentialStore {
 
     private val appContext: Context = context.applicationContext
     private val dataStore: DataStore<Preferences> = dataStoreFor(appContext)
@@ -44,7 +53,7 @@ internal class SecureStore(context: Context) {
      * All readable entries. Unreadable or tampered ones are skipped, and an unusable Keystore yields an empty map,
      * so a broken store reads as logged out.
      */
-    fun readAll(): Map<String, String> {
+    override fun readAll(): Map<String, String> {
         val aead = aead ?: return emptyMap()
         val prefs = try {
             runBlocking { dataStore.data.first() }
@@ -61,7 +70,7 @@ internal class SecureStore(context: Context) {
     }
 
     /** Atomically replaces the whole content with [values]. Throws if this cannot be done securely. */
-    fun replaceAll(values: Map<String, String>) {
+    override fun replaceAll(values: Map<String, String>) {
         if (values.isEmpty()) {
             clear()
             return

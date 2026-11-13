@@ -8,6 +8,11 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 
 - Release workflow: pushing a `vX.Y.Z` tag (or running it manually for an existing tag) builds the signed APK and AAB and publishes them with checksums and the signing certificate SHA-256. The `debug-latest` release is now labelled as a developer build.
 
+### Changed
+
+- Build toolchain cleanup: AGP built-in Kotlin and the new DSL (no `kotlin-android` plugin), AGP 9 defaults instead of the deprecated opt-out flags, Kotlin language level 2.4 instead of 2.1, `activity-compose` 1.13.0, `lifecycle-runtime-compose` 2.11.0 and the relocated `hiltViewModel` import.
+- `TokenManager` now sits on a small `CredentialStore` interface and is covered by JVM tests; tests were also added for navigation transitions and actions and for the PDF viewer components.
+
 ### Fixed
 
 - Course, section and module names show `&` instead of `&amp;`: HTML entities are now decoded in every name, not only in multi-language ones.

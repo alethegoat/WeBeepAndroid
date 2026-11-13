@@ -20,15 +20,22 @@ import kotlinx.coroutines.withContext
  * off the main thread before reading [isLoggedIn] or [getTokenSync].
  */
 @Singleton
-class TokenManager @Inject constructor(private val application: Application, @IoDispatcher private val ioDispatcher: CoroutineDispatcher) :
-    TokenProvider {
+class TokenManager internal constructor(
+    private val application: Application,
+    private val storeProvider: () -> CredentialStore,
+    private val ioDispatcher: CoroutineDispatcher
+) : TokenProvider {
+
+    @Inject
+    constructor(application: Application, @IoDispatcher ioDispatcher: CoroutineDispatcher) :
+        this(application, { SecureStore(application) }, ioDispatcher)
 
     /** Logging tag. */
     companion object {
         private const val TAG = "TokenManager"
     }
 
-    private val store: SecureStore by lazy { SecureStore(application) }
+    private val store: CredentialStore by lazy(storeProvider)
 
     private val loaded = AtomicBoolean(false)
 
