@@ -1,5 +1,6 @@
 package it.polimi.webeep.feature.auth.presentation
 
+import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -21,17 +22,25 @@ object SsoBrowser {
         "com.chrome.dev"
     )
 
-    /** Opens [url], preferring a Chrome Custom Tab and falling back to a plain browser intent. */
-    fun open(context: Context, url: String) {
+    /**
+     * Opens [url], preferring a Chrome Custom Tab and falling back to a plain browser intent.
+     * Returns false when nothing could handle the link (no browser installed), so the caller can tell the user instead of crashing.
+     */
+    fun open(context: Context, url: String): Boolean {
         val uri = Uri.parse(url)
         if (launchCustomTab(context, uri)) {
-            return
+            return true
         }
         val viewIntent = Intent(Intent.ACTION_VIEW, uri).apply {
             addCategory(Intent.CATEGORY_BROWSABLE)
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
-        context.startActivity(viewIntent)
+        return try {
+            context.startActivity(viewIntent)
+            true
+        } catch (_: ActivityNotFoundException) {
+            false
+        }
     }
 
     private fun launchCustomTab(context: Context, uri: Uri): Boolean = try {

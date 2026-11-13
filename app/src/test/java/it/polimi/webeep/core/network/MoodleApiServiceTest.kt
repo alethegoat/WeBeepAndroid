@@ -2,16 +2,13 @@ package it.polimi.webeep.core.network
 
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.okhttp.OkHttp
-import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.defaultRequest
-import io.ktor.serialization.kotlinx.json.json
 import io.mockk.every
 import io.mockk.mockk
 import it.polimi.webeep.core.common.MoodleException
 import it.polimi.webeep.core.datastore.TokenProvider
 import java.io.IOException
 import java.util.concurrent.TimeUnit
-import kotlinx.serialization.json.Json
 import okhttp3.OkHttpClient
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
@@ -141,15 +138,6 @@ class MoodleApiServiceTest {
             }
             defaultRequest {
                 url(mockWebServer.url("/").toString())
-            }
-            install(ContentNegotiation) {
-                json(
-                    Json {
-                        ignoreUnknownKeys = true
-                        isLenient = true
-                        coerceInputValues = true
-                    }
-                )
             }
         }
 

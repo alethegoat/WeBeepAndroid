@@ -151,4 +151,34 @@ class TokenInterceptorTest {
 
         verify { tokenProvider.clearSessionSync() }
     }
+
+    private fun proceededRequest(url: String): Request {
+        val sent = io.mockk.slot<Request>()
+        val chain = mockk<okhttp3.Interceptor.Chain>()
+        val request = Request.Builder()
+            .url(url)
+            .post("wsfunction=x".toRequestBody("application/x-www-form-urlencoded".toMediaType()))
+            .build()
+        every { chain.request() } returns request
+        every { chain.proceed(capture(sent)) } returns mockk(relaxed = true) { every { code } returns 200 }
+        TokenInterceptor(tokenProvider).intercept(chain)
+        return sent.captured
+    }
+
+    @Test
+    fun `never adds wstoken to a cleartext url on the trusted host`() {
+        val sent = proceededRequest("http://webeep.polimi.it/webservice/rest/server.php")
+
+        val buffer = okio.Buffer().also { sent.body!!.writeTo(it) }
+        assertFalse(buffer.readUtf8().contains("wstoken"))
+        verify(exactly = 0) { tokenProvider.getTokenSync() }
+    }
+
+    @Test
+    fun `adds wstoken to an https url on the trusted host`() {
+        val sent = proceededRequest("https://webeep.polimi.it/webservice/rest/server.php")
+
+        val buffer = okio.Buffer().also { sent.body!!.writeTo(it) }
+        assertTrue(buffer.readUtf8().contains("wstoken=test-token"))
+    }
 }

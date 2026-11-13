@@ -75,4 +75,28 @@ class PluginFileAuthInterceptorTest {
         assertEquals("existing", recorded.requestUrl?.queryParameter("token"))
         assertEquals(1, recorded.requestUrl?.queryParameterValues("token")?.size)
     }
+
+    private fun proceededUrl(url: String): okhttp3.HttpUrl {
+        val sent = io.mockk.slot<Request>()
+        val chain = mockk<okhttp3.Interceptor.Chain>()
+        every { chain.request() } returns Request.Builder().url(url).build()
+        every { chain.proceed(capture(sent)) } returns mockk(relaxed = true)
+        PluginFileAuthInterceptor(tokenProvider).intercept(chain)
+        return sent.captured.url
+    }
+
+    @Test
+    fun `never adds the token to a cleartext url on the trusted host`() {
+        val url = proceededUrl("http://webeep.polimi.it/pluginfile.php/1/file.pdf")
+
+        assertNull(url.queryParameter("token"))
+        verify(exactly = 0) { tokenProvider.getTokenSync() }
+    }
+
+    @Test
+    fun `adds the token to an https url on the trusted host`() {
+        val url = proceededUrl("https://webeep.polimi.it/pluginfile.php/1/file.pdf")
+
+        assertEquals("file-token", url.queryParameter("token"))
+    }
 }

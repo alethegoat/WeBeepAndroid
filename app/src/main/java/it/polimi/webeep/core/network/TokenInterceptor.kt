@@ -20,12 +20,17 @@ class TokenInterceptor @Inject constructor(private val tokenProvider: TokenProvi
 
     constructor(
         tokenProvider: TokenProvider,
-        trustedHost: String
+        trustedHost: String,
+        requireHttps: Boolean = false
     ) : this(tokenProvider) {
         this.trustedHost = trustedHost
+        this.requireHttps = requireHttps
     }
 
     private var trustedHost: String = MoodleFileUrlBuilder.TRUSTED_HOST
+
+    /** Defence in depth next to the network security config: the token is never added over cleartext. Tests relax it for MockWebServer. */
+    private var requireHttps: Boolean = true
 
     /** Limits and markers used to recognize an invalid-token response. */
     companion object {
@@ -40,7 +45,8 @@ class TokenInterceptor @Inject constructor(private val tokenProvider: TokenProvi
     @Suppress("ReturnCount")
     override fun intercept(chain: Interceptor.Chain): Response {
         var request = chain.request()
-        val isMoodleRest = request.url.host.equals(trustedHost, ignoreCase = true) &&
+        val isMoodleRest = (request.url.isHttps || !requireHttps) &&
+            request.url.host.equals(trustedHost, ignoreCase = true) &&
             MoodleFileUrlBuilder.isMoodleRestPath(request.url.encodedPath)
 
         if (isMoodleRest) {

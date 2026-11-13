@@ -9,9 +9,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.okhttp.OkHttp
-import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.defaultRequest
-import io.ktor.serialization.kotlinx.json.json
 import it.polimi.webeep.BuildConfig
 import it.polimi.webeep.core.common.AppDirectories
 import it.polimi.webeep.core.datastore.TokenProvider
@@ -25,7 +23,6 @@ import it.polimi.webeep.core.network.TokenInterceptor
 import java.io.File
 import java.util.concurrent.TimeUnit
 import javax.inject.Singleton
-import kotlinx.serialization.json.Json
 import okhttp3.Cache
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
@@ -114,15 +111,6 @@ object NetworkModule {
         }
         defaultRequest {
             url(BASE_URL)
-        }
-        install(ContentNegotiation) {
-            json(
-                Json {
-                    ignoreUnknownKeys = true
-                    isLenient = true
-                    coerceInputValues = true
-                }
-            )
         }
     }
 

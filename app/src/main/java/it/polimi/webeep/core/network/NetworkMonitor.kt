@@ -4,7 +4,6 @@ import android.app.Application
 import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
-import android.net.NetworkRequest
 import it.polimi.webeep.core.common.ConnectivityObserver
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -22,33 +21,22 @@ class NetworkMonitor @Inject constructor(application: Application) : Connectivit
 
     /**
      * Emits the current connectivity immediately upon subscription, then updates.
+     *
+     * Follows only the default network: a secondary network (e.g. mobile data losing validation while Wi-Fi is fine) must not flip
+     * the state. `onAvailable` is ignored because it fires before validation; `onCapabilitiesChanged` always follows it.
      */
     override val isOnline: Flow<Boolean> = callbackFlow {
         val networkCallback = object : ConnectivityManager.NetworkCallback() {
-            override fun onAvailable(network: Network) {
-                trySend(true)
-            }
-
             override fun onLost(network: Network) {
-                trySend(isCurrentlyOnline())
+                trySend(false)
             }
 
             override fun onCapabilitiesChanged(network: Network, networkCapabilities: NetworkCapabilities) {
-                val hasInternet = networkCapabilities.hasCapability(
-                    NetworkCapabilities.NET_CAPABILITY_INTERNET
-                ) &&
-                    networkCapabilities.hasCapability(
-                        NetworkCapabilities.NET_CAPABILITY_VALIDATED
-                    )
-                trySend(hasInternet)
+                trySend(networkCapabilities.isUsable())
             }
         }
 
-        val networkRequest = NetworkRequest.Builder()
-            .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
-            .build()
-
-        connectivityManager.registerNetworkCallback(networkRequest, networkCallback)
+        connectivityManager.registerDefaultNetworkCallback(networkCallback)
         trySend(isCurrentlyOnline())
 
         awaitClose {
@@ -56,14 +44,11 @@ class NetworkMonitor @Inject constructor(application: Application) : Connectivit
         }
     }.distinctUntilChanged()
 
+    private fun NetworkCapabilities.isUsable(): Boolean = hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
+        hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+
     private fun isCurrentlyOnline(): Boolean {
         val currentNetwork = connectivityManager.activeNetwork
-        val currentCapabilities = connectivityManager.getNetworkCapabilities(currentNetwork)
-        return currentCapabilities?.hasCapability(
-            NetworkCapabilities.NET_CAPABILITY_INTERNET
-        ) == true &&
-            currentCapabilities.hasCapability(
-                NetworkCapabilities.NET_CAPABILITY_VALIDATED
-            )
+        return connectivityManager.getNetworkCapabilities(currentNetwork)?.isUsable() == true
     }
 }

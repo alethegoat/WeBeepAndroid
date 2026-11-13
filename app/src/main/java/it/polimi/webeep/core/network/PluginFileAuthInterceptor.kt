@@ -13,17 +13,23 @@ class PluginFileAuthInterceptor @Inject constructor(private val tokenProvider: T
 
     constructor(
         tokenProvider: TokenProvider,
-        trustedHost: String
+        trustedHost: String,
+        requireHttps: Boolean = false
     ) : this(tokenProvider) {
         this.trustedHost = trustedHost
+        this.requireHttps = requireHttps
     }
 
     private var trustedHost: String = MoodleFileUrlBuilder.TRUSTED_HOST
 
+    /** Defence in depth next to the network security config: the token is never added over cleartext. Tests relax it for MockWebServer. */
+    private var requireHttps: Boolean = true
+
     override fun intercept(chain: Interceptor.Chain): Response {
         var request = chain.request()
         val url = request.url
-        val isPluginFile = url.host.equals(trustedHost, ignoreCase = true) &&
+        val isPluginFile = (url.isHttps || !requireHttps) &&
+            url.host.equals(trustedHost, ignoreCase = true) &&
             MoodleFileUrlBuilder.isPluginFilePath(url.encodedPath)
 
         if (isPluginFile &&
