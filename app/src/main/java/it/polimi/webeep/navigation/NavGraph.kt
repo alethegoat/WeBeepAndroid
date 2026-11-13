@@ -83,7 +83,7 @@ fun NavController.navigateToLogin() {
 }
 
 /** Replaces the login screen with the dashboard, so back never returns to it. */
-private fun NavController.navigateToDashboard() {
+internal fun NavController.navigateToDashboard() {
     navigate(Dashboard) {
         popUpTo(graph.id) { inclusive = true }
         launchSingleTop = true

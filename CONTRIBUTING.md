@@ -60,7 +60,7 @@ Summary; the full version is in [ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 See [ADR 0006](docs/adr/0006-jvm-first-testing.md) for the reasoning.
 
-- Sources: `app/src/test/java/it/polimi/webeep`, mirroring the main package tree. Instrumented tests: `app/src/androidTest` (only `TokenManager`, which needs the Keystore).
+- Sources: `app/src/test/java/it/polimi/webeep`, mirroring the main package tree. Instrumented tests: `app/src/androidTest` (only `TokenManager` on the real Keystore; its logic is also tested on the JVM against an in-memory `CredentialStore`).
 - Test names are backtick sentences: ``fun `expired token maps to session expired`()``.
 - Use hand-written fakes from `app/src/test/java/it/polimi/webeep/util/fakes` (add new ones there) rather than mocks for domain interfaces.
 - Coroutine tests use `MainDispatcherRule` (`util/MainDispatcherRule.kt`). Flows are asserted with Turbine.

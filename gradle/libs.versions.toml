@@ -11,7 +11,7 @@ securityCrypto = "1.1.0"
 tink = "1.23.0"
 navigationCompose = "2.10.2"
 hiltNavigationCompose = "1.4.0"
-lifecycleRuntimeCompose = "2.8.7"
+lifecycleRuntimeCompose = "2.11.0"
 coil = "2.7.0"
 browser = "1.10.0"
 coroutines = "1.11.0"
@@ -19,7 +19,7 @@ junit = "4.13.2"
 mockk = "1.14.11"
 turbine = "1.2.1"
 coreKtx = "1.19.1"
-activityCompose = "1.10.0"
+activityCompose = "1.13.0"
 work = "2.12.0"
 hiltWork = "1.4.0"
 ktor = "3.6.0"
@@ -60,6 +60,7 @@ compose-material-icons-extended = { group = "androidx.compose.material", name = 
 
 # Navigation
 navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigationCompose" }
+navigation-testing = { group = "androidx.navigation", name = "navigation-testing", version.ref = "navigationCompose" }
 
 # Hilt
 hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref = "hilt" }
@@ -119,7 +120,6 @@ hilt-compiler-ext = { group = "androidx.hilt", name = "hilt-compiler", version.r
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
-kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
 compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
